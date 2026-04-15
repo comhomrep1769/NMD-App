@@ -4,7 +4,17 @@ export type PageKey =
   | "dashboard"
   | "clients"
   | "quotes"
-  | "invoices";
+  | "invoices"
+  | "my-ledger";
+
+export type Role = "admin" | "employee";
+
+export type AuthUser = {
+  id: string;
+  email: string;
+  displayName: string;
+  role: Role;
+};
 
 export type Client = {
   id: string;
