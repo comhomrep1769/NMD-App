@@ -1,0 +1,394 @@
+:root {
+  --bg: #07110d;
+  --bg-soft: #0e1a15;
+  --panel: #12211a;
+  --panel-2: #182a22;
+  --border: #234137;
+  --text: #dbf7ea;
+  --muted: #95b8a9;
+  --primary: #34ff9c;
+  --primary-soft: rgba(52, 255, 156, 0.12);
+  --danger: #ff5d73;
+  --shadow: 0 0 24px rgba(52, 255, 156, 0.1);
+}
+
+:root[data-theme="light"] {
+  --bg: #f4faf6;
+  --bg-soft: #e9f5ee;
+  --panel: #ffffff;
+  --panel-2: #f1f8f3;
+  --border: #c9dfd2;
+  --text: #11231b;
+  --muted: #5e7469;
+  --primary: #0c8d52;
+  --primary-soft: rgba(12, 141, 82, 0.1);
+  --danger: #d12c45;
+  --shadow: 0 10px 30px rgba(17, 35, 27, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+  font-family: Inter, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+body {
+  min-height: 100vh;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.appShell {
+  min-height: 100vh;
+  display: flex;
+  background: linear-gradient(180deg, var(--bg) 0%, var(--bg-soft) 100%);
+}
+
+.sidebar {
+  width: 250px;
+  min-height: 100vh;
+  border-right: 1px solid var(--border);
+  background: var(--panel);
+  padding: 24px 18px;
+  display: none;
+}
+
+.sidebarLogo {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--primary);
+  margin-bottom: 24px;
+}
+
+.sidebarNav {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sidebarLink {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  padding: 12px 14px;
+  border-radius: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sidebarLinkActive {
+  background: var(--primary-soft);
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+.mainShell {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.topBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 18px 18px 10px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(8px);
+}
+
+.brandTitle {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.brandSubtitle {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.themeButton {
+  border: 1px solid var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary);
+  border-radius: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.pageWrap {
+  padding: 18px;
+  padding-bottom: 90px;
+}
+
+.pageGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: var(--shadow);
+}
+
+.panelHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.panelTitle {
+  margin: 0;
+  font-size: 22px;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+.statCard {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.statLabel {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.statValue {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.statValue.danger {
+  color: var(--danger);
+}
+
+.listCard {
+  display: grid;
+  gap: 10px;
+  color: var(--text);
+}
+
+.primaryButton,
+.secondaryButton {
+  border-radius: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+.primaryButton {
+  border: 1px solid var(--primary);
+  background: var(--primary);
+  color: #04150d;
+  font-weight: 700;
+}
+
+.secondaryButton {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+}
+
+.responsiveTableWrap {
+  overflow-x: auto;
+}
+
+.dataTable {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 700px;
+}
+
+.dataTable th,
+.dataTable td {
+  text-align: left;
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.dataTable th {
+  color: var(--muted);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.cardsGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+.quoteCard,
+.invoiceCard {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.quoteTopRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.quoteNumber {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.cardLine {
+  margin-bottom: 8px;
+  color: var(--text);
+}
+
+.buttonRow {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.statusBadge {
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.status-draft {
+  background: #7a7a7a22;
+  color: #c9c9c9;
+}
+
+.status-sent {
+  background: #4d8dff22;
+  color: #78abff;
+}
+
+.status-accepted {
+  background: #34ff9c22;
+  color: var(--primary);
+}
+
+.status-declined,
+.status-expired,
+.status-unpaid {
+  background: #ff5d7322;
+  color: var(--danger);
+}
+
+.status-paid {
+  background: #34ff9c22;
+  color: var(--primary);
+}
+
+.mobileNav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--border);
+  background: var(--panel);
+}
+
+.mobileNavLink {
+  flex: 1;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  border-radius: 12px;
+  padding: 12px 8px;
+  cursor: pointer;
+}
+
+.mobileNavLinkActive {
+  color: var(--primary);
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+@media (min-width: 768px) {
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .cardsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .pageGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .sidebar {
+    display: block;
+  }
+
+  .mobileNav {
+    display: none;
+  }
+
+  .pageWrap {
+    padding: 24px;
+  }
+
+  .topBar {
+    padding: 20px 24px 12px;
+  }
+
+  .cardsGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .statsGrid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
