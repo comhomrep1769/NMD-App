@@ -5,6 +5,8 @@ export type PageKey =
   | "clients"
   | "quotes"
   | "invoices"
+  | "schedule"
+  | "employees"
   | "my-ledger";
 
 export type Role = "admin" | "employee";
@@ -45,4 +47,32 @@ export type Invoice = {
   jobName: string;
   total: number;
   status: InvoiceStatus;
+};
+
+export type Employee = {
+  id: string;
+  email: string;
+  displayName: string;
+  role: Role;
+  createdAt: string;
+};
+
+export type JobStatus = "scheduled" | "in_progress" | "completed" | "cancelled";
+
+export type AssignedEmployee = {
+  id: string;
+  displayName: string;
+  email: string;
+};
+
+export type Job = {
+  id: string;
+  title: string;
+  client_name: string;
+  address: string;
+  start_time: string;
+  end_time: string;
+  status: JobStatus;
+  notes: string | null;
+  assigned_employees: AssignedEmployee[];
 };
