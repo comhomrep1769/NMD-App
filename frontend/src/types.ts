@@ -7,6 +7,7 @@ export type PageKey =
   | "invoices"
   | "schedule"
   | "employees"
+  | "chat"
   | "my-ledger";
 
 export type Role = "admin" | "employee";
@@ -75,4 +76,30 @@ export type Job = {
   status: JobStatus;
   notes: string | null;
   assigned_employees: AssignedEmployee[];
+};
+
+export type ChatUser = {
+  id: string;
+  email: string;
+  displayName: string;
+  role: Role;
+};
+
+export type Conversation = {
+  id: string;
+  created_at: string;
+  members: ChatUser[];
+  last_message: string | null;
+  last_message_at: string | null;
+};
+
+export type ChatMessage = {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  body: string;
+  created_at: string;
+  sender_display_name: string;
+  sender_email: string;
+  sender_role: Role;
 };
