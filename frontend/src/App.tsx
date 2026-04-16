@@ -11,6 +11,7 @@ import LoginPage from "./pages/LoginPage";
 import MyLedgerPage from "./pages/MyLedgerPage";
 import EmployeesPage from "./pages/EmployeesPage";
 import SchedulePage from "./pages/SchedulePage";
+import ChatPage from "./pages/ChatPage";
 import { apiFetch } from "./api";
 
 const demoClients: Client[] = [
@@ -165,6 +166,10 @@ export default function App() {
 
           {page === "employees" && user.role === "admin" && (
             <EmployeesPage />
+          )}
+
+          {page === "chat" && (
+            <ChatPage currentUser={user} />
           )}
 
           {page === "my-ledger" && user.role === "employee" && (
