@@ -1,19 +1,28 @@
-import type { PageKey } from "../types";
+import type { PageKey, Role } from "../types";
 
-const items: { key: PageKey; label: string }[] = [
+const adminItems: { key: PageKey; label: string }[] = [
   { key: "dashboard", label: "Dashboard" },
   { key: "clients", label: "Clients" },
   { key: "quotes", label: "Quotes" },
   { key: "invoices", label: "Invoices" }
 ];
 
+const employeeItems: { key: PageKey; label: string }[] = [
+  { key: "dashboard", label: "Dashboard" },
+  { key: "my-ledger", label: "My Ledger" }
+];
+
 export default function Sidebar({
   currentPage,
-  onNavigate
+  onNavigate,
+  role
 }: {
   currentPage: PageKey;
   onNavigate: (page: PageKey) => void;
+  role: Role;
 }) {
+  const items = role === "admin" ? adminItems : employeeItems;
+
   return (
     <aside className="sidebar">
       <div className="sidebarLogo">NMD</div>
