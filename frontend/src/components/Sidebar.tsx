@@ -6,13 +6,15 @@ const adminItems: { key: PageKey; label: string }[] = [
   { key: "quotes", label: "Quotes" },
   { key: "invoices", label: "Invoices" },
   { key: "schedule", label: "Schedule" },
-  { key: "employees", label: "Employees" }
+  { key: "employees", label: "Employees" },
+  { key: "chat", label: "Chat" }
 ];
 
 const employeeItems: { key: PageKey; label: string }[] = [
   { key: "dashboard", label: "Dashboard" },
   { key: "schedule", label: "My Schedule" },
-  { key: "my-ledger", label: "My Ledger" }
+  { key: "my-ledger", label: "My Ledger" },
+  { key: "chat", label: "Chat" }
 ];
 
 export default function Sidebar({
