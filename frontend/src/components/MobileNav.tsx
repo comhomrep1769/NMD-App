@@ -1,19 +1,28 @@
-import type { PageKey } from "../types";
+import type { PageKey, Role } from "../types";
 
-const items: { key: PageKey; label: string }[] = [
+const adminItems: { key: PageKey; label: string }[] = [
   { key: "dashboard", label: "Dash" },
   { key: "clients", label: "Clients" },
   { key: "quotes", label: "Quotes" },
   { key: "invoices", label: "Invoices" }
 ];
 
+const employeeItems: { key: PageKey; label: string }[] = [
+  { key: "dashboard", label: "Dash" },
+  { key: "my-ledger", label: "Ledger" }
+];
+
 export default function MobileNav({
   currentPage,
-  onNavigate
+  onNavigate,
+  role
 }: {
   currentPage: PageKey;
   onNavigate: (page: PageKey) => void;
+  role: Role;
 }) {
+  const items = role === "admin" ? adminItems : employeeItems;
+
   return (
     <nav className="mobileNav">
       {items.map((item) => (
