@@ -4,11 +4,14 @@ const adminItems: { key: PageKey; label: string }[] = [
   { key: "dashboard", label: "Dashboard" },
   { key: "clients", label: "Clients" },
   { key: "quotes", label: "Quotes" },
-  { key: "invoices", label: "Invoices" }
+  { key: "invoices", label: "Invoices" },
+  { key: "schedule", label: "Schedule" },
+  { key: "employees", label: "Employees" }
 ];
 
 const employeeItems: { key: PageKey; label: string }[] = [
   { key: "dashboard", label: "Dashboard" },
+  { key: "schedule", label: "My Schedule" },
   { key: "my-ledger", label: "My Ledger" }
 ];
 
