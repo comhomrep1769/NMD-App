@@ -1,24 +1,34 @@
-import type { ThemeMode } from "../types";
+import type { AuthUser, ThemeMode } from "../types";
 
 export default function Header({
   theme,
-  onToggleTheme
+  onToggleTheme,
+  user,
+  onLogout
 }: {
   theme: ThemeMode;
   onToggleTheme: () => void;
+  user: AuthUser;
+  onLogout: () => void;
 }) {
   return (
     <header className="topBar">
       <div>
         <div className="brandTitle">NMD App</div>
         <div className="brandSubtitle">
-          Quotes, invoices, scheduling, employees
+          {user.role === "admin" ? "Admin Portal" : "Employee Portal"} • {user.displayName}
         </div>
       </div>
 
-      <button className="themeButton" onClick={onToggleTheme}>
-        {theme === "dark" ? "Light Mode" : "Dark Mode"}
-      </button>
+      <div className="topBarActions">
+        <button className="themeButton" onClick={onToggleTheme}>
+          {theme === "dark" ? "Light Mode" : "Dark Mode"}
+        </button>
+
+        <button className="secondaryButton" onClick={onLogout}>
+          Logout
+        </button>
+      </div>
     </header>
   );
 }
