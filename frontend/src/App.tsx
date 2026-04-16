@@ -1,5 +1,5 @@
 import React from "react";
-import type { Client, Invoice, PageKey, Quote, ThemeMode } from "./types";
+import type { AuthUser, Client, Invoice, PageKey, Quote, ThemeMode } from "./types";
 import Header from "./components/Header";
 import Sidebar from "./components/Sidebar";
 import MobileNav from "./components/MobileNav";
@@ -7,6 +7,9 @@ import DashboardPage from "./pages/DashboardPage";
 import ClientsPage from "./pages/ClientsPage";
 import QuotesPage from "./pages/QuotesPage";
 import InvoicesPage from "./pages/InvoicesPage";
+import LoginPage from "./pages/LoginPage";
+import MyLedgerPage from "./pages/MyLedgerPage";
+import { apiFetch } from "./api";
 
 const demoClients: Client[] = [
   {
@@ -72,6 +75,9 @@ export default function App() {
     return saved === "light" ? "light" : "dark";
   });
 
+  const [user, setUser] = React.useState<AuthUser | null>(null);
+  const [authChecked, setAuthChecked] = React.useState(false);
+
   const [clients] = React.useState<Client[]>(demoClients);
   const [quotes] = React.useState<Quote[]>(demoQuotes);
   const [invoices] = React.useState<Invoice[]>(demoInvoices);
@@ -81,16 +87,57 @@ export default function App() {
     localStorage.setItem("nmd-theme", theme);
   }, [theme]);
 
+  React.useEffect(() => {
+    const token = localStorage.getItem("nmd-token");
+    if (!token) {
+      setAuthChecked(true);
+      return;
+    }
+
+    apiFetch<{ user: AuthUser }>("/api/auth/me")
+      .then((data) => {
+        setUser(data.user);
+        if (data.user.role === "employee") {
+          setPage("my-ledger");
+        }
+      })
+      .catch(() => {
+        localStorage.removeItem("nmd-token");
+        setUser(null);
+      })
+      .finally(() => setAuthChecked(true));
+  }, []);
+
+  const handleLogin = (token: string, loggedInUser: AuthUser) => {
+    localStorage.setItem("nmd-token", token);
+    setUser(loggedInUser);
+    setPage(loggedInUser.role === "admin" ? "dashboard" : "my-ledger");
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("nmd-token");
+    setUser(null);
+    setPage("dashboard");
+  };
+
+  if (!authChecked) {
+    return <div className="loadingScreen">Loading...</div>;
+  }
+
+  if (!user) {
+    return <LoginPage onLogin={handleLogin} />;
+  }
+
   return (
     <div className="appShell">
-      <Sidebar currentPage={page} onNavigate={setPage} />
+      <Sidebar currentPage={page} onNavigate={setPage} role={user.role} />
 
       <div className="mainShell">
         <Header
           theme={theme}
-          onToggleTheme={() =>
-            setTheme((prev) => (prev === "dark" ? "light" : "dark"))
-          }
+          onToggleTheme={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}
+          user={user}
+          onLogout={handleLogout}
         />
 
         <main className="pageWrap">
@@ -98,14 +145,24 @@ export default function App() {
             <DashboardPage quotes={quotes} invoices={invoices} />
           )}
 
-          {page === "clients" && <ClientsPage clients={clients} />}
+          {page === "clients" && user.role === "admin" && (
+            <ClientsPage clients={clients} />
+          )}
 
-          {page === "quotes" && <QuotesPage quotes={quotes} />}
+          {page === "quotes" && user.role === "admin" && (
+            <QuotesPage quotes={quotes} />
+          )}
 
-          {page === "invoices" && <InvoicesPage invoices={invoices} />}
+          {page === "invoices" && user.role === "admin" && (
+            <InvoicesPage invoices={invoices} />
+          )}
+
+          {page === "my-ledger" && user.role === "employee" && (
+            <MyLedgerPage />
+          )}
         </main>
 
-        <MobileNav currentPage={page} onNavigate={setPage} />
+        <MobileNav currentPage={page} onNavigate={setPage} role={user.role} />
       </div>
     </div>
   );
