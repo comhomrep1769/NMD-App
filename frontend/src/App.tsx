@@ -9,6 +9,8 @@ import QuotesPage from "./pages/QuotesPage";
 import InvoicesPage from "./pages/InvoicesPage";
 import LoginPage from "./pages/LoginPage";
 import MyLedgerPage from "./pages/MyLedgerPage";
+import EmployeesPage from "./pages/EmployeesPage";
+import SchedulePage from "./pages/SchedulePage";
 import { apiFetch } from "./api";
 
 const demoClients: Client[] = [
@@ -155,6 +157,14 @@ export default function App() {
 
           {page === "invoices" && user.role === "admin" && (
             <InvoicesPage invoices={invoices} />
+          )}
+
+          {page === "schedule" && (
+            <SchedulePage role={user.role} />
+          )}
+
+          {page === "employees" && user.role === "admin" && (
+            <EmployeesPage />
           )}
 
           {page === "my-ledger" && user.role === "employee" && (
