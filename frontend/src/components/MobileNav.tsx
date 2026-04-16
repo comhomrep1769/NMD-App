@@ -2,13 +2,14 @@ import type { PageKey, Role } from "../types";
 
 const adminItems: { key: PageKey; label: string }[] = [
   { key: "dashboard", label: "Dash" },
-  { key: "clients", label: "Clients" },
-  { key: "quotes", label: "Quotes" },
+  { key: "schedule", label: "Schedule" },
+  { key: "employees", label: "Employees" },
   { key: "invoices", label: "Invoices" }
 ];
 
 const employeeItems: { key: PageKey; label: string }[] = [
   { key: "dashboard", label: "Dash" },
+  { key: "schedule", label: "Schedule" },
   { key: "my-ledger", label: "Ledger" }
 ];
 
