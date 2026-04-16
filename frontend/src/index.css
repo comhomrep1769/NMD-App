@@ -442,3 +442,50 @@ textarea {
   font-size: 24px;
   color: var(--primary);
 }
+.formGrid {
+  display: grid;
+  gap: 12px;
+}
+
+.assignBox {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+  background: var(--panel-2);
+}
+
+.assignTitle {
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.assignList {
+  display: grid;
+  gap: 8px;
+}
+
+.assignItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-scheduled {
+  background: #4d8dff22;
+  color: #78abff;
+}
+
+.status-in_progress {
+  background: #ffb84d22;
+  color: #ffbf66;
+}
+
+.status-completed {
+  background: #34ff9c22;
+  color: var(--primary);
+}
+
+.status-cancelled {
+  background: #ff5d7322;
+  color: var(--danger);
+}
