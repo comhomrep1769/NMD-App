@@ -153,7 +153,7 @@ export default function App() {
 )}
 
           {page === "quotes" && user.role === "admin" && (
-            <QuotesPage quotes={quotes} />
+            <QuotesPage />
           )}
 
           {page === "invoices" && user.role === "admin" && (
