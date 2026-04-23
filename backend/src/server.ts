@@ -9,6 +9,7 @@ import employeeRoutes from "./routes/employees.js";
 import jobsRoutes from "./routes/jobs.js";
 import ledgerRoutes from "./routes/ledger.js";
 import chatRoutes from "./routes/chat.js";
+import clientRoutes from "./routes/clients.js";
 
 const app = express();
 
@@ -39,6 +40,7 @@ app.use("/api/employees", employeeRoutes);
 app.use("/api/jobs", jobsRoutes);
 app.use("/api/ledger", ledgerRoutes);
 app.use("/api/chat", chatRoutes);
+app.use("/api/clients", clientRoutes);
 
 const port = Number(process.env.PORT || 10000);
 
