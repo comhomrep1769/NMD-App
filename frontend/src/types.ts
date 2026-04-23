@@ -44,10 +44,16 @@ export type InvoiceStatus = "paid" | "unpaid";
 export type Invoice = {
   id: string;
   invoiceNumber: number;
+  clientId?: string | null;
   clientName: string;
   jobName: string;
   total: number;
   status: InvoiceStatus;
+  jobId?: string | null;
+  jobTitle?: string | null;
+  assignedUserId?: string | null;
+  assignedEmployeeName?: string | null;
+  createdAt?: string;
 };
 
 export type Employee = {
