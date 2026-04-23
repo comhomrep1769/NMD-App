@@ -148,9 +148,9 @@ export default function App() {
             <DashboardPage quotes={quotes} invoices={invoices} />
           )}
 
-          {page === "clients" && user.role === "admin" && (
-            <ClientsPage clients={clients} />
-          )}
+        {page === "clients" && user.role === "admin" && (
+  <ClientsPage />
+)}
 
           {page === "quotes" && user.role === "admin" && (
             <QuotesPage quotes={quotes} />
