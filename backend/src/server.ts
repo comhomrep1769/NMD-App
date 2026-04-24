@@ -12,6 +12,7 @@ import chatRoutes from "./routes/chat.js";
 import clientRoutes from "./routes/clients.js";
 import quoteRoutes from "./routes/quotes.js";
 import invoiceRoutes from "./routes/invoices.js";
+import paymentRoutes from "./routes/payments.js";
 
 const app = express();
 
@@ -45,6 +46,7 @@ app.use("/api/chat", chatRoutes);
 app.use("/api/clients", clientRoutes);
 app.use("/api/quotes", quoteRoutes);
 app.use("/api/invoices", invoiceRoutes);
+app.use("/api/payments", paymentRoutes);
 
 const port = Number(process.env.PORT || 10000);
 
