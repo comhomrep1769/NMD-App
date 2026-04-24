@@ -5,11 +5,57 @@ import { requireAuth, requireRole } from "../middleware/auth.js";
 
 const router = Router();
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  console.warn("STRIPE_SECRET_KEY is not set");
-}
-
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
+
+router.post("/stripe-webhook", async (req, res) => {
+  const sig = req.headers["stripe-signature"];
+
+  if (!sig || !process.env.STRIPE_WEBHOOK_SECRET) {
+    return res.status(400).send("Missing Stripe signature or webhook secret");
+  }
+
+  let event: Stripe.Event;
+
+  try {
+    event = stripe.webhooks.constructEvent(
+      req.body,
+      sig,
+      process.env.STRIPE_WEBHOOK_SECRET
+    );
+  } catch (err) {
+    console.error("Stripe webhook signature error:", err);
+    return res.status(400).send("Webhook signature failed");
+  }
+
+  try {
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object as Stripe.Checkout.Session;
+
+      const invoiceId =
+        session.metadata?.invoiceId ||
+        session.payment_intent?.toString();
+
+      if (session.metadata?.invoiceId) {
+        await pool.query(
+          `
+          UPDATE invoices
+          SET
+            status = 'paid',
+            payment_status = 'paid',
+            stripe_checkout_session_id = $2
+          WHERE id = $1
+          `,
+          [session.metadata.invoiceId, session.id]
+        );
+      }
+    }
+
+    res.json({ received: true });
+  } catch (error) {
+    console.error("Stripe webhook processing error:", error);
+    res.status(500).send("Webhook processing failed");
+  }
+});
 
 router.post(
   "/invoices/:invoiceId/create-stripe-link",
@@ -66,13 +112,6 @@ router.post(
             quantity: 1
           }
         ],
-        payment_intent_data: {
-          metadata: {
-            invoiceId: invoice.id,
-            invoiceNumber: String(invoice.invoice_number),
-            source: "nmd_app"
-          }
-        },
         metadata: {
           invoiceId: invoice.id,
           invoiceNumber: String(invoice.invoice_number),
