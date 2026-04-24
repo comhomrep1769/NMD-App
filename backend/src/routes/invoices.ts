@@ -18,6 +18,12 @@ router.get("/", requireAuth, async (_req, res) => {
         i.job_id,
         i.assigned_user_id,
         i.created_at,
+        i.payment_provider,
+        i.payment_link_id,
+        i.payment_link_url,
+        i.payment_status,
+        i.payment_created_at,
+        i.stripe_checkout_session_id,
         u.display_name AS assigned_employee_name,
         j.title AS job_title
       FROM invoices i
@@ -39,7 +45,13 @@ router.get("/", requireAuth, async (_req, res) => {
         jobTitle: r.job_title,
         assignedUserId: r.assigned_user_id,
         assignedEmployeeName: r.assigned_employee_name,
-        createdAt: r.created_at
+        createdAt: r.created_at,
+        paymentProvider: r.payment_provider,
+        paymentLinkId: r.payment_link_id,
+        paymentLinkUrl: r.payment_link_url,
+        paymentStatus: r.payment_status,
+        paymentCreatedAt: r.payment_created_at,
+        stripeCheckoutSessionId: r.stripe_checkout_session_id
       }))
     });
   } catch (error) {
@@ -72,7 +84,9 @@ router.post("/", requireAuth, requireRole("admin"), async (req, res) => {
         ($1, $2, $3, $4, $5, $6, $7)
       RETURNING
         id, invoice_number, client_id, client_name, job_name, total, status,
-        job_id, assigned_user_id, created_at
+        job_id, assigned_user_id, created_at,
+        payment_provider, payment_link_id, payment_link_url, payment_status,
+        payment_created_at, stripe_checkout_session_id
       `,
       [
         clientId || null,
@@ -98,7 +112,13 @@ router.post("/", requireAuth, requireRole("admin"), async (req, res) => {
         status: r.status,
         jobId: r.job_id,
         assignedUserId: r.assigned_user_id,
-        createdAt: r.created_at
+        createdAt: r.created_at,
+        paymentProvider: r.payment_provider,
+        paymentLinkId: r.payment_link_id,
+        paymentLinkUrl: r.payment_link_url,
+        paymentStatus: r.payment_status,
+        paymentCreatedAt: r.payment_created_at,
+        stripeCheckoutSessionId: r.stripe_checkout_session_id
       }
     });
   } catch (error) {
@@ -134,7 +154,9 @@ router.patch("/:invoiceId", requireAuth, requireRole("admin"), async (req, res) 
       WHERE id = $1
       RETURNING
         id, invoice_number, client_id, client_name, job_name, total, status,
-        job_id, assigned_user_id, created_at
+        job_id, assigned_user_id, created_at,
+        payment_provider, payment_link_id, payment_link_url, payment_status,
+        payment_created_at, stripe_checkout_session_id
       `,
       [
         invoiceId,
@@ -165,7 +187,13 @@ router.patch("/:invoiceId", requireAuth, requireRole("admin"), async (req, res) 
         status: r.status,
         jobId: r.job_id,
         assignedUserId: r.assigned_user_id,
-        createdAt: r.created_at
+        createdAt: r.created_at,
+        paymentProvider: r.payment_provider,
+        paymentLinkId: r.payment_link_id,
+        paymentLinkUrl: r.payment_link_url,
+        paymentStatus: r.payment_status,
+        paymentCreatedAt: r.payment_created_at,
+        stripeCheckoutSessionId: r.stripe_checkout_session_id
       }
     });
   } catch (error) {
