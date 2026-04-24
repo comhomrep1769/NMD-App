@@ -157,7 +157,7 @@ export default function App() {
           )}
 
           {page === "invoices" && user.role === "admin" && (
-            <InvoicesPage invoices={invoices} />
+            <InvoicesPage />
           )}
 
           {page === "schedule" && (
