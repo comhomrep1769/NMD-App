@@ -54,6 +54,13 @@ export type Invoice = {
   assignedUserId?: string | null;
   assignedEmployeeName?: string | null;
   createdAt?: string;
+
+  paymentProvider?: string | null;
+  paymentLinkId?: string | null;
+  paymentLinkUrl?: string | null;
+  paymentStatus?: "unpaid" | "link_created" | "paid" | "expired";
+  paymentCreatedAt?: string | null;
+  stripeCheckoutSessionId?: string | null;
 };
 
 export type Employee = {
