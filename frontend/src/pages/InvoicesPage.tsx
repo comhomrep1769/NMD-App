@@ -134,27 +134,27 @@ export default function InvoicesPage() {
   };
 
   const createPaymentLink = async (invoiceId: string) => {
-  try {
-    const data = await apiFetch<{ paymentLinkUrl: string }>(
-      `/api/payments/invoices/${invoiceId}/create-stripe-link`,
-      { method: "POST" }
-    );
+    try {
+      const data = await apiFetch<{ paymentLinkUrl: string }>(
+        `/api/payments/invoices/${invoiceId}/create-stripe-link`,
+        { method: "POST" }
+      );
 
-    window.open(data.paymentLinkUrl, "_blank");
-    await loadData();
-  } catch (err) {
-    setError(err instanceof Error ? err.message : "Failed to create payment link");
-  }
-};
+      window.open(data.paymentLinkUrl, "_blank");
+      await loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create payment link");
+    }
+  };
 
-const copyPaymentLink = async (url: string) => {
-  try {
-    await navigator.clipboard.writeText(url);
-    alert("Payment link copied.");
-  } catch {
-    alert("Could not copy link.");
-  }
-};
+  const copyPaymentLink = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      alert("Payment link copied.");
+    } catch {
+      alert("Could not copy link.");
+    }
+  };
 
   return (
     <div className="pageGrid">
@@ -257,6 +257,10 @@ const copyPaymentLink = async (url: string) => {
                 <div className="cardLine"><strong>Total:</strong> ${invoice.total.toFixed(2)}</div>
                 <div className="cardLine"><strong>Scheduled Job:</strong> {invoice.jobTitle || "—"}</div>
                 <div className="cardLine"><strong>Employee Credit:</strong> {invoice.assignedEmployeeName || "—"}</div>
+                <div className="cardLine">
+                  <strong>Payment:</strong>{" "}
+                  {invoice.paymentLinkUrl ? "Stripe link created" : "No payment link"}
+                </div>
 
                 <div className="buttonRow">
                   <button className="secondaryButton" onClick={() => startEdit(invoice)}>
@@ -268,28 +272,28 @@ const copyPaymentLink = async (url: string) => {
                   </button>
 
                   {invoice.status === "unpaid" && !invoice.paymentLinkUrl && (
-  <button className="primaryButton" onClick={() => createPaymentLink(invoice.id)}>
-    Create Payment Link
-  </button>
-)}
+                    <button className="primaryButton" onClick={() => createPaymentLink(invoice.id)}>
+                      Create Payment Link
+                    </button>
+                  )}
 
-{invoice.status === "unpaid" && invoice.paymentLinkUrl && (
-  <>
-    <button
-      className="primaryButton"
-      onClick={() => window.open(invoice.paymentLinkUrl || "", "_blank")}
-    >
-      Make Payment
-    </button>
+                  {invoice.status === "unpaid" && invoice.paymentLinkUrl && (
+                    <>
+                      <button
+                        className="primaryButton"
+                        onClick={() => window.open(invoice.paymentLinkUrl || "", "_blank")}
+                      >
+                        Make Payment
+                      </button>
 
-    <button
-      className="secondaryButton"
-      onClick={() => copyPaymentLink(invoice.paymentLinkUrl || "")}
-    >
-      Copy Link
-    </button>
-  </>
-)}
+                      <button
+                        className="secondaryButton"
+                        onClick={() => copyPaymentLink(invoice.paymentLinkUrl || "")}
+                      >
+                        Copy Link
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             ))}
