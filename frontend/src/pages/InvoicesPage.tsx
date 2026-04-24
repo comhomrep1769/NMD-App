@@ -133,6 +133,29 @@ export default function InvoicesPage() {
     }
   };
 
+  const createPaymentLink = async (invoiceId: string) => {
+  try {
+    const data = await apiFetch<{ paymentLinkUrl: string }>(
+      `/api/payments/invoices/${invoiceId}/create-stripe-link`,
+      { method: "POST" }
+    );
+
+    window.open(data.paymentLinkUrl, "_blank");
+    await loadData();
+  } catch (err) {
+    setError(err instanceof Error ? err.message : "Failed to create payment link");
+  }
+};
+
+const copyPaymentLink = async (url: string) => {
+  try {
+    await navigator.clipboard.writeText(url);
+    alert("Payment link copied.");
+  } catch {
+    alert("Could not copy link.");
+  }
+};
+
   return (
     <div className="pageGrid">
       <section className="panel">
@@ -244,11 +267,29 @@ export default function InvoicesPage() {
                     Delete
                   </button>
 
-                  {invoice.status === "unpaid" && (
-                    <button className="primaryButton">
-                      Create Payment Link
-                    </button>
-                  )}
+                  {invoice.status === "unpaid" && !invoice.paymentLinkUrl && (
+  <button className="primaryButton" onClick={() => createPaymentLink(invoice.id)}>
+    Create Payment Link
+  </button>
+)}
+
+{invoice.status === "unpaid" && invoice.paymentLinkUrl && (
+  <>
+    <button
+      className="primaryButton"
+      onClick={() => window.open(invoice.paymentLinkUrl || "", "_blank")}
+    >
+      Make Payment
+    </button>
+
+    <button
+      className="secondaryButton"
+      onClick={() => copyPaymentLink(invoice.paymentLinkUrl || "")}
+    >
+      Copy Link
+    </button>
+  </>
+)}
                 </div>
               </div>
             ))}
