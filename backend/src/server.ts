@@ -4,6 +4,7 @@ dotenv.config();
 import express from "express";
 import cors from "cors";
 import { pool } from "./db.js";
+
 import authRoutes from "./routes/auth.js";
 import employeeRoutes from "./routes/employees.js";
 import jobsRoutes from "./routes/jobs.js";
@@ -21,6 +22,17 @@ app.use(
     origin: process.env.FRONTEND_URL,
     credentials: false
   })
+);
+
+/**
+ * IMPORTANT:
+ * Stripe webhook must use express.raw BEFORE express.json.
+ * Stripe verifies the exact raw request body.
+ */
+app.post(
+  "/api/payments/stripe-webhook",
+  express.raw({ type: "application/json" }),
+  paymentRoutes
 );
 
 app.use(express.json());
