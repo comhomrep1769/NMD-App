@@ -16,6 +16,7 @@ function getStripe() {
 }
 
 router.post("/stripe-webhook", async (req, res) => {
+  const stripe = getStripe();
   const sig = req.headers["stripe-signature"];
 
   if (!sig || !process.env.STRIPE_WEBHOOK_SECRET) {
@@ -39,10 +40,6 @@ router.post("/stripe-webhook", async (req, res) => {
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
 
-      const invoiceId =
-        session.metadata?.invoiceId ||
-        session.payment_intent?.toString();
-
       if (session.metadata?.invoiceId) {
         await pool.query(
           `
@@ -58,10 +55,10 @@ router.post("/stripe-webhook", async (req, res) => {
       }
     }
 
-    res.json({ received: true });
+    return res.json({ received: true });
   } catch (error) {
     console.error("Stripe webhook processing error:", error);
-    res.status(500).send("Webhook processing failed");
+    return res.status(500).send("Webhook processing failed");
   }
 });
 
@@ -70,6 +67,8 @@ router.post(
   requireAuth,
   requireRole("admin"),
   async (req, res) => {
+    const stripe = getStripe();
+
     try {
       const { invoiceId } = req.params;
 
