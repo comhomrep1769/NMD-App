@@ -2,11 +2,60 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>NMD App</title>
+
+    <!-- Mobile scaling -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+
+    <!-- Browser Title -->
+    <title>NMD Pressure Washing</title>
+
+    <!-- App Theme -->
+    <meta name="theme-color" content="#007BFF" />
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+
+    <!-- Browser favicon -->
+    <link
+      rel="icon"
+      type="image/png"
+      href="/icons/nmd-app-icon.png"
+    />
+
+    <!-- iPhone home screen icon -->
+    <link
+      rel="apple-touch-icon"
+      href="/icons/nmd-app-icon.png"
+    />
+
+    <!-- iOS standalone app settings -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta
+      name="apple-mobile-web-app-title"
+      content="NMD"
+    />
+
+    <!-- Android standalone app settings -->
+    <meta name="mobile-web-app-capable" content="yes" />
+
+    <!-- Optional description -->
+    <meta
+      name="description"
+      content="NMD Pressure Washing employee, admin, scheduling, quotes, invoices, and client management platform."
+    />
   </head>
+
   <body>
     <div id="root"></div>
+
+    <!-- React/Vite Entry -->
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
