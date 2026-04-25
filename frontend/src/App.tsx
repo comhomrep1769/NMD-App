@@ -14,6 +14,7 @@ import SchedulePage from "./pages/SchedulePage";
 import ChatPage from "./pages/ChatPage";
 import AvailabilityPage from "./pages/AvailabilityPage";
 import TipsPage from "./pages/TipsPage";
+import PayrollPage from "./pages/PayrollPage";
 import { apiFetch } from "./api";
 
 const demoClients: Client[] = [];
@@ -127,6 +128,10 @@ export default function App() {
 
           {page === "tips" && (
             <TipsPage role={user.role} />
+          )}
+
+          {page === "payroll" && user.role === "admin" && (
+            <PayrollPage />
           )}
 
           {page === "my-ledger" && user.role === "employee" && (
