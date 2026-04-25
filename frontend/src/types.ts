@@ -10,6 +10,7 @@ export type PageKey =
   | "chat"
   | "availability"
   | "tips"
+  | "payroll"
   | "my-ledger";
 
 export type Role = "admin" | "employee";
@@ -130,4 +131,26 @@ export type TipNote = {
   created_by?: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type PayRunItem = {
+  id?: string;
+  userId: string;
+  displayName: string;
+  email: string;
+  amount: number;
+  notes?: string | null;
+};
+
+export type PayRun = {
+  id: string;
+  periodStart: string;
+  periodEnd: string;
+  status: "draft" | "approved" | "paid_in_roll";
+  notes?: string | null;
+  approvedAt?: string | null;
+  paidAt?: string | null;
+  createdBy?: string | null;
+  createdAt: string;
+  items: PayRunItem[];
 };
