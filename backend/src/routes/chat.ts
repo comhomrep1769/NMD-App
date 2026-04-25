@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { pool } from "../db.js";
 import { requireAuth } from "../middleware/auth.js";
+import { sendPushToUser } from "../services/push.js";
 
 const router = Router();
 
@@ -146,8 +147,7 @@ router.post("/conversations", requireAuth, async (req, res) => {
       await client.query("BEGIN");
 
       const conversation = await client.query(
-        `INSERT INTO conversations DEFAULT VALUES RETURNING id`,
-        []
+        `INSERT INTO conversations DEFAULT VALUES RETURNING id`
       );
 
       const conversationId = conversation.rows[0].id;
@@ -161,6 +161,7 @@ router.post("/conversations", requireAuth, async (req, res) => {
       );
 
       await client.query("COMMIT");
+
       return res.status(201).json({ conversationId });
     } catch (err) {
       await client.query("ROLLBACK");
@@ -241,14 +242,34 @@ router.post("/conversations/:conversationId/messages", requireAuth, async (req, 
       return res.status(403).json({ error: "Not a member of this conversation" });
     }
 
+    const cleanBody = body.trim();
+
     const result = await pool.query(
       `
       INSERT INTO messages (conversation_id, sender_id, body)
       VALUES ($1, $2, $3)
       RETURNING id, conversation_id, sender_id, body, created_at
       `,
-      [conversationId, req.user!.id, body.trim()]
+      [conversationId, req.user!.id, cleanBody]
     );
+
+    const members = await pool.query(
+      `
+      SELECT user_id
+      FROM conversation_members
+      WHERE conversation_id = $1
+        AND user_id <> $2
+      `,
+      [conversationId, req.user!.id]
+    );
+
+    for (const member of members.rows) {
+      await sendPushToUser(member.user_id, {
+        title: "New NMD Chat Message",
+        body: cleanBody,
+        url: "/"
+      });
+    }
 
     return res.status(201).json({ message: result.rows[0] });
   } catch (error) {
