@@ -4,14 +4,14 @@ const adminItems: { key: PageKey; label: string }[] = [
   { key: "dashboard", label: "Dash" },
   { key: "schedule", label: "Schedule" },
   { key: "chat", label: "Chat" },
-  { key: "employees", label: "Employees" }
+  { key: "tips", label: "Tips" }
 ];
 
 const employeeItems: { key: PageKey; label: string }[] = [
   { key: "dashboard", label: "Dash" },
   { key: "schedule", label: "Schedule" },
   { key: "chat", label: "Chat" },
-  { key: "my-ledger", label: "Ledger" }
+  { key: "tips", label: "Tips" }
 ];
 
 export default function MobileNav({
