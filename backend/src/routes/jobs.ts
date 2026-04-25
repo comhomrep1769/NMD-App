@@ -81,6 +81,48 @@ router.get("/", requireAuth, async (req, res) => {
   }
 });
 
+router.post("/check-conflicts", requireAuth, requireRole("admin"), async (req, res) => {
+  try {
+    const { startTime, endTime, assignedUserIds } = req.body as {
+      startTime?: string;
+      endTime?: string;
+      assignedUserIds?: string[];
+    };
+
+    if (!startTime || !endTime || !Array.isArray(assignedUserIds)) {
+      return res.status(400).json({ error: "Missing conflict check fields" });
+    }
+
+    if (assignedUserIds.length === 0) {
+      return res.json({ conflicts: [] });
+    }
+
+    const result = await pool.query(
+      `
+      SELECT
+        a.id,
+        a.user_id,
+        u.display_name,
+        a.start_time,
+        a.end_time,
+        a.reason
+      FROM availability a
+      JOIN users u ON u.id = a.user_id
+      WHERE a.user_id = ANY($1::uuid[])
+        AND a.start_time < $3
+        AND a.end_time > $2
+      ORDER BY a.start_time ASC
+      `,
+      [assignedUserIds, startTime, endTime]
+    );
+
+    return res.json({ conflicts: result.rows });
+  } catch (error) {
+    console.error("job conflict check error", error);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
 router.post("/", requireAuth, requireRole("admin"), async (req, res) => {
   try {
     const {
@@ -91,7 +133,8 @@ router.post("/", requireAuth, requireRole("admin"), async (req, res) => {
       endTime,
       status,
       notes,
-      assignedUserIds
+      assignedUserIds,
+      forceCreate
     } = req.body as {
       title?: string;
       clientName?: string;
@@ -101,10 +144,39 @@ router.post("/", requireAuth, requireRole("admin"), async (req, res) => {
       status?: "scheduled" | "in_progress" | "completed" | "cancelled";
       notes?: string;
       assignedUserIds?: string[];
+      forceCreate?: boolean;
     };
 
     if (!title || !clientName || !address || !startTime || !endTime) {
       return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    if (Array.isArray(assignedUserIds) && assignedUserIds.length > 0 && !forceCreate) {
+      const conflictResult = await pool.query(
+        `
+        SELECT
+          a.id,
+          a.user_id,
+          u.display_name,
+          a.start_time,
+          a.end_time,
+          a.reason
+        FROM availability a
+        JOIN users u ON u.id = a.user_id
+        WHERE a.user_id = ANY($1::uuid[])
+          AND a.start_time < $3
+          AND a.end_time > $2
+        ORDER BY a.start_time ASC
+        `,
+        [assignedUserIds, startTime, endTime]
+      );
+
+      if (conflictResult.rows.length > 0) {
+        return res.status(409).json({
+          error: "Schedule conflict detected",
+          conflicts: conflictResult.rows
+        });
+      }
     }
 
     const client = await pool.connect();
@@ -181,7 +253,8 @@ router.patch("/:jobId", requireAuth, requireRole("admin"), async (req, res) => {
       endTime,
       status,
       notes,
-      assignedUserIds
+      assignedUserIds,
+      forceUpdate
     } = req.body as {
       title?: string;
       clientName?: string;
@@ -191,7 +264,48 @@ router.patch("/:jobId", requireAuth, requireRole("admin"), async (req, res) => {
       status?: "scheduled" | "in_progress" | "completed" | "cancelled";
       notes?: string;
       assignedUserIds?: string[];
+      forceUpdate?: boolean;
     };
+
+    const currentJobResult = await pool.query(
+      `SELECT start_time, end_time FROM jobs WHERE id = $1 LIMIT 1`,
+      [jobId]
+    );
+
+    if (currentJobResult.rows.length === 0) {
+      return res.status(404).json({ error: "Job not found" });
+    }
+
+    const finalStartTime = startTime || currentJobResult.rows[0].start_time;
+    const finalEndTime = endTime || currentJobResult.rows[0].end_time;
+
+    if (Array.isArray(assignedUserIds) && assignedUserIds.length > 0 && !forceUpdate) {
+      const conflictResult = await pool.query(
+        `
+        SELECT
+          a.id,
+          a.user_id,
+          u.display_name,
+          a.start_time,
+          a.end_time,
+          a.reason
+        FROM availability a
+        JOIN users u ON u.id = a.user_id
+        WHERE a.user_id = ANY($1::uuid[])
+          AND a.start_time < $3
+          AND a.end_time > $2
+        ORDER BY a.start_time ASC
+        `,
+        [assignedUserIds, finalStartTime, finalEndTime]
+      );
+
+      if (conflictResult.rows.length > 0) {
+        return res.status(409).json({
+          error: "Schedule conflict detected",
+          conflicts: conflictResult.rows
+        });
+      }
+    }
 
     const client = await pool.connect();
 
