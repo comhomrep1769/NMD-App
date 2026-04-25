@@ -16,6 +16,7 @@ import invoiceRoutes from "./routes/invoices.js";
 import paymentRoutes from "./routes/payments.js";
 import notificationRoutes from "./routes/notifications.js";
 import availabilityRoutes from "./routes/availability.js";
+import tipsRoutes from "./routes/tips.js";
 
 const app = express();
 
@@ -26,11 +27,6 @@ app.use(
   })
 );
 
-/**
- * IMPORTANT:
- * Stripe webhook must use express.raw BEFORE express.json.
- * Stripe verifies the exact raw request body.
- */
 app.post(
   "/api/payments/stripe-webhook",
   express.raw({ type: "application/json" }),
@@ -63,6 +59,7 @@ app.use("/api/invoices", invoiceRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/availability", availabilityRoutes);
+app.use("/api/tips", tipsRoutes);
 
 const port = Number(process.env.PORT || 10000);
 
