@@ -5,7 +5,15 @@ import { requireAuth, requireRole } from "../middleware/auth.js";
 
 const router = Router();
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
+function getStripe() {
+  const key = process.env.STRIPE_SECRET_KEY;
+
+  if (!key) {
+    throw new Error("STRIPE_SECRET_KEY is missing");
+  }
+
+  return new Stripe(key);
+}
 
 router.post("/stripe-webhook", async (req, res) => {
   const sig = req.headers["stripe-signature"];
