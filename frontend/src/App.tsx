@@ -12,64 +12,13 @@ import MyLedgerPage from "./pages/MyLedgerPage";
 import EmployeesPage from "./pages/EmployeesPage";
 import SchedulePage from "./pages/SchedulePage";
 import ChatPage from "./pages/ChatPage";
+import AvailabilityPage from "./pages/AvailabilityPage";
+import TipsPage from "./pages/TipsPage";
 import { apiFetch } from "./api";
 
-const demoClients: Client[] = [
-  {
-    id: "c1",
-    firstName: "John",
-    lastName: "Smith",
-    phone: "321-555-1111",
-    email: "john@example.com",
-    address: "123 Main St, Orlando, FL"
-  },
-  {
-    id: "c2",
-    firstName: "Sara",
-    lastName: "Lopez",
-    phone: "321-555-2222",
-    email: "sara@example.com",
-    address: "845 Orange Ave, Orlando, FL"
-  }
-];
-
-const demoQuotes: Quote[] = [
-  {
-    id: "q1",
-    quoteNumber: 1001,
-    clientName: "John Smith",
-    serviceType: "Driveway + Sidewalk",
-    total: 185,
-    status: "sent"
-  },
-  {
-    id: "q2",
-    quoteNumber: 1002,
-    clientName: "Sara Lopez",
-    serviceType: "House Siding",
-    total: 325,
-    status: "accepted"
-  }
-];
-
-const demoInvoices: Invoice[] = [
-  {
-    id: "i1",
-    invoiceNumber: 2001,
-    clientName: "John Smith",
-    jobName: "Driveway Cleaning",
-    total: 185,
-    status: "unpaid"
-  },
-  {
-    id: "i2",
-    invoiceNumber: 2002,
-    clientName: "Sara Lopez",
-    jobName: "House Wash",
-    total: 325,
-    status: "paid"
-  }
-];
+const demoClients: Client[] = [];
+const demoQuotes: Quote[] = [];
+const demoInvoices: Invoice[] = [];
 
 export default function App() {
   const [page, setPage] = React.useState<PageKey>("dashboard");
@@ -148,9 +97,9 @@ export default function App() {
             <DashboardPage quotes={quotes} invoices={invoices} />
           )}
 
-        {page === "clients" && user.role === "admin" && (
-  <ClientsPage />
-)}
+          {page === "clients" && user.role === "admin" && (
+            <ClientsPage />
+          )}
 
           {page === "quotes" && user.role === "admin" && (
             <QuotesPage />
@@ -168,8 +117,16 @@ export default function App() {
             <EmployeesPage />
           )}
 
+          {page === "availability" && (
+            <AvailabilityPage />
+          )}
+
           {page === "chat" && (
             <ChatPage currentUser={user} />
+          )}
+
+          {page === "tips" && (
+            <TipsPage role={user.role} />
           )}
 
           {page === "my-ledger" && user.role === "employee" && (
