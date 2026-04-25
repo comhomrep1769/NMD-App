@@ -1,4 +1,5 @@
 import type { AuthUser, ThemeMode } from "../types";
+import { enablePushNotifications } from "../push";
 
 export default function Header({
   theme,
@@ -21,6 +22,20 @@ export default function Header({
       </div>
 
       <div className="topBarActions">
+        <button
+  className="secondaryButton"
+  onClick={async () => {
+    try {
+      await enablePushNotifications();
+      alert("Notifications enabled.");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Could not enable notifications.");
+    }
+  }}
+>
+  Enable Notifications
+</button>
+
         <button className="themeButton" onClick={onToggleTheme}>
           {theme === "dark" ? "Light Mode" : "Dark Mode"}
         </button>
