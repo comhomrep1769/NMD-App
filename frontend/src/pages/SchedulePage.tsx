@@ -4,6 +4,15 @@ import type { Employee, Job, JobStatus, Role } from "../types";
 
 const statusOptions: JobStatus[] = ["scheduled", "in_progress", "completed", "cancelled"];
 
+type AvailabilityConflict = {
+  id: string;
+  user_id: string;
+  display_name: string;
+  start_time: string;
+  end_time: string;
+  reason?: string | null;
+};
+
 export default function SchedulePage({ role }: { role: Role }) {
   const [jobs, setJobs] = React.useState<Job[]>([]);
   const [employees, setEmployees] = React.useState<Employee[]>([]);
@@ -20,6 +29,7 @@ export default function SchedulePage({ role }: { role: Role }) {
   const [notes, setNotes] = React.useState("");
   const [assignedUserIds, setAssignedUserIds] = React.useState<string[]>([]);
   const [saving, setSaving] = React.useState(false);
+  const [conflicts, setConflicts] = React.useState<AvailabilityConflict[]>([]);
 
   React.useEffect(() => {
     setLoading(true);
@@ -39,12 +49,56 @@ export default function SchedulePage({ role }: { role: Role }) {
       .finally(() => setLoading(false));
   }, [role, refreshKey]);
 
+  const resetForm = () => {
+    setTitle("");
+    setClientName("");
+    setAddress("");
+    setStartTime("");
+    setEndTime("");
+    setStatus("scheduled");
+    setNotes("");
+    setAssignedUserIds([]);
+    setConflicts([]);
+  };
+
+  const checkConflicts = async () => {
+    if (!startTime || !endTime || assignedUserIds.length === 0) {
+      setConflicts([]);
+      return [];
+    }
+
+    const data = await apiFetch<{ conflicts: AvailabilityConflict[] }>("/api/jobs/check-conflicts", {
+      method: "POST",
+      body: JSON.stringify({
+        startTime,
+        endTime,
+        assignedUserIds
+      })
+    });
+
+    setConflicts(data.conflicts);
+    return data.conflicts;
+  };
+
   const createJob = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     setError("");
 
     try {
+      const foundConflicts = await checkConflicts();
+
+      if (foundConflicts.length > 0) {
+        const force = window.confirm(
+          "This job conflicts with employee unavailability. Do you still want to create it?"
+        );
+
+        if (!force) {
+          setSaving(false);
+          return;
+        }
+      }
+
       await apiFetch("/api/jobs", {
         method: "POST",
         body: JSON.stringify({
@@ -55,21 +109,16 @@ export default function SchedulePage({ role }: { role: Role }) {
           endTime,
           status,
           notes,
-          assignedUserIds
+          assignedUserIds,
+          forceCreate: true
         })
       });
 
-      setTitle("");
-      setClientName("");
-      setAddress("");
-      setStartTime("");
-      setEndTime("");
-      setStatus("scheduled");
-      setNotes("");
-      setAssignedUserIds([]);
+      resetForm();
       setRefreshKey((k) => k + 1);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create job");
+      const message = err instanceof Error ? err.message : "Failed to create job";
+      setError(message);
     } finally {
       setSaving(false);
     }
@@ -81,21 +130,75 @@ export default function SchedulePage({ role }: { role: Role }) {
         <section className="panel">
           <h2 className="panelTitle">Create Job</h2>
 
+          {error && <div className="errorBox">{error}</div>}
+
+          {conflicts.length > 0 && (
+            <div className="errorBox">
+              <strong>Schedule conflict detected:</strong>
+              {conflicts.map((conflict) => (
+                <div key={conflict.id} style={{ marginTop: 8 }}>
+                  {conflict.display_name} is unavailable from{" "}
+                  {new Date(conflict.start_time).toLocaleString()} to{" "}
+                  {new Date(conflict.end_time).toLocaleString()}
+                  {conflict.reason ? ` — ${conflict.reason}` : ""}
+                </div>
+              ))}
+            </div>
+          )}
+
           <form className="formGrid" onSubmit={createJob}>
-            <input className="textInput" placeholder="Job title" value={title} onChange={(e) => setTitle(e.target.value)} />
-            <input className="textInput" placeholder="Client name" value={clientName} onChange={(e) => setClientName(e.target.value)} />
-            <input className="textInput" placeholder="Job address" value={address} onChange={(e) => setAddress(e.target.value)} />
+            <input
+              className="textInput"
+              placeholder="Job title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
 
-            <input className="textInput" type="datetime-local" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
-            <input className="textInput" type="datetime-local" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+            <input
+              className="textInput"
+              placeholder="Client name"
+              value={clientName}
+              onChange={(e) => setClientName(e.target.value)}
+            />
 
-            <select className="textInput" value={status} onChange={(e) => setStatus(e.target.value as JobStatus)}>
+            <input
+              className="textInput"
+              placeholder="Job address"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+            />
+
+            <input
+              className="textInput"
+              type="datetime-local"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+            />
+
+            <input
+              className="textInput"
+              type="datetime-local"
+              value={endTime}
+              onChange={(e) => setEndTime(e.target.value)}
+            />
+
+            <select
+              className="textInput"
+              value={status}
+              onChange={(e) => setStatus(e.target.value as JobStatus)}
+            >
               {statusOptions.map((s) => (
                 <option key={s} value={s}>{s}</option>
               ))}
             </select>
 
-            <textarea className="textInput" placeholder="Notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={4} />
+            <textarea
+              className="textInput"
+              placeholder="Notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={4}
+            />
 
             <div className="assignBox">
               <div className="assignTitle">Assign Employees</div>
@@ -119,9 +222,15 @@ export default function SchedulePage({ role }: { role: Role }) {
               </div>
             </div>
 
-            <button className="primaryButton" type="submit" disabled={saving}>
-              {saving ? "Saving..." : "Create Job"}
-            </button>
+            <div className="buttonRow">
+              <button className="secondaryButton" type="button" onClick={checkConflicts}>
+                Check Conflicts
+              </button>
+
+              <button className="primaryButton" type="submit" disabled={saving}>
+                {saving ? "Saving..." : "Create Job"}
+              </button>
+            </div>
           </form>
         </section>
       )}
@@ -132,9 +241,9 @@ export default function SchedulePage({ role }: { role: Role }) {
         </div>
 
         {loading && <div className="listCard">Loading jobs...</div>}
-        {error && <div className="errorBox">{error}</div>}
+        {error && role !== "admin" && <div className="errorBox">{error}</div>}
 
-        {!loading && !error && (
+        {!loading && (
           <div className="cardsGrid">
             {jobs.map((job) => (
               <div key={job.id} className="quoteCard">
