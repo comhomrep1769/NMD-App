@@ -8,6 +8,8 @@ export type PageKey =
   | "schedule"
   | "employees"
   | "chat"
+  | "availability"
+  | "tips"
   | "my-ledger";
 
 export type Role = "admin" | "employee";
@@ -33,10 +35,12 @@ export type QuoteStatus = "draft" | "sent" | "accepted" | "declined" | "expired"
 export type Quote = {
   id: string;
   quoteNumber: number;
+  clientId?: string | null;
   clientName: string;
   serviceType: string;
   total: number;
   status: QuoteStatus;
+  createdAt?: string;
 };
 
 export type InvoiceStatus = "paid" | "unpaid";
@@ -115,4 +119,15 @@ export type ChatMessage = {
   sender_display_name: string;
   sender_email: string;
   sender_role: Role;
+};
+
+export type TipNote = {
+  id: string;
+  title: string;
+  content: string;
+  category: string;
+  pinned: boolean;
+  created_by?: string | null;
+  created_at: string;
+  updated_at: string;
 };
