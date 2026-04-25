@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { pool } from "../db.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
+import { sendPushToUser } from "../services/push.js";
 
 const router = Router();
 
@@ -145,6 +146,17 @@ router.post("/", requireAuth, requireRole("admin"), async (req, res) => {
       }
 
       await client.query("COMMIT");
+
+      if (Array.isArray(assignedUserIds) && assignedUserIds.length > 0) {
+        for (const userId of assignedUserIds) {
+          await sendPushToUser(userId, {
+            title: "New NMD Job Assigned",
+            body: `${title} — ${clientName}`,
+            url: "/"
+          });
+        }
+      }
+
       return res.status(201).json({ job });
     } catch (err) {
       await client.query("ROLLBACK");
@@ -233,6 +245,19 @@ router.patch("/:jobId", requireAuth, requireRole("admin"), async (req, res) => {
       }
 
       await client.query("COMMIT");
+
+      if (Array.isArray(assignedUserIds) && assignedUserIds.length > 0) {
+        const updatedJob = updated.rows[0];
+
+        for (const userId of assignedUserIds) {
+          await sendPushToUser(userId, {
+            title: "NMD Schedule Updated",
+            body: `${title || updatedJob.title || "A scheduled job"} was updated.`,
+            url: "/"
+          });
+        }
+      }
+
       return res.json({ job: updated.rows[0] });
     } catch (err) {
       await client.query("ROLLBACK");
