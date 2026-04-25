@@ -14,6 +14,7 @@ import clientRoutes from "./routes/clients.js";
 import quoteRoutes from "./routes/quotes.js";
 import invoiceRoutes from "./routes/invoices.js";
 import paymentRoutes from "./routes/payments.js";
+import notificationRoutes from "./routes/notifications.js";
 
 const app = express();
 
@@ -59,6 +60,7 @@ app.use("/api/clients", clientRoutes);
 app.use("/api/quotes", quoteRoutes);
 app.use("/api/invoices", invoiceRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 const port = Number(process.env.PORT || 10000);
 
