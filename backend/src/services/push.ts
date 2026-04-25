@@ -1,11 +1,21 @@
 import webpush from "web-push";
 import { pool } from "../db.js";
 
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT || "mailto:nmdpowash@gmail.com",
-  process.env.VAPID_PUBLIC_KEY || "",
-  process.env.VAPID_PRIVATE_KEY || ""
-);
+const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
+const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
+const vapidSubject = process.env.VAPID_SUBJECT || "mailto:nmdpowash@gmail.com";
+
+const pushConfigured = Boolean(vapidPublicKey && vapidPrivateKey);
+
+if (pushConfigured) {
+  webpush.setVapidDetails(
+    vapidSubject,
+    vapidPublicKey as string,
+    vapidPrivateKey as string
+  );
+} else {
+  console.warn("Push notifications disabled: missing VAPID keys.");
+}
 
 export async function sendPushToUser(
   userId: string,
@@ -15,6 +25,11 @@ export async function sendPushToUser(
     url?: string;
   }
 ) {
+  if (!pushConfigured) {
+    console.warn("Push skipped: VAPID keys are not configured.");
+    return;
+  }
+
   const result = await pool.query(
     `
     SELECT id, endpoint, p256dh, auth
