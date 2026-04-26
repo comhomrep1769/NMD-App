@@ -170,6 +170,8 @@ export type ServiceRequest = {
   preferredDate?: string | null;
   preferredTime?: string | null;
   notes?: string | null;
+  photoDataUrl?: string | null;
+  photoNote?: string | null;
   status: ServiceRequestStatus;
   createdAt: string;
 };
