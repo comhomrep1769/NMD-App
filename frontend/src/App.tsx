@@ -15,6 +15,8 @@ import ChatPage from "./pages/ChatPage";
 import AvailabilityPage from "./pages/AvailabilityPage";
 import TipsPage from "./pages/TipsPage";
 import PayrollPage from "./pages/PayrollPage";
+import RequestsPage from "./pages/RequestsPage";
+import ServiceRequestPage from "./pages/ServiceRequestPage";
 import { apiFetch } from "./api";
 
 const demoClients: Client[] = [];
@@ -22,7 +24,12 @@ const demoQuotes: Quote[] = [];
 const demoInvoices: Invoice[] = [];
 
 export default function App() {
-  const [page, setPage] = React.useState<PageKey>("dashboard");
+  const [page, setPage] = React.useState<PageKey>(() => {
+    const path = window.location.pathname;
+    if (path.includes("service-request")) return "service-request";
+    return "dashboard";
+  });
+
   const [theme, setTheme] = React.useState<ThemeMode>(() => {
     const saved = localStorage.getItem("nmd-theme");
     return saved === "light" ? "light" : "dark";
@@ -41,6 +48,11 @@ export default function App() {
   }, [theme]);
 
   React.useEffect(() => {
+    if (page === "service-request") {
+      setAuthChecked(true);
+      return;
+    }
+
     const token = localStorage.getItem("nmd-token");
     if (!token) {
       setAuthChecked(true);
@@ -59,19 +71,25 @@ export default function App() {
         setUser(null);
       })
       .finally(() => setAuthChecked(true));
-  }, []);
+  }, [page]);
 
   const handleLogin = (token: string, loggedInUser: AuthUser) => {
     localStorage.setItem("nmd-token", token);
     setUser(loggedInUser);
     setPage(loggedInUser.role === "admin" ? "dashboard" : "my-ledger");
+    window.history.pushState({}, "", "/");
   };
 
   const handleLogout = () => {
     localStorage.removeItem("nmd-token");
     setUser(null);
     setPage("dashboard");
+    window.history.pushState({}, "", "/");
   };
+
+  if (page === "service-request") {
+    return <ServiceRequestPage />;
+  }
 
   if (!authChecked) {
     return <div className="loadingScreen">Loading...</div>;
@@ -116,6 +134,10 @@ export default function App() {
 
           {page === "employees" && user.role === "admin" && (
             <EmployeesPage />
+          )}
+
+          {page === "requests" && user.role === "admin" && (
+            <RequestsPage />
           )}
 
           {page === "availability" && (
