@@ -21,6 +21,9 @@ router.get("/", requireAuth, requireRole("admin"), async (_req, res) => {
         notes,
         photo_data_url,
         photo_note,
+        waiver_accepted,
+        waiver_signature,
+        waiver_signed_at,
         status,
         created_at
       FROM service_requests
@@ -42,6 +45,9 @@ router.get("/", requireAuth, requireRole("admin"), async (_req, res) => {
         notes: row.notes,
         photoDataUrl: row.photo_data_url,
         photoNote: row.photo_note,
+        waiverAccepted: row.waiver_accepted,
+        waiverSignature: row.waiver_signature,
+        waiverSignedAt: row.waiver_signed_at,
         status: row.status,
         createdAt: row.created_at
       }))
@@ -65,7 +71,9 @@ router.post("/public", async (req, res) => {
       preferredTime,
       notes,
       photoDataUrl,
-      photoNote
+      photoNote,
+      waiverAccepted,
+      waiverSignature
     } = req.body as {
       firstName?: string;
       lastName?: string;
@@ -78,11 +86,19 @@ router.post("/public", async (req, res) => {
       notes?: string;
       photoDataUrl?: string | null;
       photoNote?: string;
+      waiverAccepted?: boolean;
+      waiverSignature?: string;
     };
 
     if (!firstName || !lastName || !address || !serviceType) {
       return res.status(400).json({
         error: "First name, last name, address, and service type are required"
+      });
+    }
+
+    if (!waiverAccepted || !waiverSignature?.trim()) {
+      return res.status(400).json({
+        error: "Liability waiver acceptance and signature are required before submitting."
       });
     }
 
@@ -106,10 +122,13 @@ router.post("/public", async (req, res) => {
           preferred_time,
           notes,
           photo_data_url,
-          photo_note
+          photo_note,
+          waiver_accepted,
+          waiver_signature,
+          waiver_signed_at
         )
       VALUES
-        ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, TRUE, $12, NOW())
       RETURNING
         id,
         first_name,
@@ -123,6 +142,9 @@ router.post("/public", async (req, res) => {
         notes,
         photo_data_url,
         photo_note,
+        waiver_accepted,
+        waiver_signature,
+        waiver_signed_at,
         status,
         created_at
       `,
@@ -137,7 +159,8 @@ router.post("/public", async (req, res) => {
         preferredTime?.trim() || null,
         notes?.trim() || null,
         photoDataUrl || null,
-        photoNote?.trim() || null
+        photoNote?.trim() || null,
+        waiverSignature.trim()
       ]
     );
 
@@ -157,6 +180,9 @@ router.post("/public", async (req, res) => {
         notes: row.notes,
         photoDataUrl: row.photo_data_url,
         photoNote: row.photo_note,
+        waiverAccepted: row.waiver_accepted,
+        waiverSignature: row.waiver_signature,
+        waiverSignedAt: row.waiver_signed_at,
         status: row.status,
         createdAt: row.created_at
       }
@@ -196,6 +222,9 @@ router.patch("/:requestId/status", requireAuth, requireRole("admin"), async (req
         notes,
         photo_data_url,
         photo_note,
+        waiver_accepted,
+        waiver_signature,
+        waiver_signed_at,
         status,
         created_at
       `,
@@ -222,6 +251,9 @@ router.patch("/:requestId/status", requireAuth, requireRole("admin"), async (req
         notes: row.notes,
         photoDataUrl: row.photo_data_url,
         photoNote: row.photo_note,
+        waiverAccepted: row.waiver_accepted,
+        waiverSignature: row.waiver_signature,
+        waiverSignedAt: row.waiver_signed_at,
         status: row.status,
         createdAt: row.created_at
       }
