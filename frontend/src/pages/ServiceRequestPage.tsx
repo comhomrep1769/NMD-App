@@ -1,6 +1,20 @@
 import React from "react";
 import { apiFetch } from "../api";
 
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      if (typeof reader.result === "string") resolve(reader.result);
+      else reject(new Error("Could not read image."));
+    };
+
+    reader.onerror = () => reject(new Error("Could not read image."));
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function ServiceRequestPage() {
   const [firstName, setFirstName] = React.useState("");
   const [lastName, setLastName] = React.useState("");
@@ -11,8 +25,40 @@ export default function ServiceRequestPage() {
   const [preferredDate, setPreferredDate] = React.useState("");
   const [preferredTime, setPreferredTime] = React.useState("");
   const [notes, setNotes] = React.useState("");
+  const [photoDataUrl, setPhotoDataUrl] = React.useState<string | null>(null);
+  const [photoNote, setPhotoNote] = React.useState("");
   const [submitted, setSubmitted] = React.useState(false);
   const [error, setError] = React.useState("");
+  const [photoLoading, setPhotoLoading] = React.useState(false);
+
+  const handlePhoto = async (file?: File) => {
+    setError("");
+
+    if (!file) {
+      setPhotoDataUrl(null);
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setError("Please upload an image file.");
+      return;
+    }
+
+    if (file.size > 1_800_000) {
+      setError("Image is too large. Please upload a smaller image under about 1.8MB.");
+      return;
+    }
+
+    try {
+      setPhotoLoading(true);
+      const dataUrl = await fileToDataUrl(file);
+      setPhotoDataUrl(dataUrl);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not load image.");
+    } finally {
+      setPhotoLoading(false);
+    }
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +76,9 @@ export default function ServiceRequestPage() {
           serviceType,
           preferredDate: preferredDate || null,
           preferredTime,
-          notes
+          notes,
+          photoDataUrl,
+          photoNote
         })
       });
 
@@ -44,6 +92,8 @@ export default function ServiceRequestPage() {
       setPreferredDate("");
       setPreferredTime("");
       setNotes("");
+      setPhotoDataUrl(null);
+      setPhotoNote("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to submit request");
     }
@@ -146,6 +196,52 @@ export default function ServiceRequestPage() {
             rows={5}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
+          />
+
+          <div className="assignBox">
+            <div className="assignTitle">Upload Photo Optional</div>
+
+            <input
+              className="textInput"
+              type="file"
+              accept="image/*"
+              onChange={(e) => handlePhoto(e.target.files?.[0])}
+            />
+
+            {photoLoading && <div className="chatMeta">Loading photo...</div>}
+
+            {photoDataUrl && (
+              <div style={{ marginTop: 12 }}>
+                <img
+                  src={photoDataUrl}
+                  alt="Request upload preview"
+                  style={{
+                    width: "100%",
+                    maxHeight: 260,
+                    objectFit: "cover",
+                    borderRadius: 14,
+                    border: "1px solid var(--border)"
+                  }}
+                />
+
+                <button
+                  className="secondaryButton"
+                  type="button"
+                  style={{ marginTop: 10 }}
+                  onClick={() => setPhotoDataUrl(null)}
+                >
+                  Remove Photo
+                </button>
+              </div>
+            )}
+          </div>
+
+          <textarea
+            className="textInput"
+            placeholder="Photo note optional — describe what the image shows"
+            rows={3}
+            value={photoNote}
+            onChange={(e) => setPhotoNote(e.target.value)}
           />
 
           <button className="primaryButton" type="submit">
