@@ -99,6 +99,33 @@ export default function RequestsPage() {
                   : request.preferredTime || "—"}
               </div>
               <div className="cardLine"><strong>Notes:</strong> {request.notes || "—"}</div>
+
+              {request.photoDataUrl && (
+                <div style={{ marginTop: 12 }}>
+                  <div className="cardLine">
+                    <strong>Uploaded Photo:</strong>
+                  </div>
+
+                  <a href={request.photoDataUrl} target="_blank" rel="noreferrer">
+                    <img
+                      src={request.photoDataUrl}
+                      alt="Customer uploaded job reference"
+                      style={{
+                        width: "100%",
+                        maxHeight: 260,
+                        objectFit: "cover",
+                        borderRadius: 14,
+                        border: "1px solid var(--border)"
+                      }}
+                    />
+                  </a>
+                </div>
+              )}
+
+              <div className="cardLine">
+                <strong>Photo Note:</strong> {request.photoNote || "—"}
+              </div>
+
               <div className="chatMeta">
                 Submitted {new Date(request.createdAt).toLocaleString()}
               </div>
