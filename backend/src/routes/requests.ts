@@ -19,6 +19,8 @@ router.get("/", requireAuth, requireRole("admin"), async (_req, res) => {
         preferred_date,
         preferred_time,
         notes,
+        photo_data_url,
+        photo_note,
         status,
         created_at
       FROM service_requests
@@ -38,6 +40,8 @@ router.get("/", requireAuth, requireRole("admin"), async (_req, res) => {
         preferredDate: row.preferred_date,
         preferredTime: row.preferred_time,
         notes: row.notes,
+        photoDataUrl: row.photo_data_url,
+        photoNote: row.photo_note,
         status: row.status,
         createdAt: row.created_at
       }))
@@ -59,7 +63,9 @@ router.post("/public", async (req, res) => {
       serviceType,
       preferredDate,
       preferredTime,
-      notes
+      notes,
+      photoDataUrl,
+      photoNote
     } = req.body as {
       firstName?: string;
       lastName?: string;
@@ -70,6 +76,8 @@ router.post("/public", async (req, res) => {
       preferredDate?: string;
       preferredTime?: string;
       notes?: string;
+      photoDataUrl?: string | null;
+      photoNote?: string;
     };
 
     if (!firstName || !lastName || !address || !serviceType) {
@@ -78,12 +86,30 @@ router.post("/public", async (req, res) => {
       });
     }
 
+    if (photoDataUrl && photoDataUrl.length > 2_500_000) {
+      return res.status(400).json({
+        error: "Photo is too large. Please upload a smaller image."
+      });
+    }
+
     const result = await pool.query(
       `
       INSERT INTO service_requests
-        (first_name, last_name, phone, email, address, service_type, preferred_date, preferred_time, notes)
+        (
+          first_name,
+          last_name,
+          phone,
+          email,
+          address,
+          service_type,
+          preferred_date,
+          preferred_time,
+          notes,
+          photo_data_url,
+          photo_note
+        )
       VALUES
-        ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING
         id,
         first_name,
@@ -95,6 +121,8 @@ router.post("/public", async (req, res) => {
         preferred_date,
         preferred_time,
         notes,
+        photo_data_url,
+        photo_note,
         status,
         created_at
       `,
@@ -107,7 +135,9 @@ router.post("/public", async (req, res) => {
         serviceType.trim(),
         preferredDate || null,
         preferredTime?.trim() || null,
-        notes?.trim() || null
+        notes?.trim() || null,
+        photoDataUrl || null,
+        photoNote?.trim() || null
       ]
     );
 
@@ -125,6 +155,8 @@ router.post("/public", async (req, res) => {
         preferredDate: row.preferred_date,
         preferredTime: row.preferred_time,
         notes: row.notes,
+        photoDataUrl: row.photo_data_url,
+        photoNote: row.photo_note,
         status: row.status,
         createdAt: row.created_at
       }
@@ -162,6 +194,8 @@ router.patch("/:requestId/status", requireAuth, requireRole("admin"), async (req
         preferred_date,
         preferred_time,
         notes,
+        photo_data_url,
+        photo_note,
         status,
         created_at
       `,
@@ -186,6 +220,8 @@ router.patch("/:requestId/status", requireAuth, requireRole("admin"), async (req
         preferredDate: row.preferred_date,
         preferredTime: row.preferred_time,
         notes: row.notes,
+        photoDataUrl: row.photo_data_url,
+        photoNote: row.photo_note,
         status: row.status,
         createdAt: row.created_at
       }
