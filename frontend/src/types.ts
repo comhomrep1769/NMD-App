@@ -172,6 +172,9 @@ export type ServiceRequest = {
   notes?: string | null;
   photoDataUrl?: string | null;
   photoNote?: string | null;
+  waiverAccepted?: boolean;
+  waiverSignature?: string | null;
+  waiverSignedAt?: string | null;
   status: ServiceRequestStatus;
   createdAt: string;
 };
