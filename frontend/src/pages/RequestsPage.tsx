@@ -1,164 +1,293 @@
 import React from "react";
 import { apiFetch } from "../api";
-import type { ServiceRequest, ServiceRequestStatus } from "../types";
 
-export default function RequestsPage() {
-  const [requests, setRequests] = React.useState<ServiceRequest[]>([]);
-  const [loading, setLoading] = React.useState(true);
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      if (typeof reader.result === "string") resolve(reader.result);
+      else reject(new Error("Could not read image."));
+    };
+
+    reader.onerror = () => reject(new Error("Could not read image."));
+    reader.readAsDataURL(file);
+  });
+}
+
+export default function ServiceRequestPage() {
+  const [firstName, setFirstName] = React.useState("");
+  const [lastName, setLastName] = React.useState("");
+  const [phone, setPhone] = React.useState("");
+  const [email, setEmail] = React.useState("");
+  const [address, setAddress] = React.useState("");
+  const [serviceType, setServiceType] = React.useState("Driveway Cleaning");
+  const [preferredDate, setPreferredDate] = React.useState("");
+  const [preferredTime, setPreferredTime] = React.useState("");
+  const [notes, setNotes] = React.useState("");
+  const [photoDataUrl, setPhotoDataUrl] = React.useState<string | null>(null);
+  const [photoNote, setPhotoNote] = React.useState("");
+  const [waiverAccepted, setWaiverAccepted] = React.useState(false);
+  const [waiverSignature, setWaiverSignature] = React.useState("");
+  const [submitted, setSubmitted] = React.useState(false);
   const [error, setError] = React.useState("");
+  const [photoLoading, setPhotoLoading] = React.useState(false);
 
-  const loadRequests = React.useCallback(async () => {
-    setLoading(true);
+  const handlePhoto = async (file?: File) => {
     setError("");
 
+    if (!file) {
+      setPhotoDataUrl(null);
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setError("Please upload an image file.");
+      return;
+    }
+
+    if (file.size > 1_800_000) {
+      setError("Image is too large. Please upload a smaller image under about 1.8MB.");
+      return;
+    }
+
     try {
-      const data = await apiFetch<{ requests: ServiceRequest[] }>("/api/requests");
-      setRequests(data.requests);
+      setPhotoLoading(true);
+      const dataUrl = await fileToDataUrl(file);
+      setPhotoDataUrl(dataUrl);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load requests");
+      setError(err instanceof Error ? err.message : "Could not load image.");
     } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    loadRequests();
-  }, [loadRequests]);
-
-  const updateStatus = async (requestId: string, status: ServiceRequestStatus) => {
-    try {
-      await apiFetch(`/api/requests/${requestId}/status`, {
-        method: "PATCH",
-        body: JSON.stringify({ status })
-      });
-
-      await loadRequests();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update request");
+      setPhotoLoading(false);
     }
   };
 
-  const convertToClient = async (requestId: string) => {
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    if (!waiverAccepted || !waiverSignature.trim()) {
+      setError("Please accept the waiver and type your full legal name as signature.");
+      return;
+    }
+
     try {
-      await apiFetch(`/api/requests/${requestId}/convert-to-client`, {
-        method: "POST"
+      await apiFetch("/api/requests/public", {
+        method: "POST",
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          phone,
+          email,
+          address,
+          serviceType,
+          preferredDate: preferredDate || null,
+          preferredTime,
+          notes,
+          photoDataUrl,
+          photoNote,
+          waiverAccepted,
+          waiverSignature
+        })
       });
 
-      alert("Client created from request.");
-      await loadRequests();
+      setSubmitted(true);
+      setFirstName("");
+      setLastName("");
+      setPhone("");
+      setEmail("");
+      setAddress("");
+      setServiceType("Driveway Cleaning");
+      setPreferredDate("");
+      setPreferredTime("");
+      setNotes("");
+      setPhotoDataUrl(null);
+      setPhotoNote("");
+      setWaiverAccepted(false);
+      setWaiverSignature("");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to convert request");
+      setError(err instanceof Error ? err.message : "Failed to submit request");
     }
   };
 
-  const deleteRequest = async (requestId: string) => {
-    const ok = window.confirm("Delete this service request?");
-    if (!ok) return;
-
-    try {
-      await apiFetch(`/api/requests/${requestId}`, {
-        method: "DELETE"
-      });
-
-      await loadRequests();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete request");
-    }
-  };
+  if (submitted) {
+    return (
+      <div className="loginShell">
+        <section className="loginCard">
+          <h1 className="panelTitle">Request Sent</h1>
+          <p className="brandSubtitle">
+            Thank you. NMD Pressure Washing Services LLC received your request and signed waiver.
+          </p>
+          <button className="primaryButton" onClick={() => setSubmitted(false)}>
+            Submit Another Request
+          </button>
+        </section>
+      </div>
+    );
+  }
 
   return (
-    <section className="panel">
-      <div className="panelHeader">
-        <h2 className="panelTitle">Customer Service Requests</h2>
-      </div>
+    <div className="loginShell">
+      <section className="loginCard">
+        <h1 className="panelTitle">Request Service</h1>
+        <p className="brandSubtitle">
+          NMD Pressure Washing Services LLC • No More Dirt
+        </p>
 
-      {error && <div className="errorBox">{error}</div>}
-      {loading && <div className="listCard">Loading service requests...</div>}
+        {error && <div className="errorBox">{error}</div>}
 
-      {!loading && (
-        <div className="cardsGrid">
-          {requests.map((request) => (
-            <div key={request.id} className="quoteCard">
-              <div className="quoteTopRow">
-                <div className="quoteNumber">
-                  {request.firstName} {request.lastName}
-                </div>
-                <span className={`statusBadge status-${request.status}`}>
-                  {request.status}
-                </span>
-              </div>
+        <form className="formGrid" onSubmit={submit}>
+          <input
+            className="textInput"
+            placeholder="First name"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+          />
 
-              <div className="cardLine"><strong>Service:</strong> {request.serviceType}</div>
-              <div className="cardLine"><strong>Address:</strong> {request.address}</div>
-              <div className="cardLine"><strong>Phone:</strong> {request.phone || "—"}</div>
-              <div className="cardLine"><strong>Email:</strong> {request.email || "—"}</div>
-              <div className="cardLine">
-                <strong>Preferred:</strong>{" "}
-                {request.preferredDate
-                  ? `${new Date(request.preferredDate).toLocaleDateString()} ${request.preferredTime || ""}`
-                  : request.preferredTime || "—"}
-              </div>
-              <div className="cardLine"><strong>Notes:</strong> {request.notes || "—"}</div>
+          <input
+            className="textInput"
+            placeholder="Last name"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+          />
 
-              {request.photoDataUrl && (
-                <div style={{ marginTop: 12 }}>
-                  <div className="cardLine">
-                    <strong>Uploaded Photo:</strong>
-                  </div>
+          <input
+            className="textInput"
+            placeholder="Phone"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+          />
 
-                  <a href={request.photoDataUrl} target="_blank" rel="noreferrer">
-                    <img
-                      src={request.photoDataUrl}
-                      alt="Customer uploaded job reference"
-                      style={{
-                        width: "100%",
-                        maxHeight: 260,
-                        objectFit: "cover",
-                        borderRadius: 14,
-                        border: "1px solid var(--border)"
-                      }}
-                    />
-                  </a>
-                </div>
-              )}
+          <input
+            className="textInput"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
 
-              <div className="cardLine">
-                <strong>Photo Note:</strong> {request.photoNote || "—"}
-              </div>
+          <input
+            className="textInput"
+            placeholder="Service address"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+          />
 
-              <div className="chatMeta">
-                Submitted {new Date(request.createdAt).toLocaleString()}
-              </div>
+          <select
+            className="textInput"
+            value={serviceType}
+            onChange={(e) => setServiceType(e.target.value)}
+          >
+            <option value="Driveway Cleaning">Driveway Cleaning</option>
+            <option value="Sidewalk Cleaning">Sidewalk Cleaning</option>
+            <option value="House Siding">House Siding</option>
+            <option value="Roof Cleaning">Roof Cleaning</option>
+            <option value="Fence Cleaning">Fence Cleaning</option>
+            <option value="Trash Can Cleaning">Trash Can Cleaning</option>
+            <option value="Commercial Cleaning">Commercial Cleaning</option>
+            <option value="Other">Other</option>
+          </select>
 
-              <div className="buttonRow">
-                <button className="secondaryButton" onClick={() => updateStatus(request.id, "reviewed")}>
-                  Mark Reviewed
+          <input
+            className="textInput"
+            type="date"
+            value={preferredDate}
+            onChange={(e) => setPreferredDate(e.target.value)}
+          />
+
+          <input
+            className="textInput"
+            placeholder="Preferred time window"
+            value={preferredTime}
+            onChange={(e) => setPreferredTime(e.target.value)}
+          />
+
+          <textarea
+            className="textInput"
+            placeholder="Notes / details about the surface, stains, access, etc."
+            rows={5}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+          />
+
+          <div className="assignBox">
+            <div className="assignTitle">Upload Photo Optional</div>
+
+            <input
+              className="textInput"
+              type="file"
+              accept="image/*"
+              onChange={(e) => handlePhoto(e.target.files?.[0])}
+            />
+
+            {photoLoading && <div className="chatMeta">Loading photo...</div>}
+
+            {photoDataUrl && (
+              <div style={{ marginTop: 12 }}>
+                <img
+                  src={photoDataUrl}
+                  alt="Request upload preview"
+                  style={{
+                    width: "100%",
+                    maxHeight: 260,
+                    objectFit: "cover",
+                    borderRadius: 14,
+                    border: "1px solid var(--border)"
+                  }}
+                />
+
+                <button
+                  className="secondaryButton"
+                  type="button"
+                  style={{ marginTop: 10 }}
+                  onClick={() => setPhotoDataUrl(null)}
+                >
+                  Remove Photo
                 </button>
-
-                <button className="secondaryButton" onClick={() => updateStatus(request.id, "scheduled")}>
-                  Mark Scheduled
-                </button>
-
-                <button className="secondaryButton" onClick={() => updateStatus(request.id, "declined")}>
-                  Decline
-                </button>
-
-                <button className="primaryButton" onClick={() => convertToClient(request.id)}>
-                  Create Client
-                </button>
-
-                <button className="secondaryButton" onClick={() => deleteRequest(request.id)}>
-                  Delete
-                </button>
               </div>
+            )}
+          </div>
+
+          <textarea
+            className="textInput"
+            placeholder="Photo note optional — describe what the image shows"
+            rows={3}
+            value={photoNote}
+            onChange={(e) => setPhotoNote(e.target.value)}
+          />
+
+          <div className="assignBox">
+            <div className="assignTitle">Required Liability Waiver</div>
+
+            <div className="cardLine">
+              By submitting this request, I acknowledge that NMD Pressure Washing Services LLC is not responsible for pre-existing property conditions, including but not limited to oxidation, loose paint, damaged siding, cracked concrete, weakened seals, worn surfaces, improper prior coatings, electrical exposure, or hidden damage.
             </div>
-          ))}
 
-          {requests.length === 0 && (
-            <div className="listCard">No customer service requests yet.</div>
-          )}
-        </div>
-      )}
-    </section>
+            <div className="cardLine">
+              I understand NMD Pressure Washing Services LLC is only responsible for direct damage proven to be caused by its work, and that a quote or service recommendation may depend on visible condition, uploaded photos, and on-site inspection.
+            </div>
+
+            <label className="assignItem">
+              <input
+                type="checkbox"
+                checked={waiverAccepted}
+                onChange={(e) => setWaiverAccepted(e.target.checked)}
+              />
+              <span>I have read and accept the liability waiver.</span>
+            </label>
+
+            <input
+              className="textInput"
+              placeholder="Type full legal name as signature"
+              value={waiverSignature}
+              onChange={(e) => setWaiverSignature(e.target.value)}
+            />
+          </div>
+
+          <button className="primaryButton" type="submit">
+            Submit Request
+          </button>
+        </form>
+      </section>
+    </div>
   );
 }
