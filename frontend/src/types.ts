@@ -11,6 +11,8 @@ export type PageKey =
   | "availability"
   | "tips"
   | "payroll"
+  | "requests"
+  | "service-request"
   | "my-ledger";
 
 export type Role = "admin" | "employee";
@@ -153,4 +155,21 @@ export type PayRun = {
   createdBy?: string | null;
   createdAt: string;
   items: PayRunItem[];
+};
+
+export type ServiceRequestStatus = "pending" | "reviewed" | "scheduled" | "declined";
+
+export type ServiceRequest = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phone?: string | null;
+  email?: string | null;
+  address: string;
+  serviceType: string;
+  preferredDate?: string | null;
+  preferredTime?: string | null;
+  notes?: string | null;
+  status: ServiceRequestStatus;
+  createdAt: string;
 };
