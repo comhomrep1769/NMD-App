@@ -27,6 +27,8 @@ export default function ServiceRequestPage() {
   const [notes, setNotes] = React.useState("");
   const [photoDataUrl, setPhotoDataUrl] = React.useState<string | null>(null);
   const [photoNote, setPhotoNote] = React.useState("");
+  const [waiverAccepted, setWaiverAccepted] = React.useState(false);
+  const [waiverSignature, setWaiverSignature] = React.useState("");
   const [submitted, setSubmitted] = React.useState(false);
   const [error, setError] = React.useState("");
   const [photoLoading, setPhotoLoading] = React.useState(false);
@@ -64,6 +66,11 @@ export default function ServiceRequestPage() {
     e.preventDefault();
     setError("");
 
+    if (!waiverAccepted || !waiverSignature.trim()) {
+      setError("Please accept the waiver and type your full legal name as signature.");
+      return;
+    }
+
     try {
       await apiFetch("/api/requests/public", {
         method: "POST",
@@ -78,7 +85,9 @@ export default function ServiceRequestPage() {
           preferredTime,
           notes,
           photoDataUrl,
-          photoNote
+          photoNote,
+          waiverAccepted,
+          waiverSignature
         })
       });
 
@@ -94,6 +103,8 @@ export default function ServiceRequestPage() {
       setNotes("");
       setPhotoDataUrl(null);
       setPhotoNote("");
+      setWaiverAccepted(false);
+      setWaiverSignature("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to submit request");
     }
@@ -105,7 +116,7 @@ export default function ServiceRequestPage() {
         <section className="loginCard">
           <h1 className="panelTitle">Request Sent</h1>
           <p className="brandSubtitle">
-            Thank you. NMD Pressure Washing Services LLC received your request.
+            Thank you. NMD Pressure Washing Services LLC received your request and signed waiver.
           </p>
           <button className="primaryButton" onClick={() => setSubmitted(false)}>
             Submit Another Request
@@ -243,6 +254,34 @@ export default function ServiceRequestPage() {
             value={photoNote}
             onChange={(e) => setPhotoNote(e.target.value)}
           />
+
+          <div className="assignBox">
+            <div className="assignTitle">Required Liability Waiver</div>
+
+            <div className="cardLine">
+              By submitting this request, I acknowledge that NMD Pressure Washing Services LLC is not responsible for pre-existing property conditions, including but not limited to oxidation, loose paint, damaged siding, cracked concrete, weakened seals, worn surfaces, improper prior coatings, electrical exposure, or hidden damage.
+            </div>
+
+            <div className="cardLine">
+              I understand NMD Pressure Washing Services LLC is only responsible for direct damage proven to be caused by its work, and that a quote or service recommendation may depend on visible condition, uploaded photos, and on-site inspection.
+            </div>
+
+            <label className="assignItem">
+              <input
+                type="checkbox"
+                checked={waiverAccepted}
+                onChange={(e) => setWaiverAccepted(e.target.checked)}
+              />
+              <span>I have read and accept the liability waiver.</span>
+            </label>
+
+            <input
+              className="textInput"
+              placeholder="Type full legal name as signature"
+              value={waiverSignature}
+              onChange={(e) => setWaiverSignature(e.target.value)}
+            />
+          </div>
 
           <button className="primaryButton" type="submit">
             Submit Request
