@@ -24,6 +24,7 @@ import RecurringPage from "./pages/RecurringPage";
 import TimeClockPage from "./pages/TimeClockPage";
 import EquipmentPage from "./pages/EquipmentPage";
 import TreatmentsPage from "./pages/TreatmentsPage";
+import PricingPage from "./pages/PricingPage";
 import { apiFetch } from "./api";
 
 const demoClients: Client[] = [];
@@ -194,6 +195,10 @@ export default function App() {
 
           {page === "treatments" && (
             <TreatmentsPage role={user.role} />
+          )}
+          
+          {page === "pricing" && user.role === "admin" && (
+            <PricingPage />
           )}
         </main>
 
