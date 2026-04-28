@@ -19,6 +19,7 @@ import availabilityRoutes from "./routes/availability.js";
 import tipsRoutes from "./routes/tips.js";
 import payrollRoutes from "./routes/payroll.js";
 import requestRoutes from "./routes/requests.js";
+import expenseRoutes from "./routes/expenses.js";
 
 const app = express();
 
@@ -35,7 +36,7 @@ app.post(
   paymentRoutes
 );
 
-app.use(express.json());
+app.use(express.json({ limit: "3mb" }));
 
 app.get("/api/health", async (_req, res) => {
   try {
@@ -64,6 +65,7 @@ app.use("/api/availability", availabilityRoutes);
 app.use("/api/tips", tipsRoutes);
 app.use("/api/payroll", payrollRoutes);
 app.use("/api/requests", requestRoutes);
+app.use("/api/expenses", expenseRoutes);
 
 const port = Number(process.env.PORT || 10000);
 
