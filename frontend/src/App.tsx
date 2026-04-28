@@ -19,6 +19,7 @@ import RequestsPage from "./pages/RequestsPage";
 import ServiceRequestPage from "./pages/ServiceRequestPage";
 import ExpensesPage from "./pages/ExpensesPage";
 import { apiFetch } from "./api";
+import MileagePage from "./pages/MileagePage";
 
 const demoClients: Client[] = [];
 const demoQuotes: Quote[] = [];
@@ -164,6 +165,11 @@ export default function App() {
           {page === "my-ledger" && user.role === "employee" && (
             <MyLedgerPage />
           )}
+
+          {page === "mileage" && user.role === "admin" && (
+            <MileagePage />
+          )}
+          
         </main>
 
         <MobileNav currentPage={page} onNavigate={setPage} role={user.role} />
