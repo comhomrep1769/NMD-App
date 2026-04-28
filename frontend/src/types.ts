@@ -12,6 +12,7 @@ export type PageKey =
   | "tips"
   | "payroll"
   | "requests"
+  | "expenses"
   | "service-request"
   | "my-ledger";
 
@@ -176,5 +177,27 @@ export type ServiceRequest = {
   waiverSignature?: string | null;
   waiverSignedAt?: string | null;
   status: ServiceRequestStatus;
+  createdAt: string;
+};
+
+export type ExpenseReimbursementStatus =
+  | "not_reimbursed"
+  | "pending"
+  | "approved"
+  | "reimbursed";
+
+export type Expense = {
+  id: string;
+  employeeId?: string | null;
+  employeeName?: string | null;
+  title: string;
+  category: string;
+  amount: number;
+  expenseDate: string;
+  vendor?: string | null;
+  notes?: string | null;
+  receiptDataUrl?: string | null;
+  reimbursementStatus: ExpenseReimbursementStatus;
+  createdBy?: string | null;
   createdAt: string;
 };
