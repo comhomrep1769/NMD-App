@@ -18,8 +18,9 @@ import PayrollPage from "./pages/PayrollPage";
 import RequestsPage from "./pages/RequestsPage";
 import ServiceRequestPage from "./pages/ServiceRequestPage";
 import ExpensesPage from "./pages/ExpensesPage";
-import { apiFetch } from "./api";
 import MileagePage from "./pages/MileagePage";
+import RecurringPage from "./pages/RecurringPage";
+import { apiFetch } from "./api";
 
 const demoClients: Client[] = [];
 const demoQuotes: Quote[] = [];
@@ -146,6 +147,14 @@ export default function App() {
             <ExpensesPage />
           )}
 
+          {page === "mileage" && user.role === "admin" && (
+            <MileagePage />
+          )}
+
+          {page === "recurring" && user.role === "admin" && (
+            <RecurringPage />
+          )}
+
           {page === "availability" && (
             <AvailabilityPage />
           )}
@@ -165,11 +174,6 @@ export default function App() {
           {page === "my-ledger" && user.role === "employee" && (
             <MyLedgerPage />
           )}
-
-          {page === "mileage" && user.role === "admin" && (
-            <MileagePage />
-          )}
-          
         </main>
 
         <MobileNav currentPage={page} onNavigate={setPage} role={user.role} />
