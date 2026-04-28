@@ -17,6 +17,7 @@ export type PageKey =
   | "recurring"
   | "timeclock"
   | "service-request"
+  | "equipment"
   | "my-ledger";
 
 export type Role = "admin" | "employee";
