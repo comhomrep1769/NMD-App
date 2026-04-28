@@ -23,6 +23,7 @@ import expenseRoutes from "./routes/expenses.js";
 import mileageRoutes from "./routes/mileage.js";
 import recurringRoutes from "./routes/recurring.js";
 import dashboardRoutes from "./routes/dashboard.js";
+import employeeDashboardRoutes from "./routes/employee-dashboard.js";
 
 const app = express();
 
@@ -72,6 +73,7 @@ app.use("/api/expenses", expenseRoutes);
 app.use("/api/mileage", mileageRoutes);
 app.use("/api/recurring", recurringRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/employee-dashboard", employeeDashboardRoutes);
 
 const port = Number(process.env.PORT || 10000);
 
