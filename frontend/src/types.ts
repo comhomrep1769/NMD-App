@@ -15,6 +15,7 @@ export type PageKey =
   | "expenses"
   | "mileage"
   | "recurring"
+  | "timeclock"
   | "service-request"
   | "my-ledger";
 
@@ -250,5 +251,40 @@ export type RecurringService = {
   nextServiceDate?: string | null;
   notes?: string | null;
   createdBy?: string | null;
+  createdAt: string;
+};
+
+export type TimeSession = {
+  id: string;
+  userId: string;
+  employeeName?: string | null;
+  workDate: string;
+  clockInAt: string;
+  clockOutAt?: string | null;
+  status: "open" | "closed";
+  totalMinutes: number;
+  breakMinutes: number;
+  penaltyMinutes: number;
+  paidMinutes: number;
+  adminNotes?: string | null;
+  createdAt: string;
+};
+
+export type BreakType =
+  | "break_15_1"
+  | "break_15_2"
+  | "lunch_30"
+  | "break_60";
+
+export type BreakLog = {
+  id: string;
+  sessionId: string;
+  userId: string;
+  breakType: BreakType;
+  allowedMinutes: number;
+  startedAt: string;
+  endedAt?: string | null;
+  overtimePenaltyMinutes: number;
+  status: "active" | "completed";
   createdAt: string;
 };
