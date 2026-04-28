@@ -11,14 +11,14 @@ const adminItems: { key: PageKey; label: string }[] = [
   { key: "expenses", label: "Expenses" },
   { key: "mileage", label: "Mileage" },
   { key: "recurring", label: "Recurring" },
+  { key: "equipment", label: "Equipment" },
+  { key: "treatments", label: "Treatments" },
+  { key: "pricing", label: "Pricing" },
   { key: "timeclock", label: "Time Clock" },
   { key: "availability", label: "Availability" },
   { key: "chat", label: "Chat" },
   { key: "tips", label: "Tips & Notes" },
   { key: "payroll", label: "Payroll Prep" }
-  { key: "equipment", label: "Equipment" },
-  { key: "treatments", label: "Treatments" }
-  { key: "pricing", label: "Pricing" },
 ];
 
 const employeeItems: { key: PageKey; label: string }[] = [
@@ -28,8 +28,8 @@ const employeeItems: { key: PageKey; label: string }[] = [
   { key: "my-ledger", label: "My Ledger" },
   { key: "availability", label: "Availability" },
   { key: "chat", label: "Chat" },
+  { key: "treatments", label: "Treatments" },
   { key: "tips", label: "Tips & Notes" }
-  { key: "treatments", label: "Treatments" }
 ];
 
 export default function Sidebar({
