@@ -9,6 +9,7 @@ const adminItems: { key: PageKey; label: string }[] = [
   { key: "employees", label: "Employees" },
   { key: "requests", label: "Requests" },
   { key: "expenses", label: "Expenses" },
+  { key: "mileage", label: "Mileage" },
   { key: "availability", label: "Availability" },
   { key: "chat", label: "Chat" },
   { key: "tips", label: "Tips & Notes" },
