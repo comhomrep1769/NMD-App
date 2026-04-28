@@ -1,190 +1,358 @@
-import { Router } from "express";
-import { pool } from "../db.js";
-import { requireAuth } from "../middleware/auth.js";
+import React from "react";
+import { apiFetch } from "../api";
+import type { Role } from "../types";
 
-const router = Router();
+type Treatment = {
+  id: string;
+  title: string;
+  category: string;
+  surfaceType: string;
+  stainType: string;
+  severity: string;
+  chemicalName: string;
+  dilutionRatio?: string | null;
+  applicationMethod?: string | null;
+  dwellTime?: string | null;
+  rinseMethod?: string | null;
+  safetyNotes?: string | null;
+  damageWarnings?: string | null;
+  estimatedMaterialCost?: number;
+  purchaseLink?: string | null;
+  notes?: string | null;
+};
 
-function mapTreatment(row: any) {
-  return {
-    id: row.id,
-    title: row.title,
-    category: row.category,
-    surfaceType: row.surface_type,
-    stainType: row.stain_type,
-    severity: row.severity,
-    chemicalName: row.chemical_name,
-    dilutionRatio: row.dilution_ratio,
-    applicationMethod: row.application_method,
-    dwellTime: row.dwell_time,
-    rinseMethod: row.rinse_method,
-    safetyNotes: row.safety_notes,
-    damageWarnings: row.damage_warnings,
-    estimatedMaterialCost: Number(
-      row.estimated_material_cost || 0
-    ),
-    purchaseLink: row.purchase_link,
-    notes: row.notes,
-    createdBy: row.created_by,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at
-  };
-}
+export default function TreatmentsPage({ role }: { role: Role }) {
+  const [treatments, setTreatments] = React.useState<Treatment[]>([]);
+  const [search, setSearch] = React.useState("");
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState("");
 
-/*
-=======================================
-GET ALL TREATMENTS
-=======================================
-*/
-router.get("/", requireAuth, async (req, res) => {
-  try {
-    const { search } = req.query as {
-      search?: string;
-    };
+  const [form, setForm] = React.useState({
+    title: "",
+    category: "",
+    surfaceType: "",
+    stainType: "",
+    severity: "",
+    chemicalName: "",
+    dilutionRatio: "",
+    applicationMethod: "",
+    dwellTime: "",
+    rinseMethod: "",
+    safetyNotes: "",
+    damageWarnings: "",
+    estimatedMaterialCost: "",
+    purchaseLink: "",
+    notes: ""
+  });
 
-    let result;
+  const loadTreatments = React.useCallback(async () => {
+    setError("");
 
-    if (search) {
-      result = await pool.query(
-        `
-        SELECT *
-        FROM treatment_cases
-        WHERE
-          title ILIKE $1
-          OR category ILIKE $1
-          OR surface_type ILIKE $1
-          OR stain_type ILIKE $1
-          OR chemical_name ILIKE $1
-        ORDER BY created_at DESC
-        `,
-        [`%${search}%`]
+    try {
+      const query = search ? `?search=${encodeURIComponent(search)}` : "";
+
+      const data = await apiFetch<{ treatments: Treatment[] }>(
+        `/api/treatments${query}`
       );
-    } else {
-      result = await pool.query(`
-        SELECT *
-        FROM treatment_cases
-        ORDER BY created_at DESC
-      `);
+
+      setTreatments(data.treatments);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load treatments");
+    } finally {
+      setLoading(false);
     }
+  }, [search]);
 
-    return res.json({
-      treatments: result.rows.map(mapTreatment)
-    });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({
-      error: "Server error"
-    });
-  }
-});
+  React.useEffect(() => {
+    loadTreatments();
+  }, [loadTreatments]);
 
-/*
-=======================================
-CREATE TREATMENT
-(Admin only creation handled in frontend role logic)
-=======================================
-*/
-router.post("/", requireAuth, async (req, res) => {
-  try {
-    const {
-      title,
-      category,
-      surfaceType,
-      stainType,
-      severity,
-      chemicalName,
-      dilutionRatio,
-      applicationMethod,
-      dwellTime,
-      rinseMethod,
-      safetyNotes,
-      damageWarnings,
-      estimatedMaterialCost,
-      purchaseLink,
-      notes
-    } = req.body;
+  const createTreatment = async () => {
+    setError("");
 
-    const result = await pool.query(
-      `
-      INSERT INTO treatment_cases (
-        title,
-        category,
-        surface_type,
-        stain_type,
-        severity,
-        chemical_name,
-        dilution_ratio,
-        application_method,
-        dwell_time,
-        rinse_method,
-        safety_notes,
-        damage_warnings,
-        estimated_material_cost,
-        purchase_link,
-        notes,
-        created_by
-      )
-      VALUES (
-        $1,$2,$3,$4,$5,
-        $6,$7,$8,$9,$10,
-        $11,$12,$13,$14,$15,$16
-      )
-      RETURNING *
-      `,
-      [
-        title,
-        category,
-        surfaceType,
-        stainType,
-        severity,
-        chemicalName,
-        dilutionRatio,
-        applicationMethod,
-        dwellTime,
-        rinseMethod,
-        safetyNotes,
-        damageWarnings,
-        estimatedMaterialCost || null,
-        purchaseLink || null,
-        notes || null,
-        req.user!.id
-      ]
+    try {
+      await apiFetch("/api/treatments", {
+        method: "POST",
+        body: JSON.stringify({
+          ...form,
+          estimatedMaterialCost: form.estimatedMaterialCost
+            ? Number(form.estimatedMaterialCost)
+            : null
+        })
+      });
+
+      setForm({
+        title: "",
+        category: "",
+        surfaceType: "",
+        stainType: "",
+        severity: "",
+        chemicalName: "",
+        dilutionRatio: "",
+        applicationMethod: "",
+        dwellTime: "",
+        rinseMethod: "",
+        safetyNotes: "",
+        damageWarnings: "",
+        estimatedMaterialCost: "",
+        purchaseLink: "",
+        notes: ""
+      });
+
+      await loadTreatments();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create treatment");
+    }
+  };
+
+  const deleteTreatment = async (id: string) => {
+    const ok = window.confirm("Delete this treatment?");
+    if (!ok) return;
+
+    try {
+      await apiFetch(`/api/treatments/${id}`, {
+        method: "DELETE"
+      });
+
+      await loadTreatments();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Delete failed");
+    }
+  };
+
+  if (loading) {
+    return (
+      <section className="panel">
+        <h2 className="panelTitle">Treatments</h2>
+        <div className="listCard">Loading treatments...</div>
+      </section>
     );
-
-    return res.status(201).json({
-      treatment: mapTreatment(result.rows[0])
-    });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({
-      error: "Server error"
-    });
   }
-});
 
-/*
-=======================================
-DELETE TREATMENT
-=======================================
-*/
-router.delete("/:id", requireAuth, async (req, res) => {
-  try {
-    await pool.query(
-      `
-      DELETE FROM treatment_cases
-      WHERE id = $1
-      `,
-      [req.params.id]
-    );
+  return (
+    <div className="pageGrid">
+      <section className="panel">
+        <h2 className="panelTitle">Search Treatments</h2>
 
-    return res.json({
-      message: "Treatment deleted"
-    });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({
-      error: "Server error"
-    });
-  }
-});
+        {error && <div className="errorBox">{error}</div>}
 
-export default router;
+        <div className="formGrid">
+          <input
+            className="textInput"
+            placeholder="Search by chemical, stain, surface..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+
+          <button className="primaryButton" onClick={loadTreatments}>
+            Search
+          </button>
+        </div>
+      </section>
+
+      {role === "admin" && (
+        <section className="panel">
+          <h2 className="panelTitle">Add Treatment</h2>
+
+          <div className="formGrid">
+            <input
+              className="textInput"
+              placeholder="Title"
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+            />
+
+            <input
+              className="textInput"
+              placeholder="Category"
+              value={form.category}
+              onChange={(e) => setForm({ ...form, category: e.target.value })}
+            />
+
+            <input
+              className="textInput"
+              placeholder="Surface Type"
+              value={form.surfaceType}
+              onChange={(e) => setForm({ ...form, surfaceType: e.target.value })}
+            />
+
+            <input
+              className="textInput"
+              placeholder="Stain Type"
+              value={form.stainType}
+              onChange={(e) => setForm({ ...form, stainType: e.target.value })}
+            />
+
+            <input
+              className="textInput"
+              placeholder="Severity"
+              value={form.severity}
+              onChange={(e) => setForm({ ...form, severity: e.target.value })}
+            />
+
+            <input
+              className="textInput"
+              placeholder="Chemical Name"
+              value={form.chemicalName}
+              onChange={(e) => setForm({ ...form, chemicalName: e.target.value })}
+            />
+
+            <input
+              className="textInput"
+              placeholder="Dilution Ratio"
+              value={form.dilutionRatio}
+              onChange={(e) => setForm({ ...form, dilutionRatio: e.target.value })}
+            />
+
+            <input
+              className="textInput"
+              placeholder="Application Method"
+              value={form.applicationMethod}
+              onChange={(e) => setForm({ ...form, applicationMethod: e.target.value })}
+            />
+
+            <input
+              className="textInput"
+              placeholder="Dwell Time"
+              value={form.dwellTime}
+              onChange={(e) => setForm({ ...form, dwellTime: e.target.value })}
+            />
+
+            <input
+              className="textInput"
+              placeholder="Rinse Method"
+              value={form.rinseMethod}
+              onChange={(e) => setForm({ ...form, rinseMethod: e.target.value })}
+            />
+
+            <textarea
+              className="textInput"
+              placeholder="Safety Notes"
+              rows={3}
+              value={form.safetyNotes}
+              onChange={(e) => setForm({ ...form, safetyNotes: e.target.value })}
+            />
+
+            <textarea
+              className="textInput"
+              placeholder="Damage Warnings"
+              rows={3}
+              value={form.damageWarnings}
+              onChange={(e) => setForm({ ...form, damageWarnings: e.target.value })}
+            />
+
+            <input
+              className="textInput"
+              placeholder="Estimated Material Cost"
+              value={form.estimatedMaterialCost}
+              onChange={(e) => setForm({ ...form, estimatedMaterialCost: e.target.value })}
+            />
+
+            <input
+              className="textInput"
+              placeholder="Purchase Link"
+              value={form.purchaseLink}
+              onChange={(e) => setForm({ ...form, purchaseLink: e.target.value })}
+            />
+
+            <textarea
+              className="textInput"
+              placeholder="Notes"
+              rows={4}
+              value={form.notes}
+              onChange={(e) => setForm({ ...form, notes: e.target.value })}
+            />
+          </div>
+
+          <button className="primaryButton" onClick={createTreatment}>
+            Save Treatment
+          </button>
+        </section>
+      )}
+
+      <section className="panel">
+        <h2 className="panelTitle">Treatment Database</h2>
+
+        <div className="cardsGrid">
+          {treatments.map((item) => (
+            <div key={item.id} className="quoteCard">
+              <div className="quoteTopRow">
+                <div className="quoteNumber">{item.title}</div>
+                <span className="statusBadge status-scheduled">
+                  {item.category}
+                </span>
+              </div>
+
+              <div className="cardLine">
+                <strong>Surface:</strong> {item.surfaceType}
+              </div>
+
+              <div className="cardLine">
+                <strong>Stain:</strong> {item.stainType}
+              </div>
+
+              <div className="cardLine">
+                <strong>Severity:</strong> {item.severity}
+              </div>
+
+              <div className="cardLine">
+                <strong>Chemical:</strong> {item.chemicalName}
+              </div>
+
+              <div className="cardLine">
+                <strong>Ratio:</strong> {item.dilutionRatio || "—"}
+              </div>
+
+              <div className="cardLine">
+                <strong>Application:</strong> {item.applicationMethod || "—"}
+              </div>
+
+              <div className="cardLine">
+                <strong>Dwell:</strong> {item.dwellTime || "—"}
+              </div>
+
+              <div className="cardLine">
+                <strong>Rinse:</strong> {item.rinseMethod || "—"}
+              </div>
+
+              <div className="cardLine">
+                <strong>Safety:</strong> {item.safetyNotes || "—"}
+              </div>
+
+              <div className="cardLine">
+                <strong>Warnings:</strong> {item.damageWarnings || "—"}
+              </div>
+
+              <div className="cardLine">
+                <strong>Cost:</strong> ${Number(item.estimatedMaterialCost || 0).toFixed(2)}
+              </div>
+
+              <div className="cardLine">
+                <strong>Notes:</strong> {item.notes || "—"}
+              </div>
+
+              {item.purchaseLink && (
+                <a href={item.purchaseLink} target="_blank" rel="noreferrer">
+                  Purchase Link
+                </a>
+              )}
+
+              {role === "admin" && (
+                <button
+                  className="secondaryButton"
+                  onClick={() => deleteTreatment(item.id)}
+                >
+                  Delete
+                </button>
+              )}
+            </div>
+          ))}
+
+          {treatments.length === 0 && (
+            <div className="listCard">No treatments yet.</div>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
