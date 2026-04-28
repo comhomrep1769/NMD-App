@@ -15,12 +15,12 @@ export type PageKey =
   | "expenses"
   | "mileage"
   | "recurring"
-  | "timeclock"
-  | "service-request"
   | "equipment"
-  | "my-ledger";
   | "treatments"
   | "pricing"
+  | "timeclock"
+  | "service-request"
+  | "my-ledger";
 
 export type Role = "admin" | "employee";
 
@@ -207,11 +207,7 @@ export type Expense = {
   createdAt: string;
 };
 
-export type MileageStatus =
-  | "pending"
-  | "approved"
-  | "reimbursed"
-  | "denied";
+export type MileageStatus = "pending" | "approved" | "reimbursed" | "denied";
 
 export type MileageLog = {
   id: string;
@@ -229,16 +225,9 @@ export type MileageLog = {
   createdAt: string;
 };
 
-export type RecurringFrequency =
-  | "weekly"
-  | "biweekly"
-  | "monthly"
-  | "quarterly";
+export type RecurringFrequency = "weekly" | "biweekly" | "monthly" | "quarterly";
 
-export type RecurringStatus =
-  | "active"
-  | "paused"
-  | "cancelled";
+export type RecurringStatus = "active" | "paused" | "cancelled";
 
 export type RecurringService = {
   id: string;
@@ -273,11 +262,7 @@ export type TimeSession = {
   createdAt: string;
 };
 
-export type BreakType =
-  | "break_15_1"
-  | "break_15_2"
-  | "lunch_30"
-  | "break_60";
+export type BreakType = "break_15_1" | "break_15_2" | "lunch_30" | "break_60";
 
 export type BreakLog = {
   id: string;
