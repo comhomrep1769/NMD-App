@@ -17,6 +17,7 @@ import TipsPage from "./pages/TipsPage";
 import PayrollPage from "./pages/PayrollPage";
 import RequestsPage from "./pages/RequestsPage";
 import ServiceRequestPage from "./pages/ServiceRequestPage";
+import ExpensesPage from "./pages/ExpensesPage";
 import { apiFetch } from "./api";
 
 const demoClients: Client[] = [];
@@ -138,6 +139,10 @@ export default function App() {
 
           {page === "requests" && user.role === "admin" && (
             <RequestsPage />
+          )}
+
+          {page === "expenses" && user.role === "admin" && (
+            <ExpensesPage />
           )}
 
           {page === "availability" && (
