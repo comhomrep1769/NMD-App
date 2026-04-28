@@ -13,6 +13,8 @@ export type PageKey =
   | "payroll"
   | "requests"
   | "expenses"
+  | "mileage"
+  | "recurring"
   | "service-request"
   | "my-ledger";
 
@@ -62,7 +64,6 @@ export type Invoice = {
   assignedUserId?: string | null;
   assignedEmployeeName?: string | null;
   createdAt?: string;
-
   paymentProvider?: string | null;
   paymentLinkId?: string | null;
   paymentLinkUrl?: string | null;
@@ -212,22 +213,42 @@ export type MileageLog = {
   id: string;
   employeeId?: string | null;
   employeeName?: string | null;
-
   tripDate: string;
-
   startLocation: string;
   endLocation: string;
-
   milesDriven: number;
-
   reimbursementRate: number;
   reimbursementTotal: number;
-
   purpose?: string | null;
-
   odometerPhotoDataUrl?: string | null;
-
   reimbursementStatus: MileageStatus;
+  createdAt: string;
+};
 
+export type RecurringFrequency =
+  | "weekly"
+  | "biweekly"
+  | "monthly"
+  | "quarterly";
+
+export type RecurringStatus =
+  | "active"
+  | "paused"
+  | "cancelled";
+
+export type RecurringService = {
+  id: string;
+  clientId?: string | null;
+  clientName: string;
+  phone?: string | null;
+  email?: string | null;
+  address: string;
+  serviceType: string;
+  frequency: RecurringFrequency;
+  price: number;
+  status: RecurringStatus;
+  nextServiceDate?: string | null;
+  notes?: string | null;
+  createdBy?: string | null;
   createdAt: string;
 };
