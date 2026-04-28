@@ -19,6 +19,7 @@ export type PageKey =
   | "service-request"
   | "equipment"
   | "my-ledger";
+  | "treatments"
 
 export type Role = "admin" | "employee";
 
