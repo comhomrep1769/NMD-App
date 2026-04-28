@@ -20,6 +20,7 @@ import tipsRoutes from "./routes/tips.js";
 import payrollRoutes from "./routes/payroll.js";
 import requestRoutes from "./routes/requests.js";
 import expenseRoutes from "./routes/expenses.js";
+import mileageRoutes from "./routes/mileage.js";
 
 const app = express();
 
@@ -66,6 +67,7 @@ app.use("/api/tips", tipsRoutes);
 app.use("/api/payroll", payrollRoutes);
 app.use("/api/requests", requestRoutes);
 app.use("/api/expenses", expenseRoutes);
+app.use("/api/mileage", mileageRoutes);
 
 const port = Number(process.env.PORT || 10000);
 
