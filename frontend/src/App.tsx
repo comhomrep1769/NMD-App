@@ -4,6 +4,7 @@ import Header from "./components/Header";
 import Sidebar from "./components/Sidebar";
 import MobileNav from "./components/MobileNav";
 import DashboardPage from "./pages/DashboardPage";
+import EmployeeDashboardPage from "./pages/EmployeeDashboardPage";
 import ClientsPage from "./pages/ClientsPage";
 import QuotesPage from "./pages/QuotesPage";
 import InvoicesPage from "./pages/InvoicesPage";
@@ -65,8 +66,9 @@ export default function App() {
     apiFetch<{ user: AuthUser }>("/api/auth/me")
       .then((data) => {
         setUser(data.user);
+
         if (data.user.role === "employee") {
-          setPage("my-ledger");
+          setPage("dashboard");
         }
       })
       .catch(() => {
@@ -79,7 +81,7 @@ export default function App() {
   const handleLogin = (token: string, loggedInUser: AuthUser) => {
     localStorage.setItem("nmd-token", token);
     setUser(loggedInUser);
-    setPage(loggedInUser.role === "admin" ? "dashboard" : "my-ledger");
+    setPage("dashboard");
     window.history.pushState({}, "", "/");
   };
 
@@ -115,8 +117,12 @@ export default function App() {
         />
 
         <main className="pageWrap">
-          {page === "dashboard" && (
+          {page === "dashboard" && user.role === "admin" && (
             <DashboardPage quotes={quotes} invoices={invoices} />
+          )}
+
+          {page === "dashboard" && user.role === "employee" && (
+            <EmployeeDashboardPage />
           )}
 
           {page === "clients" && user.role === "admin" && (
