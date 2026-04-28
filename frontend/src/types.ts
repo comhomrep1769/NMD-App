@@ -201,3 +201,33 @@ export type Expense = {
   createdBy?: string | null;
   createdAt: string;
 };
+
+export type MileageStatus =
+  | "pending"
+  | "approved"
+  | "reimbursed"
+  | "denied";
+
+export type MileageLog = {
+  id: string;
+  employeeId?: string | null;
+  employeeName?: string | null;
+
+  tripDate: string;
+
+  startLocation: string;
+  endLocation: string;
+
+  milesDriven: number;
+
+  reimbursementRate: number;
+  reimbursementTotal: number;
+
+  purpose?: string | null;
+
+  odometerPhotoDataUrl?: string | null;
+
+  reimbursementStatus: MileageStatus;
+
+  createdAt: string;
+};
