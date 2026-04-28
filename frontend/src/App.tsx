@@ -21,6 +21,7 @@ import ServiceRequestPage from "./pages/ServiceRequestPage";
 import ExpensesPage from "./pages/ExpensesPage";
 import MileagePage from "./pages/MileagePage";
 import RecurringPage from "./pages/RecurringPage";
+import TimeClockPage from "./pages/TimeClockPage";
 import { apiFetch } from "./api";
 
 const demoClients: Client[] = [];
@@ -159,6 +160,10 @@ export default function App() {
 
           {page === "recurring" && user.role === "admin" && (
             <RecurringPage />
+          )}
+
+          {page === "timeclock" && (
+            <TimeClockPage role={user.role} />
           )}
 
           {page === "availability" && (
