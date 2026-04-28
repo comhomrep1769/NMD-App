@@ -25,6 +25,7 @@ import recurringRoutes from "./routes/recurring.js";
 import dashboardRoutes from "./routes/dashboard.js";
 import employeeDashboardRoutes from "./routes/employee-dashboard.js";
 import timeclockRoutes from "./routes/timeclock.js";
+import equipmentRoutes from "./routes/equipment.js";
 
 const app = express();
 
@@ -76,6 +77,7 @@ app.use("/api/recurring", recurringRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/employee-dashboard", employeeDashboardRoutes);
 app.use("/api/timeclock", timeclockRoutes);
+app.use("/api/equipment", equipmentRoutes);
 
 const port = Number(process.env.PORT || 10000);
 
