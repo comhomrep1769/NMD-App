@@ -27,6 +27,7 @@ import employeeDashboardRoutes from "./routes/employee-dashboard.js";
 import timeclockRoutes from "./routes/timeclock.js";
 import equipmentRoutes from "./routes/equipment.js";
 import treatmentRoutes from "./routes/treatments.js";
+import pricingRoutes from "./routes/pricing.js";
 
 const app = express();
 
@@ -80,6 +81,7 @@ app.use("/api/employee-dashboard", employeeDashboardRoutes);
 app.use("/api/timeclock", timeclockRoutes);
 app.use("/api/equipment", equipmentRoutes);
 app.use("/api/treatments", treatmentRoutes);
+app.use("/api/pricing", pricingRoutes);
 
 const port = Number(process.env.PORT || 10000);
 
