@@ -23,6 +23,7 @@ import MileagePage from "./pages/MileagePage";
 import RecurringPage from "./pages/RecurringPage";
 import TimeClockPage from "./pages/TimeClockPage";
 import EquipmentPage from "./pages/EquipmentPage";
+import TreatmentsPage from "./pages/TreatmentsPage";
 import { apiFetch } from "./api";
 
 const demoClients: Client[] = [];
@@ -189,6 +190,10 @@ export default function App() {
 
           {page === "equipment" && user.role === "admin" && (
             <EquipmentPage />
+          )}
+
+          {page === "treatments" && (
+            <TreatmentsPage role={user.role} />
           )}
         </main>
 
