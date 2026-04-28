@@ -16,6 +16,7 @@ const adminItems: { key: PageKey; label: string }[] = [
   { key: "chat", label: "Chat" },
   { key: "tips", label: "Tips & Notes" },
   { key: "payroll", label: "Payroll Prep" }
+  { key: "equipment", label: "Equipment" },
 ];
 
 const employeeItems: { key: PageKey; label: string }[] = [
