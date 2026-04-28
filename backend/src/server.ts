@@ -21,6 +21,7 @@ import payrollRoutes from "./routes/payroll.js";
 import requestRoutes from "./routes/requests.js";
 import expenseRoutes from "./routes/expenses.js";
 import mileageRoutes from "./routes/mileage.js";
+import recurringRoutes from "./routes/recurring.js";
 
 const app = express();
 
@@ -68,6 +69,7 @@ app.use("/api/payroll", payrollRoutes);
 app.use("/api/requests", requestRoutes);
 app.use("/api/expenses", expenseRoutes);
 app.use("/api/mileage", mileageRoutes);
+app.use("/api/recurring", recurringRoutes);
 
 const port = Number(process.env.PORT || 10000);
 
