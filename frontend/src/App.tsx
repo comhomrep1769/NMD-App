@@ -22,6 +22,7 @@ import ExpensesPage from "./pages/ExpensesPage";
 import MileagePage from "./pages/MileagePage";
 import RecurringPage from "./pages/RecurringPage";
 import TimeClockPage from "./pages/TimeClockPage";
+import EquipmentPage from "./pages/EquipmentPage";
 import { apiFetch } from "./api";
 
 const demoClients: Client[] = [];
@@ -184,6 +185,10 @@ export default function App() {
 
           {page === "my-ledger" && user.role === "employee" && (
             <MyLedgerPage />
+          )}
+
+          {page === "equipment" && user.role === "admin" && (
+            <EquipmentPage />
           )}
         </main>
 
