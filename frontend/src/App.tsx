@@ -3,6 +3,7 @@ import type { AuthUser, Client, Invoice, PageKey, Quote, ThemeMode } from "./typ
 import Header from "./components/Header";
 import Sidebar from "./components/Sidebar";
 import MobileNav from "./components/MobileNav";
+import LandingPage from "./pages/LandingPage";
 import DashboardPage from "./pages/DashboardPage";
 import EmployeeDashboardPage from "./pages/EmployeeDashboardPage";
 import ClientsPage from "./pages/ClientsPage";
@@ -36,6 +37,10 @@ export default function App() {
     const path = window.location.pathname;
     if (path.includes("service-request")) return "service-request";
     return "dashboard";
+  });
+
+  const [showLogin, setShowLogin] = React.useState(() => {
+    return window.location.pathname.includes("login");
   });
 
   const [theme, setTheme] = React.useState<ThemeMode>(() => {
@@ -85,6 +90,7 @@ export default function App() {
   const handleLogin = (token: string, loggedInUser: AuthUser) => {
     localStorage.setItem("nmd-token", token);
     setUser(loggedInUser);
+    setShowLogin(false);
     setPage("dashboard");
     window.history.pushState({}, "", "/");
   };
@@ -92,8 +98,20 @@ export default function App() {
   const handleLogout = () => {
     localStorage.removeItem("nmd-token");
     setUser(null);
+    setShowLogin(false);
     setPage("dashboard");
     window.history.pushState({}, "", "/");
+  };
+
+  const goToLogin = () => {
+    setShowLogin(true);
+    window.history.pushState({}, "", "/login");
+  };
+
+  const goToServiceRequest = () => {
+    setPage("service-request");
+    setShowLogin(false);
+    window.history.pushState({}, "", "/service-request");
   };
 
   if (page === "service-request") {
@@ -104,8 +122,17 @@ export default function App() {
     return <div className="loadingScreen">Loading...</div>;
   }
 
-  if (!user) {
+  if (!user && showLogin) {
     return <LoginPage onLogin={handleLogin} />;
+  }
+
+  if (!user) {
+    return (
+      <LandingPage
+        onLogin={goToLogin}
+        onRequestService={goToServiceRequest}
+      />
+    );
   }
 
   return (
@@ -165,6 +192,18 @@ export default function App() {
             <RecurringPage />
           )}
 
+          {page === "equipment" && user.role === "admin" && (
+            <EquipmentPage />
+          )}
+
+          {page === "treatments" && (
+            <TreatmentsPage role={user.role} />
+          )}
+
+          {page === "pricing" && user.role === "admin" && (
+            <PricingPage />
+          )}
+
           {page === "timeclock" && (
             <TimeClockPage role={user.role} />
           )}
@@ -187,18 +226,6 @@ export default function App() {
 
           {page === "my-ledger" && user.role === "employee" && (
             <MyLedgerPage />
-          )}
-
-          {page === "equipment" && user.role === "admin" && (
-            <EquipmentPage />
-          )}
-
-          {page === "treatments" && (
-            <TreatmentsPage role={user.role} />
-          )}
-          
-          {page === "pricing" && user.role === "admin" && (
-            <PricingPage />
           )}
         </main>
 
