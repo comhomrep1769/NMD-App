@@ -7,18 +7,8 @@ import type {
   RecurringStatus
 } from "../types";
 
-const frequencies: RecurringFrequency[] = [
-  "weekly",
-  "biweekly",
-  "monthly",
-  "quarterly"
-];
-
-const statuses: RecurringStatus[] = [
-  "active",
-  "paused",
-  "cancelled"
-];
+const frequencies: RecurringFrequency[] = ["weekly", "biweekly", "monthly", "quarterly"];
+const statuses: RecurringStatus[] = ["active", "paused", "cancelled"];
 
 export default function RecurringPage() {
   const [services, setServices] = React.useState<RecurringService[]>([]);
@@ -80,8 +70,8 @@ export default function RecurringPage() {
 
   const handleClientSelect = (value: string) => {
     setClientId(value);
-
     const selected = clients.find((client) => client.id === value);
+
     if (selected) {
       setClientName(`${selected.firstName} ${selected.lastName}`);
       setPhone(selected.phone || "");
@@ -130,14 +120,12 @@ export default function RecurringPage() {
           method: "PATCH",
           body: JSON.stringify(payload)
         });
-
         setSuccess("Recurring service updated.");
       } else {
         await apiFetch("/api/recurring", {
           method: "POST",
           body: JSON.stringify(payload)
         });
-
         setSuccess("Recurring service added.");
       }
 
@@ -191,8 +179,32 @@ export default function RecurringPage() {
       });
 
       setSuccess("Reminder email sent.");
+      await loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to send reminder");
+    }
+  };
+
+  const scanReminders = async () => {
+    setError("");
+    setSuccess("");
+
+    try {
+      const data = await apiFetch<{
+        scanned: number;
+        sent: number;
+        skipped: { id: string; clientName: string; reason: string }[];
+      }>("/api/recurring/scan-reminders", {
+        method: "POST"
+      });
+
+      setSuccess(
+        `Reminder scan complete. Scanned ${data.scanned}. Sent ${data.sent}. Skipped ${data.skipped.length}.`
+      );
+
+      await loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to scan reminders");
     }
   };
 
@@ -250,39 +262,12 @@ export default function RecurringPage() {
             ))}
           </select>
 
-          <input
-            className="textInput"
-            placeholder="Client name"
-            value={clientName}
-            onChange={(e) => setClientName(e.target.value)}
-          />
+          <input className="textInput" placeholder="Client name" value={clientName} onChange={(e) => setClientName(e.target.value)} />
+          <input className="textInput" placeholder="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
+          <input className="textInput" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <input className="textInput" placeholder="Service address" value={address} onChange={(e) => setAddress(e.target.value)} />
 
-          <input
-            className="textInput"
-            placeholder="Phone"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-          />
-
-          <input
-            className="textInput"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-
-          <input
-            className="textInput"
-            placeholder="Service address"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-          />
-
-          <select
-            className="textInput"
-            value={serviceType}
-            onChange={(e) => setServiceType(e.target.value)}
-          >
+          <select className="textInput" value={serviceType} onChange={(e) => setServiceType(e.target.value)}>
             <option value="Trash Can Cleaning">Trash Can Cleaning</option>
             <option value="Driveway Cleaning">Driveway Cleaning</option>
             <option value="Sidewalk Cleaning">Sidewalk Cleaning</option>
@@ -291,48 +276,23 @@ export default function RecurringPage() {
             <option value="Other">Other</option>
           </select>
 
-          <select
-            className="textInput"
-            value={frequency}
-            onChange={(e) => setFrequency(e.target.value as RecurringFrequency)}
-          >
+          <select className="textInput" value={frequency} onChange={(e) => setFrequency(e.target.value as RecurringFrequency)}>
             {frequencies.map((item) => (
               <option key={item} value={item}>{item}</option>
             ))}
           </select>
 
-          <input
-            className="textInput"
-            placeholder="Price"
-            inputMode="decimal"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-          />
+          <input className="textInput" placeholder="Price" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} />
 
-          <select
-            className="textInput"
-            value={status}
-            onChange={(e) => setStatus(e.target.value as RecurringStatus)}
-          >
+          <select className="textInput" value={status} onChange={(e) => setStatus(e.target.value as RecurringStatus)}>
             {statuses.map((item) => (
               <option key={item} value={item}>{item}</option>
             ))}
           </select>
 
-          <input
-            className="textInput"
-            type="date"
-            value={nextServiceDate}
-            onChange={(e) => setNextServiceDate(e.target.value)}
-          />
+          <input className="textInput" type="date" value={nextServiceDate} onChange={(e) => setNextServiceDate(e.target.value)} />
 
-          <textarea
-            className="textInput"
-            placeholder="Notes"
-            rows={4}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-          />
+          <textarea className="textInput" placeholder="Notes" rows={4} value={notes} onChange={(e) => setNotes(e.target.value)} />
 
           <div className="buttonRow">
             <button className="primaryButton" type="submit">
@@ -351,6 +311,12 @@ export default function RecurringPage() {
       <section className="panel">
         <div className="panelHeader">
           <h2 className="panelTitle">Recurring Services</h2>
+        </div>
+
+        <div className="buttonRow" style={{ marginBottom: 16 }}>
+          <button className="primaryButton" onClick={scanReminders}>
+            Scan & Send Due Reminders
+          </button>
         </div>
 
         <div className="statsGrid" style={{ marginBottom: 16 }}>
@@ -388,42 +354,25 @@ export default function RecurringPage() {
                 <div className="cardLine"><strong>Address:</strong> {service.address}</div>
                 <div className="cardLine"><strong>Phone:</strong> {service.phone || "—"}</div>
                 <div className="cardLine"><strong>Email:</strong> {service.email || "—"}</div>
-                <div className="cardLine"><strong>Notes:</strong> {service.notes || "—"}</div>
 
                 <div className="buttonRow">
-                  <button className="secondaryButton" onClick={() => startEdit(service)}>
-                    Edit
-                  </button>
-
-                  <button className="secondaryButton" onClick={() => sendReminder(service.id)}>
-                    Send Reminder
-                  </button>
+                  <button className="secondaryButton" onClick={() => startEdit(service)}>Edit</button>
+                  <button className="secondaryButton" onClick={() => sendReminder(service.id)}>Send Reminder</button>
 
                   {service.status !== "active" && (
-                    <button className="secondaryButton" onClick={() => updateStatus(service.id, "active")}>
-                      Activate
-                    </button>
+                    <button className="secondaryButton" onClick={() => updateStatus(service.id, "active")}>Activate</button>
                   )}
 
                   {service.status === "active" && (
-                    <button className="secondaryButton" onClick={() => updateStatus(service.id, "paused")}>
-                      Pause
-                    </button>
+                    <button className="secondaryButton" onClick={() => updateStatus(service.id, "paused")}>Pause</button>
                   )}
 
                   {service.status !== "cancelled" && (
-                    <button className="secondaryButton" onClick={() => updateStatus(service.id, "cancelled")}>
-                      Cancel
-                    </button>
+                    <button className="secondaryButton" onClick={() => updateStatus(service.id, "cancelled")}>Cancel</button>
                   )}
 
-                  <button className="primaryButton" onClick={() => createNextJob(service.id)}>
-                    Create Next Job
-                  </button>
-
-                  <button className="secondaryButton" onClick={() => deleteService(service.id)}>
-                    Delete
-                  </button>
+                  <button className="primaryButton" onClick={() => createNextJob(service.id)}>Create Next Job</button>
+                  <button className="secondaryButton" onClick={() => deleteService(service.id)}>Delete</button>
                 </div>
               </div>
             ))}
