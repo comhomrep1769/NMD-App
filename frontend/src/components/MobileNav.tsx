@@ -1,17 +1,28 @@
 import type { PageKey, Role } from "../types";
 
 const adminItems: { key: PageKey; label: string }[] = [
-  { key: "dashboard", label: "Dash" },
+  { key: "dashboard", label: "Home" },
+  { key: "clients", label: "Clients" },
+  { key: "quotes", label: "Quotes" },
+  { key: "invoices", label: "Invoices" },
   { key: "schedule", label: "Schedule" },
+  { key: "requests", label: "Requests" },
   { key: "chat", label: "Chat" },
-  { key: "tips", label: "Tips" }
+  { key: "pricing", label: "Pricing" }
 ];
 
 const employeeItems: { key: PageKey; label: string }[] = [
-  { key: "dashboard", label: "Dash" },
+  { key: "dashboard", label: "Home" },
   { key: "schedule", label: "Schedule" },
+  { key: "timeclock", label: "Clock" },
+  { key: "my-ledger", label: "Ledger" },
   { key: "chat", label: "Chat" },
-  { key: "tips", label: "Tips" }
+  { key: "treatments", label: "Treatments" }
+];
+
+const clientItems: { key: PageKey; label: string }[] = [
+  { key: "dashboard", label: "Portal" },
+  { key: "chat", label: "Chat" }
 ];
 
 export default function MobileNav({
@@ -23,14 +34,20 @@ export default function MobileNav({
   onNavigate: (page: PageKey) => void;
   role: Role;
 }) {
-  const items = role === "admin" ? adminItems : employeeItems;
+  const items =
+    role === "admin"
+      ? adminItems
+      : role === "employee"
+        ? employeeItems
+        : clientItems;
 
   return (
     <nav className="mobileNav">
       {items.map((item) => (
         <button
           key={item.key}
-          className={`mobileNavLink ${currentPage === item.key ? "mobileNavLinkActive" : ""}`}
+          type="button"
+          className={`mobileNavItem ${currentPage === item.key ? "mobileNavItemActive" : ""}`}
           onClick={() => onNavigate(item.key)}
         >
           {item.label}
