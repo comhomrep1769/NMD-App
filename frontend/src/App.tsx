@@ -26,6 +26,7 @@ import TimeClockPage from "./pages/TimeClockPage";
 import EquipmentPage from "./pages/EquipmentPage";
 import TreatmentsPage from "./pages/TreatmentsPage";
 import PricingPage from "./pages/PricingPage";
+import ClientDashboardPage from "./pages/ClientDashboardPage";
 import { apiFetch } from "./api";
 
 const demoClients: Client[] = [];
