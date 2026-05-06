@@ -23,19 +23,129 @@ type ClientPortalData = {
   serviceRequests: ServiceRequest[];
 };
 
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      if (typeof reader.result === "string") resolve(reader.result);
+      else reject(new Error("Could not read image."));
+    };
+
+    reader.onerror = () => reject(new Error("Could not read image."));
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function ClientDashboardPage() {
   const [data, setData] = React.useState<ClientPortalData | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
+  const [success, setSuccess] = React.useState("");
+
+  const [serviceType, setServiceType] = React.useState("Driveway Cleaning");
+  const [address, setAddress] = React.useState("");
+  const [preferredDate, setPreferredDate] = React.useState("");
+  const [preferredTime, setPreferredTime] = React.useState("");
+  const [notes, setNotes] = React.useState("");
+  const [photoDataUrl, setPhotoDataUrl] = React.useState<string | null>(null);
+  const [photoNote, setPhotoNote] = React.useState("");
+  const [waiverAccepted, setWaiverAccepted] = React.useState(false);
+  const [waiverSignature, setWaiverSignature] = React.useState("");
+  const [savingRequest, setSavingRequest] = React.useState(false);
+
+  const loadPortal = React.useCallback(async () => {
+    setError("");
+
+    try {
+      const result = await apiFetch<ClientPortalData>("/api/client-portal/me");
+      setData(result);
+
+      if (result.client && !address) {
+        setAddress(result.client.address || "");
+        setWaiverSignature(`${result.client.firstName} ${result.client.lastName}`);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load client portal");
+    } finally {
+      setLoading(false);
+    }
+  }, [address]);
 
   React.useEffect(() => {
-    apiFetch<ClientPortalData>("/api/client-portal/me")
-      .then((result) => setData(result))
-      .catch((err) => {
-        setError(err instanceof Error ? err.message : "Failed to load client portal");
-      })
-      .finally(() => setLoading(false));
-  }, []);
+    loadPortal();
+  }, [loadPortal]);
+
+  const handlePhoto = async (file?: File) => {
+    setError("");
+
+    if (!file) {
+      setPhotoDataUrl(null);
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setError("Please upload an image file.");
+      return;
+    }
+
+    if (file.size > 1_800_000) {
+      setError("Image is too large. Please upload a smaller image under about 1.8MB.");
+      return;
+    }
+
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      setPhotoDataUrl(dataUrl);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not load image.");
+    }
+  };
+
+  const submitServiceRequest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+
+    if (!waiverAccepted || !waiverSignature.trim()) {
+      setError("Please accept the waiver and type your full legal name as signature.");
+      return;
+    }
+
+    try {
+      setSavingRequest(true);
+
+      await apiFetch("/api/client-portal/service-request", {
+        method: "POST",
+        body: JSON.stringify({
+          address,
+          serviceType,
+          preferredDate: preferredDate || null,
+          preferredTime,
+          notes,
+          photoDataUrl,
+          photoNote,
+          waiverAccepted,
+          waiverSignature
+        })
+      });
+
+      setSuccess("Service request submitted.");
+      setServiceType("Driveway Cleaning");
+      setPreferredDate("");
+      setPreferredTime("");
+      setNotes("");
+      setPhotoDataUrl(null);
+      setPhotoNote("");
+      setWaiverAccepted(false);
+
+      await loadPortal();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to submit service request");
+    } finally {
+      setSavingRequest(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -46,7 +156,7 @@ export default function ClientDashboardPage() {
     );
   }
 
-  if (error) {
+  if (error && !data) {
     return (
       <section className="panel">
         <h2 className="panelTitle">Client Portal</h2>
@@ -85,6 +195,9 @@ export default function ClientDashboardPage() {
           </div>
         </div>
 
+        {error && <div className="errorBox">{error}</div>}
+        {success && <div className="listCard">{success}</div>}
+
         <div className="statsGrid">
           <div className="statCard">
             <div className="statLabel">Open Invoices</div>
@@ -106,6 +219,132 @@ export default function ClientDashboardPage() {
             <div className="statValue">{data.recurringServices.length}</div>
           </div>
         </div>
+      </section>
+
+      <section className="panel">
+        <h2 className="panelTitle">Request New Service</h2>
+
+        <form className="formGrid" onSubmit={submitServiceRequest}>
+          <input
+            className="textInput"
+            placeholder="Service address"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+          />
+
+          <select
+            className="textInput"
+            value={serviceType}
+            onChange={(e) => setServiceType(e.target.value)}
+          >
+            <option value="Driveway Cleaning">Driveway Cleaning</option>
+            <option value="Sidewalk Cleaning">Sidewalk Cleaning</option>
+            <option value="House Siding">House Siding</option>
+            <option value="Roof Cleaning">Roof Cleaning</option>
+            <option value="Fence Cleaning">Fence Cleaning</option>
+            <option value="Trash Can Cleaning">Trash Can Cleaning</option>
+            <option value="Commercial Cleaning">Commercial Cleaning</option>
+            <option value="Other">Other</option>
+          </select>
+
+          <input
+            className="textInput"
+            type="date"
+            value={preferredDate}
+            onChange={(e) => setPreferredDate(e.target.value)}
+          />
+
+          <input
+            className="textInput"
+            placeholder="Preferred time window"
+            value={preferredTime}
+            onChange={(e) => setPreferredTime(e.target.value)}
+          />
+
+          <textarea
+            className="textInput"
+            placeholder="Notes / details about the surface, stains, access, etc."
+            rows={4}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+          />
+
+          <div className="assignBox">
+            <div className="assignTitle">Upload Photo Optional</div>
+
+            <input
+              className="textInput"
+              type="file"
+              accept="image/*"
+              onChange={(e) => handlePhoto(e.target.files?.[0])}
+            />
+
+            {photoDataUrl && (
+              <div style={{ marginTop: 12 }}>
+                <img
+                  src={photoDataUrl}
+                  alt="Request upload preview"
+                  style={{
+                    width: "100%",
+                    maxHeight: 260,
+                    objectFit: "cover",
+                    borderRadius: 14,
+                    border: "1px solid var(--border)"
+                  }}
+                />
+
+                <button
+                  className="secondaryButton"
+                  type="button"
+                  style={{ marginTop: 10 }}
+                  onClick={() => setPhotoDataUrl(null)}
+                >
+                  Remove Photo
+                </button>
+              </div>
+            )}
+          </div>
+
+          <textarea
+            className="textInput"
+            placeholder="Photo note optional — describe what the image shows"
+            rows={3}
+            value={photoNote}
+            onChange={(e) => setPhotoNote(e.target.value)}
+          />
+
+          <div className="assignBox">
+            <div className="assignTitle">Required Liability Waiver</div>
+
+            <div className="cardLine">
+              By submitting this request, I acknowledge that NMD Pressure Washing Services LLC is not responsible for pre-existing property conditions, including but not limited to oxidation, loose paint, damaged siding, cracked concrete, weakened seals, worn surfaces, improper prior coatings, electrical exposure, or hidden damage.
+            </div>
+
+            <div className="cardLine">
+              I understand NMD Pressure Washing Services LLC is only responsible for direct damage proven to be caused by its work, and that a quote or service recommendation may depend on visible condition, uploaded photos, and on-site inspection.
+            </div>
+
+            <label className="assignItem">
+              <input
+                type="checkbox"
+                checked={waiverAccepted}
+                onChange={(e) => setWaiverAccepted(e.target.checked)}
+              />
+              <span>I have read and accept the liability waiver.</span>
+            </label>
+
+            <input
+              className="textInput"
+              placeholder="Type full legal name as signature"
+              value={waiverSignature}
+              onChange={(e) => setWaiverSignature(e.target.value)}
+            />
+          </div>
+
+          <button className="primaryButton" type="submit" disabled={savingRequest}>
+            {savingRequest ? "Submitting..." : "Submit Service Request"}
+          </button>
+        </form>
       </section>
 
       <section className="panel">
