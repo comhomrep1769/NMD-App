@@ -60,6 +60,20 @@ async function getClientEmail(clientId?: string | null, clientName?: string | nu
   return null;
 }
 
+async function notifyRecurringClient(service: any, subject: string, title: string, body: string) {
+  if (!service?.email) return;
+
+  await sendEmail({
+    to: service.email,
+    subject,
+    html: buildNmdEmailTemplate({
+      title,
+      message: body
+    }),
+    text: subject
+  });
+}
+
 router.post(
   "/invoices/:invoiceId/create-payment-link",
   requireAuth,
@@ -212,71 +226,278 @@ router.post("/stripe-webhook", async (req, res) => {
   try {
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
-      const invoiceId = session.metadata?.invoiceId;
 
-      if (invoiceId) {
-        const beforeResult = await pool.query(
-          `
-          SELECT *
-          FROM invoices
-          WHERE id = $1
-          LIMIT 1
-          `,
-          [invoiceId]
-        );
+      if (session.mode === "payment") {
+        const invoiceId = session.metadata?.invoiceId;
 
-        const before = beforeResult.rows[0];
+        if (invoiceId) {
+          const beforeResult = await pool.query(
+            `
+            SELECT *
+            FROM invoices
+            WHERE id = $1
+            LIMIT 1
+            `,
+            [invoiceId]
+          );
 
-        const updatedResult = await pool.query(
-          `
-          UPDATE invoices
-          SET
-            status = 'paid',
-            payment_status = 'paid'
-          WHERE id = $1
-          RETURNING *
-          `,
-          [invoiceId]
-        );
+          const before = beforeResult.rows[0];
 
-        const invoice = updatedResult.rows[0];
+          const updatedResult = await pool.query(
+            `
+            UPDATE invoices
+            SET
+              status = 'paid',
+              payment_status = 'paid'
+            WHERE id = $1
+            RETURNING *
+            `,
+            [invoiceId]
+          );
 
-        if (invoice && before?.payment_status !== "paid") {
-          const email = await getClientEmail(invoice.client_id, invoice.client_name);
+          const invoice = updatedResult.rows[0];
 
-          if (email) {
+          if (invoice && before?.payment_status !== "paid") {
+            const email = await getClientEmail(invoice.client_id, invoice.client_name);
+
+            if (email) {
+              await sendEmail({
+                to: email,
+                subject: `Payment received for NMD Invoice #${invoice.invoice_number}`,
+                html: buildNmdEmailTemplate({
+                  title: "Payment Received",
+                  message: `
+                    <p>Hi ${invoice.client_name},</p>
+                    <p>Thank you. Your payment has been received.</p>
+                    <p><strong>Invoice:</strong> #${invoice.invoice_number}</p>
+                    <p><strong>Service:</strong> ${invoice.job_name}</p>
+                    <p><strong>Total Paid:</strong> $${Number(invoice.total || 0).toFixed(2)}</p>
+                  `
+                }),
+                text: `Payment received for NMD invoice #${invoice.invoice_number}. Thank you.`
+              });
+            }
+
             await sendEmail({
-              to: email,
-              subject: `Payment received for NMD Invoice #${invoice.invoice_number}`,
+              to: process.env.NMD_ADMIN_EMAIL || "nmdpowash@gmail.com",
+              subject: `NMD payment received: Invoice #${invoice.invoice_number}`,
               html: buildNmdEmailTemplate({
                 title: "Payment Received",
                 message: `
-                  <p>Hi ${invoice.client_name},</p>
-                  <p>Thank you. Your payment has been received.</p>
+                  <p><strong>Client:</strong> ${invoice.client_name}</p>
                   <p><strong>Invoice:</strong> #${invoice.invoice_number}</p>
                   <p><strong>Service:</strong> ${invoice.job_name}</p>
                   <p><strong>Total Paid:</strong> $${Number(invoice.total || 0).toFixed(2)}</p>
                 `
               }),
-              text: `Payment received for NMD invoice #${invoice.invoice_number}. Thank you.`
+              text: `Payment received for invoice #${invoice.invoice_number}.`
             });
           }
+        }
+      }
+
+      if (session.mode === "subscription") {
+        const recurringServiceId = session.metadata?.recurringServiceId;
+        const subscriptionId =
+          typeof session.subscription === "string"
+            ? session.subscription
+            : session.subscription?.id || null;
+
+        const customerId =
+          typeof session.customer === "string"
+            ? session.customer
+            : session.customer?.id || null;
+
+        if (recurringServiceId) {
+          const updatedResult = await pool.query(
+            `
+            UPDATE recurring_services
+            SET
+              stripe_checkout_session_id = $2,
+              stripe_subscription_id = COALESCE($3, stripe_subscription_id),
+              stripe_customer_id = COALESCE($4, stripe_customer_id),
+              stripe_payment_status = 'active',
+              status = 'active'
+            WHERE id = $1
+            RETURNING *
+            `,
+            [
+              recurringServiceId,
+              session.id,
+              subscriptionId,
+              customerId
+            ]
+          );
+
+          const service = updatedResult.rows[0];
+
+          if (service) {
+            await notifyRecurringClient(
+              service,
+              `NMD recurring service activated: ${service.service_type}`,
+              "Recurring Service Activated",
+              `
+                <p>Hi ${service.client_name},</p>
+                <p>Your recurring service is now active.</p>
+                <p><strong>Service:</strong> ${service.service_type}</p>
+                <p><strong>Frequency:</strong> ${service.frequency}</p>
+                <p><strong>Price:</strong> $${Number(service.price || 0).toFixed(2)}</p>
+                <p><strong>Address:</strong> ${service.address}</p>
+              `
+            );
+
+            await sendEmail({
+              to: process.env.NMD_ADMIN_EMAIL || "nmdpowash@gmail.com",
+              subject: `NMD recurring service activated: ${service.client_name}`,
+              html: buildNmdEmailTemplate({
+                title: "Recurring Service Activated",
+                message: `
+                  <p><strong>Client:</strong> ${service.client_name}</p>
+                  <p><strong>Service:</strong> ${service.service_type}</p>
+                  <p><strong>Frequency:</strong> ${service.frequency}</p>
+                  <p><strong>Price:</strong> $${Number(service.price || 0).toFixed(2)}</p>
+                  <p><strong>Stripe Subscription:</strong> ${service.stripe_subscription_id || "—"}</p>
+                `
+              }),
+              text: `Recurring service activated for ${service.client_name}.`
+            });
+          }
+        }
+      }
+    }
+
+    if (event.type === "invoice.payment_succeeded") {
+      const invoice = event.data.object as Stripe.Invoice;
+      const subscriptionId =
+        typeof invoice.subscription === "string"
+          ? invoice.subscription
+          : invoice.subscription?.id || null;
+
+      if (subscriptionId) {
+        const updatedResult = await pool.query(
+          `
+          UPDATE recurring_services
+          SET stripe_payment_status = 'active'
+          WHERE stripe_subscription_id = $1
+          RETURNING *
+          `,
+          [subscriptionId]
+        );
+
+        const service = updatedResult.rows[0];
+
+        if (service) {
+          await sendEmail({
+            to: process.env.NMD_ADMIN_EMAIL || "nmdpowash@gmail.com",
+            subject: `Recurring payment received: ${service.client_name}`,
+            html: buildNmdEmailTemplate({
+              title: "Recurring Payment Received",
+              message: `
+                <p><strong>Client:</strong> ${service.client_name}</p>
+                <p><strong>Service:</strong> ${service.service_type}</p>
+                <p><strong>Price:</strong> $${Number(service.price || 0).toFixed(2)}</p>
+                <p><strong>Subscription:</strong> ${service.stripe_subscription_id}</p>
+              `
+            }),
+            text: `Recurring payment received for ${service.client_name}.`
+          });
+        }
+      }
+    }
+
+    if (event.type === "invoice.payment_failed") {
+      const invoice = event.data.object as Stripe.Invoice;
+      const subscriptionId =
+        typeof invoice.subscription === "string"
+          ? invoice.subscription
+          : invoice.subscription?.id || null;
+
+      if (subscriptionId) {
+        const updatedResult = await pool.query(
+          `
+          UPDATE recurring_services
+          SET stripe_payment_status = 'payment_failed'
+          WHERE stripe_subscription_id = $1
+          RETURNING *
+          `,
+          [subscriptionId]
+        );
+
+        const service = updatedResult.rows[0];
+
+        if (service) {
+          await notifyRecurringClient(
+            service,
+            `NMD recurring payment failed: ${service.service_type}`,
+            "Recurring Payment Failed",
+            `
+              <p>Hi ${service.client_name},</p>
+              <p>Your recurring service payment did not go through.</p>
+              <p><strong>Service:</strong> ${service.service_type}</p>
+              <p>Please update your payment method or contact NMD to avoid service interruption.</p>
+            `
+          );
 
           await sendEmail({
             to: process.env.NMD_ADMIN_EMAIL || "nmdpowash@gmail.com",
-            subject: `NMD payment received: Invoice #${invoice.invoice_number}`,
+            subject: `Recurring payment failed: ${service.client_name}`,
             html: buildNmdEmailTemplate({
-              title: "Payment Received",
+              title: "Recurring Payment Failed",
               message: `
-                <p><strong>Client:</strong> ${invoice.client_name}</p>
-                <p><strong>Invoice:</strong> #${invoice.invoice_number}</p>
-                <p><strong>Service:</strong> ${invoice.job_name}</p>
-                <p><strong>Total Paid:</strong> $${Number(invoice.total || 0).toFixed(2)}</p>
+                <p><strong>Client:</strong> ${service.client_name}</p>
+                <p><strong>Service:</strong> ${service.service_type}</p>
+                <p><strong>Subscription:</strong> ${service.stripe_subscription_id}</p>
               `
             }),
-            text: `Payment received for invoice #${invoice.invoice_number}.`
+            text: `Recurring payment failed for ${service.client_name}.`
           });
         }
+      }
+    }
+
+    if (event.type === "customer.subscription.deleted") {
+      const subscription = event.data.object as Stripe.Subscription;
+
+      const updatedResult = await pool.query(
+        `
+        UPDATE recurring_services
+        SET
+          stripe_payment_status = 'cancelled',
+          status = 'cancelled'
+        WHERE stripe_subscription_id = $1
+        RETURNING *
+        `,
+        [subscription.id]
+      );
+
+      const service = updatedResult.rows[0];
+
+      if (service) {
+        await notifyRecurringClient(
+          service,
+          `NMD recurring service cancelled: ${service.service_type}`,
+          "Recurring Service Cancelled",
+          `
+            <p>Hi ${service.client_name},</p>
+            <p>Your recurring service subscription has been cancelled.</p>
+            <p><strong>Service:</strong> ${service.service_type}</p>
+            <p>If this was a mistake, please contact NMD to reactivate service.</p>
+          `
+        );
+
+        await sendEmail({
+          to: process.env.NMD_ADMIN_EMAIL || "nmdpowash@gmail.com",
+          subject: `Recurring service cancelled: ${service.client_name}`,
+          html: buildNmdEmailTemplate({
+            title: "Recurring Service Cancelled",
+            message: `
+              <p><strong>Client:</strong> ${service.client_name}</p>
+              <p><strong>Service:</strong> ${service.service_type}</p>
+              <p><strong>Subscription:</strong> ${service.stripe_subscription_id}</p>
+            `
+          }),
+          text: `Recurring service cancelled for ${service.client_name}.`
+        });
       }
     }
 
