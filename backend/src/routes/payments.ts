@@ -5,76 +5,52 @@ import { requireAuth, requireRole } from "../middleware/auth.js";
 
 const router = Router();
 
-function getStripe() {
-  const key = process.env.STRIPE_SECRET_KEY;
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY || "";
+const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET || "";
+const frontendUrl = process.env.FRONTEND_URL || "https://nmd-frontend.onrender.com";
 
-  if (!key) {
-    throw new Error("STRIPE_SECRET_KEY is missing");
-  }
+const stripe = stripeSecretKey
+  ? new Stripe(stripeSecretKey)
+  : null;
 
-  return new Stripe(key);
+function mapInvoice(row: any) {
+  return {
+    id: row.id,
+    invoiceNumber: row.invoice_number,
+    clientId: row.client_id,
+    clientName: row.client_name,
+    jobName: row.job_name,
+    total: Number(row.total || 0),
+    status: row.status,
+    jobId: row.job_id,
+    assignedUserId: row.assigned_user_id,
+    createdAt: row.created_at,
+    paymentProvider: row.payment_provider,
+    paymentLinkId: row.payment_link_id,
+    paymentLinkUrl: row.payment_link_url,
+    paymentStatus: row.payment_status,
+    paymentCreatedAt: row.payment_created_at,
+    stripeCheckoutSessionId: row.stripe_checkout_session_id
+  };
 }
 
-router.post("/stripe-webhook", async (req, res) => {
-  const stripe = getStripe();
-  const sig = req.headers["stripe-signature"];
-
-  if (!sig || !process.env.STRIPE_WEBHOOK_SECRET) {
-    return res.status(400).send("Missing Stripe signature or webhook secret");
-  }
-
-  let event: Stripe.Event;
-
-  try {
-    event = stripe.webhooks.constructEvent(
-      req.body,
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET
-    );
-  } catch (err) {
-    console.error("Stripe webhook signature error:", err);
-    return res.status(400).send("Webhook signature failed");
-  }
-
-  try {
-    if (event.type === "checkout.session.completed") {
-      const session = event.data.object as Stripe.Checkout.Session;
-
-      if (session.metadata?.invoiceId) {
-        await pool.query(
-          `
-          UPDATE invoices
-          SET
-            status = 'paid',
-            payment_status = 'paid',
-            stripe_checkout_session_id = $2
-          WHERE id = $1
-          `,
-          [session.metadata.invoiceId, session.id]
-        );
-      }
-    }
-
-    return res.json({ received: true });
-  } catch (error) {
-    console.error("Stripe webhook processing error:", error);
-    return res.status(500).send("Webhook processing failed");
-  }
-});
-
 router.post(
-  "/invoices/:invoiceId/create-stripe-link",
+  "/invoices/:invoiceId/create-payment-link",
   requireAuth,
   requireRole("admin"),
   async (req, res) => {
-    const stripe = getStripe();
-
     try {
+      if (!stripe) {
+        return res.status(500).json({
+          error: "Stripe is not configured"
+        });
+      }
+
       const { invoiceId } = req.params;
 
       const invoiceResult = await pool.query(
         `
-        SELECT id, invoice_number, client_name, job_name, total, status, payment_link_url
+        SELECT *
         FROM invoices
         WHERE id = $1
         LIMIT 1
@@ -83,50 +59,52 @@ router.post(
       );
 
       if (invoiceResult.rows.length === 0) {
-        return res.status(404).json({ error: "Invoice not found" });
+        return res.status(404).json({
+          error: "Invoice not found"
+        });
       }
 
       const invoice = invoiceResult.rows[0];
 
-      if (invoice.status === "paid") {
-        return res.status(400).json({ error: "Paid invoices do not need payment links" });
-      }
-
       if (invoice.payment_link_url) {
         return res.json({
-          paymentLinkUrl: invoice.payment_link_url,
-          reused: true
+          invoice: mapInvoice(invoice)
         });
       }
 
-      const amountCents = Math.round(Number(invoice.total) * 100);
+      const amountInCents = Math.round(Number(invoice.total || 0) * 100);
 
-      if (!amountCents || amountCents <= 0) {
-        return res.status(400).json({ error: "Invoice total must be greater than 0" });
+      if (amountInCents <= 0) {
+        return res.status(400).json({
+          error: "Invoice total must be greater than 0"
+        });
       }
 
-      const paymentLink = await stripe.paymentLinks.create({
+      const session = await stripe.checkout.sessions.create({
+        mode: "payment",
+        payment_method_types: ["card"],
         line_items: [
           {
+            quantity: 1,
             price_data: {
               currency: "usd",
+              unit_amount: amountInCents,
               product_data: {
                 name: `NMD Invoice #${invoice.invoice_number}`,
-                description: `${invoice.client_name} — ${invoice.job_name}`
-              },
-              unit_amount: amountCents
-            },
-            quantity: 1
-          }
+                description: invoice.job_name || "NMD Pressure Washing Service"
+              }
+            }
+          } as Stripe.Checkout.SessionCreateParams.LineItem
         ],
         metadata: {
           invoiceId: invoice.id,
-          invoiceNumber: String(invoice.invoice_number),
-          source: "nmd_app"
-        }
+          invoiceNumber: String(invoice.invoice_number)
+        },
+        success_url: `${frontendUrl}/?payment=success&invoice=${invoice.id}`,
+        cancel_url: `${frontendUrl}/?payment=cancelled&invoice=${invoice.id}`
       });
 
-      await pool.query(
+      const updatedResult = await pool.query(
         `
         UPDATE invoices
         SET
@@ -134,20 +112,83 @@ router.post(
           payment_link_id = $2,
           payment_link_url = $3,
           payment_status = 'link_created',
-          payment_created_at = NOW()
+          payment_created_at = NOW(),
+          stripe_checkout_session_id = $2
         WHERE id = $1
+        RETURNING *
         `,
-        [invoice.id, paymentLink.id, paymentLink.url]
+        [
+          invoice.id,
+          session.id,
+          session.url
+        ]
       );
 
-      return res.status(201).json({
-        paymentLinkId: paymentLink.id,
-        paymentLinkUrl: paymentLink.url,
-        reused: false
+      return res.json({
+        invoice: mapInvoice(updatedResult.rows[0])
       });
     } catch (error) {
-      console.error("create stripe link error", error);
-      return res.status(500).json({ error: "Failed to create Stripe payment link" });
+      console.error("create payment link error", error);
+      return res.status(500).json({
+        error: "Server error"
+      });
+    }
+  }
+);
+
+router.post(
+  "/stripe-webhook",
+  async (req, res) => {
+    if (!stripe) {
+      return res.status(500).send("Stripe not configured");
+    }
+
+    let event: Stripe.Event;
+
+    try {
+      if (stripeWebhookSecret) {
+        const signature = req.headers["stripe-signature"];
+
+        if (!signature) {
+          return res.status(400).send("Missing Stripe signature");
+        }
+
+        event = stripe.webhooks.constructEvent(
+          req.body,
+          signature,
+          stripeWebhookSecret
+        );
+      } else {
+        event = JSON.parse(req.body.toString());
+      }
+    } catch (error) {
+      console.error("Stripe webhook verification failed", error);
+      return res.status(400).send("Webhook error");
+    }
+
+    try {
+      if (event.type === "checkout.session.completed") {
+        const session = event.data.object as Stripe.Checkout.Session;
+        const invoiceId = session.metadata?.invoiceId;
+
+        if (invoiceId) {
+          await pool.query(
+            `
+            UPDATE invoices
+            SET
+              status = 'paid',
+              payment_status = 'paid'
+            WHERE id = $1
+            `,
+            [invoiceId]
+          );
+        }
+      }
+
+      return res.json({ received: true });
+    } catch (error) {
+      console.error("Stripe webhook process error", error);
+      return res.status(500).send("Webhook handler error");
     }
   }
 );
