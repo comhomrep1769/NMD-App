@@ -50,6 +50,8 @@ export type Quote = {
   serviceType: string;
   total: number;
   status: QuoteStatus;
+  convertedInvoiceId?: string | null;
+  acceptedAt?: string | null;
   createdAt?: string;
 };
 
