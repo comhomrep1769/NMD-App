@@ -14,12 +14,20 @@ type ClientJob = {
   createdAt: string;
 };
 
+type ClientRecurringService = RecurringService & {
+  stripeCheckoutSessionId?: string | null;
+  stripeSubscriptionId?: string | null;
+  stripeCustomerId?: string | null;
+  stripePaymentStatus?: string | null;
+  stripeCheckoutUrl?: string | null;
+};
+
 type ClientPortalData = {
   client: Client | null;
   quotes: Quote[];
   invoices: Invoice[];
   jobs: ClientJob[];
-  recurringServices: RecurringService[];
+  recurringServices: ClientRecurringService[];
   serviceRequests: ServiceRequest[];
 };
 
@@ -184,6 +192,7 @@ export default function ClientDashboardPage() {
   const unpaidInvoices = data.invoices.filter((invoice) => invoice.status === "unpaid");
   const acceptedQuotes = data.quotes.filter((quote) => quote.status === "accepted");
   const upcomingJobs = data.jobs.filter((job) => new Date(job.startTime).getTime() >= Date.now());
+  const activeRecurring = data.recurringServices.filter((service) => service.status === "active");
 
   return (
     <div className="pageGrid">
@@ -215,8 +224,8 @@ export default function ClientDashboardPage() {
           </div>
 
           <div className="statCard">
-            <div className="statLabel">Recurring Services</div>
-            <div className="statValue">{data.recurringServices.length}</div>
+            <div className="statLabel">Active Recurring</div>
+            <div className="statValue">{activeRecurring.length}</div>
           </div>
         </div>
       </section>
@@ -348,6 +357,74 @@ export default function ClientDashboardPage() {
       </section>
 
       <section className="panel">
+        <h2 className="panelTitle">My Recurring Services</h2>
+
+        <div className="cardsGrid">
+          {data.recurringServices.map((service) => (
+            <div key={service.id} className="quoteCard">
+              <div className="quoteTopRow">
+                <div className="quoteNumber">{service.serviceType}</div>
+                <span className={`statusBadge status-${service.status}`}>
+                  {service.status}
+                </span>
+              </div>
+
+              <div className="cardLine">
+                <strong>Frequency:</strong> {service.frequency}
+              </div>
+
+              <div className="cardLine">
+                <strong>Price:</strong> ${service.price.toFixed(2)}
+              </div>
+
+              <div className="cardLine">
+                <strong>Billing:</strong> {service.stripePaymentStatus || "not_started"}
+              </div>
+
+              <div className="cardLine">
+                <strong>Next Service:</strong>{" "}
+                {service.nextServiceDate
+                  ? new Date(service.nextServiceDate).toLocaleDateString()
+                  : "—"}
+              </div>
+
+              <div className="cardLine">
+                <strong>Address:</strong> {service.address}
+              </div>
+
+              {service.stripeCheckoutUrl && service.stripePaymentStatus !== "active" && (
+                <a
+                  className="primaryButton"
+                  href={service.stripeCheckoutUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ textDecoration: "none", display: "inline-block", marginTop: 12 }}
+                >
+                  Activate Recurring Billing
+                </a>
+              )}
+
+              {service.stripePaymentStatus === "active" && (
+                <div className="listCard" style={{ marginTop: 12 }}>
+                  Recurring billing is active.
+                </div>
+              )}
+
+              {service.stripePaymentStatus === "payment_failed" && (
+                <div className="errorBox" style={{ marginTop: 12 }}>
+                  Payment failed. Please contact NMD or update payment with the checkout link if available.
+                </div>
+              )}
+            </div>
+          ))}
+
+          {data.recurringServices.length === 0 && (
+            <div className="listCard">No recurring services yet.</div>
+          )}
+        </div>
+      </section>
+
+      <section className="panel">
         <h2 className="panelTitle">My Invoices</h2>
 
         <div className="cardsGrid">
@@ -459,42 +536,6 @@ export default function ClientDashboardPage() {
 
           {data.jobs.length === 0 && (
             <div className="listCard">No appointments yet.</div>
-          )}
-        </div>
-      </section>
-
-      <section className="panel">
-        <h2 className="panelTitle">Recurring Services</h2>
-
-        <div className="cardsGrid">
-          {data.recurringServices.map((service) => (
-            <div key={service.id} className="quoteCard">
-              <div className="quoteTopRow">
-                <div className="quoteNumber">{service.serviceType}</div>
-                <span className={`statusBadge status-${service.status}`}>
-                  {service.status}
-                </span>
-              </div>
-
-              <div className="cardLine">
-                <strong>Frequency:</strong> {service.frequency}
-              </div>
-
-              <div className="cardLine">
-                <strong>Price:</strong> ${service.price.toFixed(2)}
-              </div>
-
-              <div className="cardLine">
-                <strong>Next Service:</strong>{" "}
-                {service.nextServiceDate
-                  ? new Date(service.nextServiceDate).toLocaleDateString()
-                  : "—"}
-              </div>
-            </div>
-          ))}
-
-          {data.recurringServices.length === 0 && (
-            <div className="listCard">No recurring services yet.</div>
           )}
         </div>
       </section>
