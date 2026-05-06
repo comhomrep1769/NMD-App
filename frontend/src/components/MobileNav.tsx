@@ -8,7 +8,7 @@ const adminItems: { key: PageKey; label: string }[] = [
   { key: "schedule", label: "Schedule" },
   { key: "requests", label: "Requests" },
   { key: "chat", label: "Chat" },
-  { key: "pricing", label: "Pricing" }
+  { key: "email", label: "Email" }
 ];
 
 const employeeItems: { key: PageKey; label: string }[] = [
@@ -35,11 +35,7 @@ export default function MobileNav({
   role: Role;
 }) {
   const items =
-    role === "admin"
-      ? adminItems
-      : role === "employee"
-        ? employeeItems
-        : clientItems;
+    role === "admin" ? adminItems : role === "employee" ? employeeItems : clientItems;
 
   return (
     <nav className="mobileNav">
