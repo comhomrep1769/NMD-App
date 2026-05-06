@@ -4,24 +4,28 @@ import { requireAuth, requireRole } from "../middleware/auth.js";
 
 const router = Router();
 
+async function findClientForUser(userId: string, userEmail: string) {
+  const clientResult = await pool.query(
+    `
+    SELECT *
+    FROM clients
+    WHERE user_id = $1
+       OR LOWER(email) = LOWER($2)
+    ORDER BY created_at DESC
+    LIMIT 1
+    `,
+    [userId, userEmail]
+  );
+
+  return clientResult.rows[0] || null;
+}
+
 router.get("/me", requireAuth, requireRole("client"), async (req, res) => {
   try {
     const userId = req.user!.id;
     const userEmail = req.user!.email;
 
-    const clientResult = await pool.query(
-      `
-      SELECT *
-      FROM clients
-      WHERE user_id = $1
-         OR LOWER(email) = LOWER($2)
-      ORDER BY created_at DESC
-      LIMIT 1
-      `,
-      [userId, userEmail]
-    );
-
-    const client = clientResult.rows[0] || null;
+    const client = await findClientForUser(userId, userEmail);
 
     if (!client) {
       return res.json({
@@ -33,6 +37,8 @@ router.get("/me", requireAuth, requireRole("client"), async (req, res) => {
         serviceRequests: []
       });
     }
+
+    const fullName = `${client.first_name} ${client.last_name}`;
 
     const [quotesResult, invoicesResult, jobsResult, recurringResult, requestsResult] =
       await Promise.all([
@@ -54,7 +60,7 @@ router.get("/me", requireAuth, requireRole("client"), async (req, res) => {
              OR LOWER(client_name) = LOWER($2)
           ORDER BY created_at DESC
           `,
-          [client.id, `${client.first_name} ${client.last_name}`]
+          [client.id, fullName]
         ),
 
         pool.query(
@@ -81,7 +87,7 @@ router.get("/me", requireAuth, requireRole("client"), async (req, res) => {
              OR LOWER(client_name) = LOWER($2)
           ORDER BY created_at DESC
           `,
-          [client.id, `${client.first_name} ${client.last_name}`]
+          [client.id, fullName]
         ),
 
         pool.query(
@@ -101,7 +107,7 @@ router.get("/me", requireAuth, requireRole("client"), async (req, res) => {
              OR LOWER(address) = LOWER($2)
           ORDER BY start_time DESC
           `,
-          [`${client.first_name} ${client.last_name}`, client.address]
+          [fullName, client.address]
         ),
 
         pool.query(
@@ -149,11 +155,13 @@ router.get("/me", requireAuth, requireRole("client"), async (req, res) => {
             status,
             created_at
           FROM service_requests
-          WHERE LOWER(email) = LOWER($1)
-             OR LOWER(phone) = LOWER($2)
+          WHERE client_id = $1
+             OR client_user_id = $2
+             OR LOWER(email) = LOWER($3)
+             OR LOWER(phone) = LOWER($4)
           ORDER BY created_at DESC
           `,
-          [client.email, client.phone]
+          [client.id, userId, client.email, client.phone]
         )
       ]);
 
@@ -250,6 +258,146 @@ router.get("/me", requireAuth, requireRole("client"), async (req, res) => {
     });
   } catch (error) {
     console.error("client portal me error", error);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.post("/service-request", requireAuth, requireRole("client"), async (req, res) => {
+  try {
+    const userId = req.user!.id;
+    const userEmail = req.user!.email;
+
+    const client = await findClientForUser(userId, userEmail);
+
+    if (!client) {
+      return res.status(400).json({
+        error: "No client profile connected to this account yet."
+      });
+    }
+
+    const {
+      address,
+      serviceType,
+      preferredDate,
+      preferredTime,
+      notes,
+      photoDataUrl,
+      photoNote,
+      waiverAccepted,
+      waiverSignature
+    } = req.body as {
+      address?: string;
+      serviceType?: string;
+      preferredDate?: string | null;
+      preferredTime?: string;
+      notes?: string;
+      photoDataUrl?: string | null;
+      photoNote?: string;
+      waiverAccepted?: boolean;
+      waiverSignature?: string;
+    };
+
+    if (!serviceType) {
+      return res.status(400).json({ error: "Service type is required" });
+    }
+
+    if (!waiverAccepted || !waiverSignature?.trim()) {
+      return res.status(400).json({
+        error: "Liability waiver acceptance and signature are required before submitting."
+      });
+    }
+
+    if (photoDataUrl && photoDataUrl.length > 2_500_000) {
+      return res.status(400).json({
+        error: "Photo is too large. Please upload a smaller image."
+      });
+    }
+
+    const result = await pool.query(
+      `
+      INSERT INTO service_requests
+        (
+          client_user_id,
+          client_id,
+          first_name,
+          last_name,
+          phone,
+          email,
+          address,
+          service_type,
+          preferred_date,
+          preferred_time,
+          notes,
+          photo_data_url,
+          photo_note,
+          waiver_accepted,
+          waiver_signature,
+          waiver_signed_at
+        )
+      VALUES
+        ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, TRUE, $14, NOW())
+      RETURNING
+        id,
+        first_name,
+        last_name,
+        phone,
+        email,
+        address,
+        service_type,
+        preferred_date,
+        preferred_time,
+        notes,
+        photo_data_url,
+        photo_note,
+        waiver_accepted,
+        waiver_signature,
+        waiver_signed_at,
+        status,
+        created_at
+      `,
+      [
+        userId,
+        client.id,
+        client.first_name,
+        client.last_name,
+        client.phone,
+        client.email,
+        address?.trim() || client.address,
+        serviceType.trim(),
+        preferredDate || null,
+        preferredTime?.trim() || null,
+        notes?.trim() || null,
+        photoDataUrl || null,
+        photoNote?.trim() || null,
+        waiverSignature.trim()
+      ]
+    );
+
+    const row = result.rows[0];
+
+    return res.status(201).json({
+      request: {
+        id: row.id,
+        firstName: row.first_name,
+        lastName: row.last_name,
+        phone: row.phone,
+        email: row.email,
+        address: row.address,
+        serviceType: row.service_type,
+        preferredDate: row.preferred_date,
+        preferredTime: row.preferred_time,
+        notes: row.notes,
+        photoDataUrl: row.photo_data_url,
+        photoNote: row.photo_note,
+        waiverAccepted: row.waiver_accepted,
+        waiverSignature: row.waiver_signature,
+        waiverSignedAt: row.waiver_signed_at,
+        status: row.status,
+        createdAt: row.created_at
+      }
+    });
+  } catch (error) {
+    console.error("client portal service request error", error);
     return res.status(500).json({ error: "Server error" });
   }
 });
