@@ -1,8 +1,10 @@
 export default function LandingPage({
   onLogin,
+  onCreateAccount,
   onRequestService
 }: {
   onLogin: () => void;
+  onCreateAccount: () => void;
   onRequestService: () => void;
 }) {
   return (
@@ -14,9 +16,15 @@ export default function LandingPage({
             <p className="brandSubtitle">No More Dirt • Residential • Commercial • Industrial</p>
           </div>
 
-          <button className="secondaryButton" onClick={onLogin}>
-            Login
-          </button>
+          <div className="buttonRow">
+            <button className="secondaryButton" onClick={onCreateAccount}>
+              Create Account
+            </button>
+
+            <button className="secondaryButton" onClick={onLogin}>
+              Login
+            </button>
+          </div>
         </div>
 
         <div className="statsGrid" style={{ marginTop: 24 }}>
@@ -49,6 +57,10 @@ export default function LandingPage({
             <div className="buttonRow" style={{ marginTop: 18 }}>
               <button className="primaryButton" onClick={onRequestService}>
                 Request Quote
+              </button>
+
+              <button className="secondaryButton" onClick={onCreateAccount}>
+                Create Client Account
               </button>
 
               <button className="secondaryButton" onClick={onLogin}>
