@@ -15,6 +15,7 @@ const adminItems: { key: PageKey; label: string }[] = [
   { key: "treatments", label: "Treatments" },
   { key: "pricing", label: "Pricing" },
   { key: "timeclock", label: "Time Clock" },
+  { key: "email", label: "Email Test" },
   { key: "availability", label: "Availability" },
   { key: "chat", label: "Chat" },
   { key: "tips", label: "Tips & Notes" },
@@ -32,6 +33,11 @@ const employeeItems: { key: PageKey; label: string }[] = [
   { key: "tips", label: "Tips & Notes" }
 ];
 
+const clientItems: { key: PageKey; label: string }[] = [
+  { key: "dashboard", label: "Client Portal" },
+  { key: "chat", label: "Chat" }
+];
+
 export default function Sidebar({
   currentPage,
   onNavigate,
@@ -41,7 +47,8 @@ export default function Sidebar({
   onNavigate: (page: PageKey) => void;
   role: Role;
 }) {
-  const items = role === "admin" ? adminItems : employeeItems;
+  const items =
+    role === "admin" ? adminItems : role === "employee" ? employeeItems : clientItems;
 
   return (
     <aside className="sidebar">
