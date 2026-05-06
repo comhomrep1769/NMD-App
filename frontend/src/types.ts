@@ -22,7 +22,7 @@ export type PageKey =
   | "service-request"
   | "my-ledger";
 
-export type Role = "admin" | "employee";
+export type Role = "admin" | "employee" | "client";
 
 export type AuthUser = {
   id: string;
