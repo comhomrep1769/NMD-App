@@ -1,49 +1,60 @@
-import type { NextFunction, Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
-type JwtPayload = {
+const JWT_SECRET = process.env.JWT_SECRET || "dev_secret_change_me";
+
+export type UserRole = "admin" | "employee" | "client";
+
+export type AuthUser = {
   id: string;
   email: string;
-  role: "admin" | "employee";
+  displayName: string;
+  role: UserRole;
 };
 
-export function requireAuth(req: Request, res: Response, next: NextFunction) {
-  const header = req.headers.authorization;
-
-  if (!header || !header.startsWith("Bearer ")) {
-    return res.status(401).json({ error: "Missing auth token" });
+declare global {
+  namespace Express {
+    interface Request {
+      user?: AuthUser;
+    }
   }
+}
 
-  const token = header.replace("Bearer ", "");
-
+export function requireAuth(req: Request, res: Response, next: NextFunction) {
   try {
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET as string
-    ) as JwtPayload;
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Missing auth token" });
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+
+    const decoded = jwt.verify(token, JWT_SECRET) as AuthUser;
 
     req.user = {
       id: decoded.id,
       email: decoded.email,
+      displayName: decoded.displayName,
       role: decoded.role
     };
 
-    next();
-  } catch {
+    return next();
+  } catch (error) {
     return res.status(401).json({ error: "Invalid auth token" });
   }
 }
 
-export function requireRole(role: "admin" | "employee") {
-  return function (req: Request, res: Response, next: NextFunction) {
+export function requireRole(...roles: UserRole[]) {
+  return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
-      return res.status(401).json({ error: "Unauthorized" });
+      return res.status(401).json({ error: "Not authenticated" });
     }
 
-    if (req.user.role !== role) {
-      return res.status(403).json({ error: "Forbidden" });
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ error: "Not authorized" });
     }
 
-    next();
+    return next();
   };
 }
