@@ -2,6 +2,7 @@ import { Router } from "express";
 import Stripe from "stripe";
 import { pool } from "../db.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
+import { buildNmdEmailTemplate, sendEmail } from "../services/email.js";
 
 const router = Router();
 
@@ -9,9 +10,7 @@ const stripeSecretKey = process.env.STRIPE_SECRET_KEY || "";
 const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET || "";
 const frontendUrl = process.env.FRONTEND_URL || "https://nmd-frontend.onrender.com";
 
-const stripe = stripeSecretKey
-  ? new Stripe(stripeSecretKey)
-  : null;
+const stripe = stripeSecretKey ? new Stripe(stripeSecretKey) : null;
 
 function mapInvoice(row: any) {
   return {
@@ -32,6 +31,33 @@ function mapInvoice(row: any) {
     paymentCreatedAt: row.payment_created_at,
     stripeCheckoutSessionId: row.stripe_checkout_session_id
   };
+}
+
+async function getClientEmail(clientId?: string | null, clientName?: string | null) {
+  if (clientId) {
+    const result = await pool.query(
+      `SELECT email FROM clients WHERE id = $1 LIMIT 1`,
+      [clientId]
+    );
+
+    if (result.rows[0]?.email) return result.rows[0].email;
+  }
+
+  if (clientName) {
+    const result = await pool.query(
+      `
+      SELECT email
+      FROM clients
+      WHERE LOWER(CONCAT(first_name, ' ', last_name)) = LOWER($1)
+      LIMIT 1
+      `,
+      [clientName]
+    );
+
+    if (result.rows[0]?.email) return result.rows[0].email;
+  }
+
+  return null;
 }
 
 router.post(
@@ -117,15 +143,34 @@ router.post(
         WHERE id = $1
         RETURNING *
         `,
-        [
-          invoice.id,
-          session.id,
-          session.url
-        ]
+        [invoice.id, session.id, session.url]
       );
 
+      const updatedInvoice = updatedResult.rows[0];
+      const email = await getClientEmail(updatedInvoice.client_id, updatedInvoice.client_name);
+
+      if (email && session.url) {
+        await sendEmail({
+          to: email,
+          subject: `NMD Invoice #${updatedInvoice.invoice_number}`,
+          html: buildNmdEmailTemplate({
+            title: `Invoice #${updatedInvoice.invoice_number}`,
+            message: `
+              <p>Hi ${updatedInvoice.client_name},</p>
+              <p>Your NMD invoice is ready for payment.</p>
+              <p><strong>Service:</strong> ${updatedInvoice.job_name}</p>
+              <p><strong>Total:</strong> $${Number(updatedInvoice.total || 0).toFixed(2)}</p>
+              <p>You can pay securely using the button below.</p>
+            `,
+            actionLabel: "Pay Invoice",
+            actionUrl: session.url
+          }),
+          text: `Your NMD invoice #${updatedInvoice.invoice_number} is ready. Pay here: ${session.url}`
+        });
+      }
+
       return res.json({
-        invoice: mapInvoice(updatedResult.rows[0])
+        invoice: mapInvoice(updatedInvoice)
       });
     } catch (error) {
       console.error("create payment link error", error);
@@ -136,61 +181,110 @@ router.post(
   }
 );
 
-router.post(
-  "/stripe-webhook",
-  async (req, res) => {
-    if (!stripe) {
-      return res.status(500).send("Stripe not configured");
-    }
-
-    let event: Stripe.Event;
-
-    try {
-      if (stripeWebhookSecret) {
-        const signature = req.headers["stripe-signature"];
-
-        if (!signature) {
-          return res.status(400).send("Missing Stripe signature");
-        }
-
-        event = stripe.webhooks.constructEvent(
-          req.body,
-          signature,
-          stripeWebhookSecret
-        );
-      } else {
-        event = JSON.parse(req.body.toString());
-      }
-    } catch (error) {
-      console.error("Stripe webhook verification failed", error);
-      return res.status(400).send("Webhook error");
-    }
-
-    try {
-      if (event.type === "checkout.session.completed") {
-        const session = event.data.object as Stripe.Checkout.Session;
-        const invoiceId = session.metadata?.invoiceId;
-
-        if (invoiceId) {
-          await pool.query(
-            `
-            UPDATE invoices
-            SET
-              status = 'paid',
-              payment_status = 'paid'
-            WHERE id = $1
-            `,
-            [invoiceId]
-          );
-        }
-      }
-
-      return res.json({ received: true });
-    } catch (error) {
-      console.error("Stripe webhook process error", error);
-      return res.status(500).send("Webhook handler error");
-    }
+router.post("/stripe-webhook", async (req, res) => {
+  if (!stripe) {
+    return res.status(500).send("Stripe not configured");
   }
-);
+
+  let event: Stripe.Event;
+
+  try {
+    if (stripeWebhookSecret) {
+      const signature = req.headers["stripe-signature"];
+
+      if (!signature) {
+        return res.status(400).send("Missing Stripe signature");
+      }
+
+      event = stripe.webhooks.constructEvent(
+        req.body,
+        signature,
+        stripeWebhookSecret
+      );
+    } else {
+      event = JSON.parse(req.body.toString());
+    }
+  } catch (error) {
+    console.error("Stripe webhook verification failed", error);
+    return res.status(400).send("Webhook error");
+  }
+
+  try {
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object as Stripe.Checkout.Session;
+      const invoiceId = session.metadata?.invoiceId;
+
+      if (invoiceId) {
+        const beforeResult = await pool.query(
+          `
+          SELECT *
+          FROM invoices
+          WHERE id = $1
+          LIMIT 1
+          `,
+          [invoiceId]
+        );
+
+        const before = beforeResult.rows[0];
+
+        const updatedResult = await pool.query(
+          `
+          UPDATE invoices
+          SET
+            status = 'paid',
+            payment_status = 'paid'
+          WHERE id = $1
+          RETURNING *
+          `,
+          [invoiceId]
+        );
+
+        const invoice = updatedResult.rows[0];
+
+        if (invoice && before?.payment_status !== "paid") {
+          const email = await getClientEmail(invoice.client_id, invoice.client_name);
+
+          if (email) {
+            await sendEmail({
+              to: email,
+              subject: `Payment received for NMD Invoice #${invoice.invoice_number}`,
+              html: buildNmdEmailTemplate({
+                title: "Payment Received",
+                message: `
+                  <p>Hi ${invoice.client_name},</p>
+                  <p>Thank you. Your payment has been received.</p>
+                  <p><strong>Invoice:</strong> #${invoice.invoice_number}</p>
+                  <p><strong>Service:</strong> ${invoice.job_name}</p>
+                  <p><strong>Total Paid:</strong> $${Number(invoice.total || 0).toFixed(2)}</p>
+                `
+              }),
+              text: `Payment received for NMD invoice #${invoice.invoice_number}. Thank you.`
+            });
+          }
+
+          await sendEmail({
+            to: process.env.NMD_ADMIN_EMAIL || "nmdpowash@gmail.com",
+            subject: `NMD payment received: Invoice #${invoice.invoice_number}`,
+            html: buildNmdEmailTemplate({
+              title: "Payment Received",
+              message: `
+                <p><strong>Client:</strong> ${invoice.client_name}</p>
+                <p><strong>Invoice:</strong> #${invoice.invoice_number}</p>
+                <p><strong>Service:</strong> ${invoice.job_name}</p>
+                <p><strong>Total Paid:</strong> $${Number(invoice.total || 0).toFixed(2)}</p>
+              `
+            }),
+            text: `Payment received for invoice #${invoice.invoice_number}.`
+          });
+        }
+      }
+    }
+
+    return res.json({ received: true });
+  } catch (error) {
+    console.error("Stripe webhook process error", error);
+    return res.status(500).send("Webhook handler error");
+  }
+});
 
 export default router;
