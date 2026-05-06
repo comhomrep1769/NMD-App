@@ -66,7 +66,9 @@ export default function App() {
   }, [theme]);
 
   React.useEffect(() => {
-    if (page === "service-request") {
+    const path = window.location.pathname;
+
+    if (path.includes("service-request")) {
       setAuthChecked(true);
       return;
     }
@@ -88,7 +90,12 @@ export default function App() {
         setUser(null);
       })
       .finally(() => setAuthChecked(true));
-  }, [page]);
+  }, []);
+
+  const safeNavigate = (nextPage: PageKey) => {
+    setPage(nextPage);
+    window.history.pushState({}, "", "/");
+  };
 
   const handleLogin = (token: string, loggedInUser: AuthUser) => {
     localStorage.setItem("nmd-token", token);
@@ -114,12 +121,6 @@ export default function App() {
   const goToRegister = () => {
     setAuthView("register");
     window.history.pushState({}, "", "/register");
-  };
-
-  const goToLanding = () => {
-    setAuthView("landing");
-    setPage("dashboard");
-    window.history.pushState({}, "", "/");
   };
 
   const goToServiceRequest = () => {
@@ -161,7 +162,7 @@ export default function App() {
 
   return (
     <div className="appShell">
-      <Sidebar currentPage={page} onNavigate={setPage} role={user.role} />
+      <Sidebar currentPage={page} onNavigate={safeNavigate} role={user.role} />
 
       <div className="mainShell">
         <Header
@@ -184,80 +185,27 @@ export default function App() {
             <ClientDashboardPage />
           )}
 
-          {page === "clients" && user.role === "admin" && (
-            <ClientsPage />
-          )}
-
-          {page === "quotes" && user.role === "admin" && (
-            <QuotesPage />
-          )}
-
-          {page === "invoices" && user.role === "admin" && (
-            <InvoicesPage />
-          )}
-
-          {page === "schedule" && user.role !== "client" && (
-            <SchedulePage role={user.role} />
-          )}
-
-          {page === "employees" && user.role === "admin" && (
-            <EmployeesPage />
-          )}
-
-          {page === "requests" && user.role === "admin" && (
-            <RequestsPage />
-          )}
-
-          {page === "expenses" && user.role === "admin" && (
-            <ExpensesPage />
-          )}
-
-          {page === "mileage" && user.role === "admin" && (
-            <MileagePage />
-          )}
-
-          {page === "recurring" && user.role === "admin" && (
-            <RecurringPage />
-          )}
-
-          {page === "equipment" && user.role === "admin" && (
-            <EquipmentPage />
-          )}
-
-          {page === "treatments" && user.role !== "client" && (
-            <TreatmentsPage role={user.role} />
-          )}
-
-          {page === "pricing" && user.role === "admin" && (
-            <PricingPage />
-          )}
-
-          {page === "timeclock" && user.role !== "client" && (
-            <TimeClockPage role={user.role} />
-          )}
-
-          {page === "availability" && user.role !== "client" && (
-            <AvailabilityPage />
-          )}
-
-          {page === "chat" && (
-            <ChatPage currentUser={user} />
-          )}
-
-          {page === "tips" && user.role !== "client" && (
-            <TipsPage role={user.role} />
-          )}
-
-          {page === "payroll" && user.role === "admin" && (
-            <PayrollPage />
-          )}
-
-          {page === "my-ledger" && user.role === "employee" && (
-            <MyLedgerPage />
-          )}
+          {page === "clients" && user.role === "admin" && <ClientsPage />}
+          {page === "quotes" && user.role === "admin" && <QuotesPage />}
+          {page === "invoices" && user.role === "admin" && <InvoicesPage />}
+          {page === "schedule" && user.role !== "client" && <SchedulePage role={user.role} />}
+          {page === "employees" && user.role === "admin" && <EmployeesPage />}
+          {page === "requests" && user.role === "admin" && <RequestsPage />}
+          {page === "expenses" && user.role === "admin" && <ExpensesPage />}
+          {page === "mileage" && user.role === "admin" && <MileagePage />}
+          {page === "recurring" && user.role === "admin" && <RecurringPage />}
+          {page === "equipment" && user.role === "admin" && <EquipmentPage />}
+          {page === "treatments" && user.role !== "client" && <TreatmentsPage role={user.role} />}
+          {page === "pricing" && user.role === "admin" && <PricingPage />}
+          {page === "timeclock" && user.role !== "client" && <TimeClockPage role={user.role} />}
+          {page === "availability" && user.role !== "client" && <AvailabilityPage />}
+          {page === "chat" && <ChatPage currentUser={user} />}
+          {page === "tips" && user.role !== "client" && <TipsPage role={user.role} />}
+          {page === "payroll" && user.role === "admin" && <PayrollPage />}
+          {page === "my-ledger" && user.role === "employee" && <MyLedgerPage />}
         </main>
 
-        <MobileNav currentPage={page} onNavigate={setPage} role={user.role} />
+        <MobileNav currentPage={page} onNavigate={safeNavigate} role={user.role} />
       </div>
     </div>
   );
