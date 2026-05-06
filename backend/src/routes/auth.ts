@@ -6,49 +6,34 @@ import { requireAuth } from "../middleware/auth.js";
 
 const router = Router();
 
-router.post("/register", async (req, res) => {
-  try {
-    const { email, password, displayName, role } = req.body as {
-      email?: string;
-      password?: string;
-      displayName?: string;
-      role?: "admin" | "employee";
-    };
+const JWT_SECRET = process.env.JWT_SECRET || "dev_secret_change_me";
 
-    if (!email || !password || !displayName || !role) {
-      return res.status(400).json({ error: "Missing required fields" });
-    }
+function signToken(user: {
+  id: string;
+  email: string;
+  display_name: string;
+  role: "admin" | "employee" | "client";
+}) {
+  return jwt.sign(
+    {
+      id: user.id,
+      email: user.email,
+      displayName: user.display_name,
+      role: user.role
+    },
+    JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+}
 
-    if (!["admin", "employee"].includes(role)) {
-      return res.status(400).json({ error: "Invalid role" });
-    }
-
-    const existing = await pool.query(
-      "SELECT id FROM users WHERE email = $1 LIMIT 1",
-      [email.toLowerCase()]
-    );
-
-    if (existing.rows.length > 0) {
-      return res.status(409).json({ error: "Email already exists" });
-    }
-
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    const result = await pool.query(
-      `
-      INSERT INTO users (email, password_hash, display_name, role)
-      VALUES ($1, $2, $3, $4)
-      RETURNING id, email, display_name, role, created_at
-      `,
-      [email.toLowerCase(), passwordHash, displayName, role]
-    );
-
-    return res.status(201).json({ user: result.rows[0] });
-  } catch (error) {
-    console.error("register error", error);
-    return res.status(500).json({ error: "Server error" });
-  }
-});
+function mapUser(user: any) {
+  return {
+    id: user.id,
+    email: user.email,
+    displayName: user.display_name,
+    role: user.role
+  };
+}
 
 router.post("/login", async (req, res) => {
   try {
@@ -65,42 +50,28 @@ router.post("/login", async (req, res) => {
       `
       SELECT id, email, password_hash, display_name, role
       FROM users
-      WHERE email = $1
+      WHERE LOWER(email) = LOWER($1)
       LIMIT 1
       `,
-      [email.toLowerCase()]
+      [email]
     );
 
-    const user = result.rows[0];
-
-    if (!user) {
-      return res.status(401).json({ error: "Invalid credentials" });
+    if (result.rows.length === 0) {
+      return res.status(401).json({ error: "Invalid login" });
     }
 
+    const user = result.rows[0];
     const valid = await bcrypt.compare(password, user.password_hash);
 
     if (!valid) {
-      return res.status(401).json({ error: "Invalid credentials" });
+      return res.status(401).json({ error: "Invalid login" });
     }
 
-    const token = jwt.sign(
-      {
-        id: user.id,
-        email: user.email,
-        role: user.role
-      },
-      process.env.JWT_SECRET as string,
-      { expiresIn: "7d" }
-    );
+    const token = signToken(user);
 
     return res.json({
       token,
-      user: {
-        id: user.id,
-        email: user.email,
-        displayName: user.display_name,
-        role: user.role
-      }
+      user: mapUser(user)
     });
   } catch (error) {
     console.error("login error", error);
@@ -108,11 +79,141 @@ router.post("/login", async (req, res) => {
   }
 });
 
+router.post("/client-register", async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const {
+      firstName,
+      lastName,
+      email,
+      phone,
+      address,
+      password
+    } = req.body as {
+      firstName?: string;
+      lastName?: string;
+      email?: string;
+      phone?: string;
+      address?: string;
+      password?: string;
+    };
+
+    if (!firstName || !lastName || !email || !password) {
+      return res.status(400).json({
+        error: "First name, last name, email, and password are required"
+      });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({
+        error: "Password must be at least 8 characters"
+      });
+    }
+
+    await client.query("BEGIN");
+
+    const existingUser = await client.query(
+      `
+      SELECT id
+      FROM users
+      WHERE LOWER(email) = LOWER($1)
+      LIMIT 1
+      `,
+      [email]
+    );
+
+    if (existingUser.rows.length > 0) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({
+        error: "An account with this email already exists"
+      });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 12);
+    const displayName = `${firstName.trim()} ${lastName.trim()}`;
+
+    const userResult = await client.query(
+      `
+      INSERT INTO users (email, password_hash, display_name, role)
+      VALUES ($1, $2, $3, 'client')
+      RETURNING id, email, display_name, role
+      `,
+      [email.trim().toLowerCase(), passwordHash, displayName]
+    );
+
+    const user = userResult.rows[0];
+
+    const existingClient = await client.query(
+      `
+      SELECT id
+      FROM clients
+      WHERE LOWER(email) = LOWER($1)
+      LIMIT 1
+      `,
+      [email]
+    );
+
+    if (existingClient.rows.length > 0) {
+      await client.query(
+        `
+        UPDATE clients
+        SET
+          user_id = $2,
+          first_name = COALESCE(NULLIF($3, ''), first_name),
+          last_name = COALESCE(NULLIF($4, ''), last_name),
+          phone = COALESCE(NULLIF($5, ''), phone),
+          address = COALESCE(NULLIF($6, ''), address)
+        WHERE id = $1
+        `,
+        [
+          existingClient.rows[0].id,
+          user.id,
+          firstName.trim(),
+          lastName.trim(),
+          phone?.trim() || "",
+          address?.trim() || ""
+        ]
+      );
+    } else {
+      await client.query(
+        `
+        INSERT INTO clients (user_id, first_name, last_name, phone, email, address)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        `,
+        [
+          user.id,
+          firstName.trim(),
+          lastName.trim(),
+          phone?.trim() || "",
+          email.trim().toLowerCase(),
+          address?.trim() || ""
+        ]
+      );
+    }
+
+    await client.query("COMMIT");
+
+    const token = signToken(user);
+
+    return res.status(201).json({
+      token,
+      user: mapUser(user)
+    });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("client register error", error);
+    return res.status(500).json({ error: "Server error" });
+  } finally {
+    client.release();
+  }
+});
+
 router.get("/me", requireAuth, async (req, res) => {
   try {
     const result = await pool.query(
       `
-      SELECT id, email, display_name, role, created_at
+      SELECT id, email, display_name, role
       FROM users
       WHERE id = $1
       LIMIT 1
@@ -121,17 +222,11 @@ router.get("/me", requireAuth, async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: "User not found" });
+      return res.status(401).json({ error: "User not found" });
     }
 
     return res.json({
-      user: {
-        id: result.rows[0].id,
-        email: result.rows[0].email,
-        displayName: result.rows[0].display_name,
-        role: result.rows[0].role,
-        createdAt: result.rows[0].created_at
-      }
+      user: mapUser(result.rows[0])
     });
   } catch (error) {
     console.error("me error", error);
