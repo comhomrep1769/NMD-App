@@ -7,11 +7,19 @@ import type {
   RecurringStatus
 } from "../types";
 
+type RecurringServiceWithStripe = RecurringService & {
+  stripeCheckoutSessionId?: string | null;
+  stripeSubscriptionId?: string | null;
+  stripeCustomerId?: string | null;
+  stripePaymentStatus?: string | null;
+  stripeCheckoutUrl?: string | null;
+};
+
 const frequencies: RecurringFrequency[] = ["weekly", "biweekly", "monthly", "quarterly"];
 const statuses: RecurringStatus[] = ["active", "paused", "cancelled"];
 
 export default function RecurringPage() {
-  const [services, setServices] = React.useState<RecurringService[]>([]);
+  const [services, setServices] = React.useState<RecurringServiceWithStripe[]>([]);
   const [clients, setClients] = React.useState<Client[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
@@ -36,7 +44,7 @@ export default function RecurringPage() {
 
     try {
       const [recurringData, clientData] = await Promise.all([
-        apiFetch<{ recurringServices: RecurringService[] }>("/api/recurring"),
+        apiFetch<{ recurringServices: RecurringServiceWithStripe[] }>("/api/recurring"),
         apiFetch<{ clients: Client[] }>("/api/clients")
       ]);
 
@@ -80,7 +88,7 @@ export default function RecurringPage() {
     }
   };
 
-  const startEdit = (service: RecurringService) => {
+  const startEdit = (service: RecurringServiceWithStripe) => {
     setEditingId(service.id);
     setClientId(service.clientId || "");
     setClientName(service.clientName);
@@ -205,6 +213,30 @@ export default function RecurringPage() {
       await loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to scan reminders");
+    }
+  };
+
+  const createStripeSubscription = async (id: string) => {
+    setError("");
+    setSuccess("");
+
+    try {
+      const data = await apiFetch<{ recurringService: RecurringServiceWithStripe }>(
+        `/api/recurring/${id}/create-stripe-subscription`,
+        {
+          method: "POST"
+        }
+      );
+
+      setSuccess("Stripe subscription checkout created and emailed to client.");
+
+      if (data.recurringService.stripeCheckoutUrl) {
+        window.open(data.recurringService.stripeCheckoutUrl, "_blank");
+      }
+
+      await loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create Stripe subscription");
     }
   };
 
@@ -348,16 +380,37 @@ export default function RecurringPage() {
                 <div className="cardLine"><strong>Frequency:</strong> {service.frequency}</div>
                 <div className="cardLine"><strong>Price:</strong> ${service.price.toFixed(2)}</div>
                 <div className="cardLine">
+                  <strong>Stripe:</strong> {service.stripePaymentStatus || "not_started"}
+                </div>
+                <div className="cardLine">
+                  <strong>Subscription:</strong> {service.stripeSubscriptionId || "—"}
+                </div>
+                <div className="cardLine">
                   <strong>Next Service:</strong>{" "}
                   {service.nextServiceDate ? new Date(service.nextServiceDate).toLocaleDateString() : "—"}
                 </div>
                 <div className="cardLine"><strong>Address:</strong> {service.address}</div>
-                <div className="cardLine"><strong>Phone:</strong> {service.phone || "—"}</div>
                 <div className="cardLine"><strong>Email:</strong> {service.email || "—"}</div>
 
                 <div className="buttonRow">
                   <button className="secondaryButton" onClick={() => startEdit(service)}>Edit</button>
                   <button className="secondaryButton" onClick={() => sendReminder(service.id)}>Send Reminder</button>
+
+                  <button className="primaryButton" onClick={() => createStripeSubscription(service.id)}>
+                    Create Stripe Subscription
+                  </button>
+
+                  {service.stripeCheckoutUrl && (
+                    <a
+                      className="secondaryButton"
+                      href={service.stripeCheckoutUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ textDecoration: "none" }}
+                    >
+                      Open Checkout
+                    </a>
+                  )}
 
                   {service.status !== "active" && (
                     <button className="secondaryButton" onClick={() => updateStatus(service.id, "active")}>Activate</button>
