@@ -25,6 +25,7 @@ export default function RecurringPage() {
   const [clients, setClients] = React.useState<Client[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
+  const [success, setSuccess] = React.useState("");
 
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [clientId, setClientId] = React.useState("");
@@ -107,6 +108,7 @@ export default function RecurringPage() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setSuccess("");
 
     const payload = {
       clientId: clientId || null,
@@ -128,11 +130,15 @@ export default function RecurringPage() {
           method: "PATCH",
           body: JSON.stringify(payload)
         });
+
+        setSuccess("Recurring service updated.");
       } else {
         await apiFetch("/api/recurring", {
           method: "POST",
           body: JSON.stringify(payload)
         });
+
+        setSuccess("Recurring service added.");
       }
 
       resetForm();
@@ -143,12 +149,16 @@ export default function RecurringPage() {
   };
 
   const updateStatus = async (id: string, newStatus: RecurringStatus) => {
+    setError("");
+    setSuccess("");
+
     try {
       await apiFetch(`/api/recurring/${id}/status`, {
         method: "PATCH",
         body: JSON.stringify({ status: newStatus })
       });
 
+      setSuccess(`Recurring service marked ${newStatus}.`);
       await loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update status");
@@ -156,15 +166,33 @@ export default function RecurringPage() {
   };
 
   const createNextJob = async (id: string) => {
+    setError("");
+    setSuccess("");
+
     try {
       await apiFetch(`/api/recurring/${id}/create-next-job`, {
         method: "POST"
       });
 
-      alert("Scheduled job created from recurring service.");
+      setSuccess("Scheduled job created from recurring service.");
       await loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create scheduled job");
+    }
+  };
+
+  const sendReminder = async (id: string) => {
+    setError("");
+    setSuccess("");
+
+    try {
+      await apiFetch(`/api/recurring/${id}/send-reminder`, {
+        method: "POST"
+      });
+
+      setSuccess("Reminder email sent.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to send reminder");
     }
   };
 
@@ -172,11 +200,15 @@ export default function RecurringPage() {
     const ok = window.confirm("Delete this recurring service?");
     if (!ok) return;
 
+    setError("");
+    setSuccess("");
+
     try {
       await apiFetch(`/api/recurring/${id}`, {
         method: "DELETE"
       });
 
+      setSuccess("Recurring service deleted.");
       await loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete recurring service");
@@ -202,6 +234,7 @@ export default function RecurringPage() {
         </div>
 
         {error && <div className="errorBox">{error}</div>}
+        {success && <div className="listCard">{success}</div>}
 
         <form className="formGrid" onSubmit={submit}>
           <select
@@ -348,7 +381,10 @@ export default function RecurringPage() {
                 <div className="cardLine"><strong>Service:</strong> {service.serviceType}</div>
                 <div className="cardLine"><strong>Frequency:</strong> {service.frequency}</div>
                 <div className="cardLine"><strong>Price:</strong> ${service.price.toFixed(2)}</div>
-                <div className="cardLine"><strong>Next Service:</strong> {service.nextServiceDate ? new Date(service.nextServiceDate).toLocaleDateString() : "—"}</div>
+                <div className="cardLine">
+                  <strong>Next Service:</strong>{" "}
+                  {service.nextServiceDate ? new Date(service.nextServiceDate).toLocaleDateString() : "—"}
+                </div>
                 <div className="cardLine"><strong>Address:</strong> {service.address}</div>
                 <div className="cardLine"><strong>Phone:</strong> {service.phone || "—"}</div>
                 <div className="cardLine"><strong>Email:</strong> {service.email || "—"}</div>
@@ -357,6 +393,10 @@ export default function RecurringPage() {
                 <div className="buttonRow">
                   <button className="secondaryButton" onClick={() => startEdit(service)}>
                     Edit
+                  </button>
+
+                  <button className="secondaryButton" onClick={() => sendReminder(service.id)}>
+                    Send Reminder
                   </button>
 
                   {service.status !== "active" && (
