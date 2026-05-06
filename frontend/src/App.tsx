@@ -28,6 +28,7 @@ import TimeClockPage from "./pages/TimeClockPage";
 import EquipmentPage from "./pages/EquipmentPage";
 import TreatmentsPage from "./pages/TreatmentsPage";
 import PricingPage from "./pages/PricingPage";
+import EmailTestPage from "./pages/EmailTestPage";
 import { apiFetch } from "./api";
 
 const demoClients: Client[] = [];
@@ -198,6 +199,7 @@ export default function App() {
           {page === "treatments" && user.role !== "client" && <TreatmentsPage role={user.role} />}
           {page === "pricing" && user.role === "admin" && <PricingPage />}
           {page === "timeclock" && user.role !== "client" && <TimeClockPage role={user.role} />}
+          {page === "email" && user.role === "admin" && <EmailTestPage />}
           {page === "availability" && user.role !== "client" && <AvailabilityPage />}
           {page === "chat" && <ChatPage currentUser={user} />}
           {page === "tips" && user.role !== "client" && <TipsPage role={user.role} />}
