@@ -1,9 +1,14 @@
 import { Router } from "express";
+import Stripe from "stripe";
 import { pool } from "../db.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 import { buildNmdEmailTemplate, sendEmail } from "../services/email.js";
 
 const router = Router();
+
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY || "";
+const frontendUrl = process.env.FRONTEND_URL || "https://nmd-frontend.onrender.com";
+const stripe = stripeSecretKey ? new Stripe(stripeSecretKey) : null;
 
 function mapRecurring(row: any) {
   return {
@@ -20,9 +25,21 @@ function mapRecurring(row: any) {
     nextServiceDate: row.next_service_date,
     notes: row.notes,
     lastReminderSentAt: row.last_reminder_sent_at,
+    stripeCheckoutSessionId: row.stripe_checkout_session_id,
+    stripeSubscriptionId: row.stripe_subscription_id,
+    stripeCustomerId: row.stripe_customer_id,
+    stripePaymentStatus: row.stripe_payment_status,
+    stripeCheckoutUrl: row.stripe_checkout_url,
     createdBy: row.created_by,
     createdAt: row.created_at
   };
+}
+
+function stripeIntervalForFrequency(frequency: string) {
+  if (frequency === "weekly") return { interval: "week" as const, interval_count: 1 };
+  if (frequency === "biweekly") return { interval: "week" as const, interval_count: 2 };
+  if (frequency === "quarterly") return { interval: "month" as const, interval_count: 3 };
+  return { interval: "month" as const, interval_count: 1 };
 }
 
 function shouldSendReminder(frequency: string, daysUntilService: number) {
@@ -259,6 +276,131 @@ router.patch("/:id/status", requireAuth, requireRole("admin"), async (req, res) 
     });
   } catch (error) {
     console.error("recurring status error", error);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.post("/:id/create-stripe-subscription", requireAuth, requireRole("admin"), async (req, res) => {
+  try {
+    if (!stripe) {
+      return res.status(500).json({
+        error: "Stripe is not configured"
+      });
+    }
+
+    const { id } = req.params;
+
+    const result = await pool.query(
+      `
+      SELECT *
+      FROM recurring_services
+      WHERE id = $1
+      LIMIT 1
+      `,
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        error: "Recurring service not found"
+      });
+    }
+
+    const service = result.rows[0];
+
+    if (!service.email) {
+      return res.status(400).json({
+        error: "Client email is required before creating a Stripe subscription."
+      });
+    }
+
+    if (Number(service.price || 0) <= 0) {
+      return res.status(400).json({
+        error: "Recurring service price must be greater than 0."
+      });
+    }
+
+    if (service.stripe_checkout_url && service.stripe_payment_status === "checkout_created") {
+      return res.json({
+        recurringService: mapRecurring(service)
+      });
+    }
+
+    const interval = stripeIntervalForFrequency(service.frequency);
+
+    const session = await stripe.checkout.sessions.create({
+      mode: "subscription",
+      customer_email: service.email,
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency: "usd",
+            unit_amount: Math.round(Number(service.price || 0) * 100),
+            recurring: interval,
+            product_data: {
+              name: `NMD ${service.service_type}`,
+              description: `${service.frequency} service at ${service.address}`
+            }
+          }
+        } as Stripe.Checkout.SessionCreateParams.LineItem
+      ],
+      metadata: {
+        recurringServiceId: service.id,
+        serviceType: service.service_type,
+        clientName: service.client_name
+      },
+      subscription_data: {
+        metadata: {
+          recurringServiceId: service.id,
+          serviceType: service.service_type,
+          clientName: service.client_name
+        }
+      },
+      success_url: `${frontendUrl}/?subscription=success&recurring=${service.id}`,
+      cancel_url: `${frontendUrl}/?subscription=cancelled&recurring=${service.id}`
+    });
+
+    const updated = await pool.query(
+      `
+      UPDATE recurring_services
+      SET
+        stripe_checkout_session_id = $2,
+        stripe_checkout_url = $3,
+        stripe_payment_status = 'checkout_created'
+      WHERE id = $1
+      RETURNING *
+      `,
+      [service.id, session.id, session.url]
+    );
+
+    if (session.url) {
+      await sendEmail({
+        to: service.email,
+        subject: `Set up your NMD recurring service: ${service.service_type}`,
+        html: buildNmdEmailTemplate({
+          title: "Recurring Service Setup",
+          message: `
+            <p>Hi ${service.client_name},</p>
+            <p>NMD has prepared your recurring service subscription checkout.</p>
+            <p><strong>Service:</strong> ${service.service_type}</p>
+            <p><strong>Frequency:</strong> ${service.frequency}</p>
+            <p><strong>Price:</strong> $${Number(service.price || 0).toFixed(2)}</p>
+            <p><strong>Address:</strong> ${service.address}</p>
+            <p>Use the secure button below to activate your recurring billing.</p>
+          `,
+          actionLabel: "Activate Recurring Service",
+          actionUrl: session.url
+        }),
+        text: `Activate your NMD recurring service here: ${session.url}`
+      });
+    }
+
+    return res.json({
+      recurringService: mapRecurring(updated.rows[0])
+    });
+  } catch (error) {
+    console.error("create stripe subscription error", error);
     return res.status(500).json({ error: "Server error" });
   }
 });
