@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { pool } from "../db.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
+import { buildNmdEmailTemplate, sendEmail } from "../services/email.js";
 
 const router = Router();
 
@@ -166,27 +167,64 @@ router.post("/public", async (req, res) => {
 
     const row = result.rows[0];
 
-    return res.status(201).json({
-      request: {
-        id: row.id,
-        firstName: row.first_name,
-        lastName: row.last_name,
-        phone: row.phone,
-        email: row.email,
-        address: row.address,
-        serviceType: row.service_type,
-        preferredDate: row.preferred_date,
-        preferredTime: row.preferred_time,
-        notes: row.notes,
-        photoDataUrl: row.photo_data_url,
-        photoNote: row.photo_note,
-        waiverAccepted: row.waiver_accepted,
-        waiverSignature: row.waiver_signature,
-        waiverSignedAt: row.waiver_signed_at,
-        status: row.status,
-        createdAt: row.created_at
-      }
+    const request = {
+      id: row.id,
+      firstName: row.first_name,
+      lastName: row.last_name,
+      phone: row.phone,
+      email: row.email,
+      address: row.address,
+      serviceType: row.service_type,
+      preferredDate: row.preferred_date,
+      preferredTime: row.preferred_time,
+      notes: row.notes,
+      photoDataUrl: row.photo_data_url,
+      photoNote: row.photo_note,
+      waiverAccepted: row.waiver_accepted,
+      waiverSignature: row.waiver_signature,
+      waiverSignedAt: row.waiver_signed_at,
+      status: row.status,
+      createdAt: row.created_at
+    };
+
+    if (email) {
+      await sendEmail({
+        to: email,
+        subject: "NMD received your service request",
+        html: buildNmdEmailTemplate({
+          title: "Service Request Received",
+          message: `
+            <p>Hi ${firstName},</p>
+            <p>Thank you for requesting service from NMD Pressure Washing Services LLC.</p>
+            <p><strong>Service:</strong> ${serviceType}</p>
+            <p><strong>Address:</strong> ${address}</p>
+            <p>We received your request and will review the details before preparing the next step.</p>
+          `
+        }),
+        text: `Hi ${firstName}, NMD received your ${serviceType} request for ${address}.`
+      });
+    }
+
+    await sendEmail({
+      to: process.env.NMD_ADMIN_EMAIL || "nmdpowash@gmail.com",
+      subject: `New NMD service request: ${serviceType}`,
+      html: buildNmdEmailTemplate({
+        title: "New Service Request",
+        message: `
+          <p><strong>Client:</strong> ${firstName} ${lastName}</p>
+          <p><strong>Phone:</strong> ${phone || "—"}</p>
+          <p><strong>Email:</strong> ${email || "—"}</p>
+          <p><strong>Address:</strong> ${address}</p>
+          <p><strong>Service:</strong> ${serviceType}</p>
+          <p><strong>Preferred:</strong> ${preferredDate || "—"} ${preferredTime || ""}</p>
+          <p><strong>Notes:</strong> ${notes || "—"}</p>
+          <p><strong>Waiver Signature:</strong> ${waiverSignature}</p>
+        `
+      }),
+      text: `New service request from ${firstName} ${lastName}: ${serviceType} at ${address}`
     });
+
+    return res.status(201).json({ request });
   } catch (error) {
     console.error("public service request error", error);
     return res.status(500).json({ error: "Server error" });
