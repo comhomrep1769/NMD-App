@@ -228,6 +228,12 @@ export default function App() {
           {page === "my-ledger" && user.role === "employee" && (
             <MyLedgerPage />
           )}
+          
+          {page === "dashboard" && user.role === "client" && (
+            <ClientDashboardPage />
+          )}
+      
+          
         </main>
 
         <MobileNav currentPage={page} onNavigate={setPage} role={user.role} />
