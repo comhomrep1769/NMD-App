@@ -6,6 +6,8 @@ import MobileNav from "./components/MobileNav";
 import LandingPage from "./pages/LandingPage";
 import DashboardPage from "./pages/DashboardPage";
 import EmployeeDashboardPage from "./pages/EmployeeDashboardPage";
+import ClientDashboardPage from "./pages/ClientDashboardPage";
+import ClientRegisterPage from "./pages/ClientRegisterPage";
 import ClientsPage from "./pages/ClientsPage";
 import QuotesPage from "./pages/QuotesPage";
 import InvoicesPage from "./pages/InvoicesPage";
@@ -26,7 +28,6 @@ import TimeClockPage from "./pages/TimeClockPage";
 import EquipmentPage from "./pages/EquipmentPage";
 import TreatmentsPage from "./pages/TreatmentsPage";
 import PricingPage from "./pages/PricingPage";
-import ClientDashboardPage from "./pages/ClientDashboardPage";
 import { apiFetch } from "./api";
 
 const demoClients: Client[] = [];
@@ -40,8 +41,11 @@ export default function App() {
     return "dashboard";
   });
 
-  const [showLogin, setShowLogin] = React.useState(() => {
-    return window.location.pathname.includes("login");
+  const [authView, setAuthView] = React.useState<"landing" | "login" | "register">(() => {
+    const path = window.location.pathname;
+    if (path.includes("register")) return "register";
+    if (path.includes("login")) return "login";
+    return "landing";
   });
 
   const [theme, setTheme] = React.useState<ThemeMode>(() => {
@@ -68,6 +72,7 @@ export default function App() {
     }
 
     const token = localStorage.getItem("nmd-token");
+
     if (!token) {
       setAuthChecked(true);
       return;
@@ -76,10 +81,7 @@ export default function App() {
     apiFetch<{ user: AuthUser }>("/api/auth/me")
       .then((data) => {
         setUser(data.user);
-
-        if (data.user.role === "employee") {
-          setPage("dashboard");
-        }
+        setPage("dashboard");
       })
       .catch(() => {
         localStorage.removeItem("nmd-token");
@@ -91,7 +93,7 @@ export default function App() {
   const handleLogin = (token: string, loggedInUser: AuthUser) => {
     localStorage.setItem("nmd-token", token);
     setUser(loggedInUser);
-    setShowLogin(false);
+    setAuthView("landing");
     setPage("dashboard");
     window.history.pushState({}, "", "/");
   };
@@ -99,19 +101,30 @@ export default function App() {
   const handleLogout = () => {
     localStorage.removeItem("nmd-token");
     setUser(null);
-    setShowLogin(false);
+    setAuthView("landing");
     setPage("dashboard");
     window.history.pushState({}, "", "/");
   };
 
   const goToLogin = () => {
-    setShowLogin(true);
+    setAuthView("login");
     window.history.pushState({}, "", "/login");
+  };
+
+  const goToRegister = () => {
+    setAuthView("register");
+    window.history.pushState({}, "", "/register");
+  };
+
+  const goToLanding = () => {
+    setAuthView("landing");
+    setPage("dashboard");
+    window.history.pushState({}, "", "/");
   };
 
   const goToServiceRequest = () => {
     setPage("service-request");
-    setShowLogin(false);
+    setAuthView("landing");
     window.history.pushState({}, "", "/service-request");
   };
 
@@ -123,14 +136,24 @@ export default function App() {
     return <div className="loadingScreen">Loading...</div>;
   }
 
-  if (!user && showLogin) {
+  if (!user && authView === "login") {
     return <LoginPage onLogin={handleLogin} />;
+  }
+
+  if (!user && authView === "register") {
+    return (
+      <ClientRegisterPage
+        onRegistered={handleLogin}
+        onBackToLogin={goToLogin}
+      />
+    );
   }
 
   if (!user) {
     return (
       <LandingPage
         onLogin={goToLogin}
+        onCreateAccount={goToRegister}
         onRequestService={goToServiceRequest}
       />
     );
@@ -157,6 +180,10 @@ export default function App() {
             <EmployeeDashboardPage />
           )}
 
+          {page === "dashboard" && user.role === "client" && (
+            <ClientDashboardPage />
+          )}
+
           {page === "clients" && user.role === "admin" && (
             <ClientsPage />
           )}
@@ -169,7 +196,7 @@ export default function App() {
             <InvoicesPage />
           )}
 
-          {page === "schedule" && (
+          {page === "schedule" && user.role !== "client" && (
             <SchedulePage role={user.role} />
           )}
 
@@ -197,7 +224,7 @@ export default function App() {
             <EquipmentPage />
           )}
 
-          {page === "treatments" && (
+          {page === "treatments" && user.role !== "client" && (
             <TreatmentsPage role={user.role} />
           )}
 
@@ -205,11 +232,11 @@ export default function App() {
             <PricingPage />
           )}
 
-          {page === "timeclock" && (
+          {page === "timeclock" && user.role !== "client" && (
             <TimeClockPage role={user.role} />
           )}
 
-          {page === "availability" && (
+          {page === "availability" && user.role !== "client" && (
             <AvailabilityPage />
           )}
 
@@ -217,7 +244,7 @@ export default function App() {
             <ChatPage currentUser={user} />
           )}
 
-          {page === "tips" && (
+          {page === "tips" && user.role !== "client" && (
             <TipsPage role={user.role} />
           )}
 
@@ -228,12 +255,6 @@ export default function App() {
           {page === "my-ledger" && user.role === "employee" && (
             <MyLedgerPage />
           )}
-          
-          {page === "dashboard" && user.role === "client" && (
-            <ClientDashboardPage />
-          )}
-      
-          
         </main>
 
         <MobileNav currentPage={page} onNavigate={setPage} role={user.role} />
