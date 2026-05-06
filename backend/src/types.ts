@@ -1,12 +1,27 @@
 export type ThemeMode = "dark" | "light";
 
 export type PageKey =
+  export type PageKey =
   | "dashboard"
   | "clients"
   | "quotes"
   | "invoices"
   | "schedule"
   | "employees"
+  | "chat"
+  | "availability"
+  | "tips"
+  | "payroll"
+  | "requests"
+  | "expenses"
+  | "mileage"
+  | "recurring"
+  | "equipment"
+  | "treatments"
+  | "pricing"
+  | "timeclock"
+  | "email"
+  | "service-request"
   | "my-ledger";
 
 export type Role = "admin" | "employee";
