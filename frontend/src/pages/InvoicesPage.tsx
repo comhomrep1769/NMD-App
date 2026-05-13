@@ -1,40 +1,54 @@
 import React from "react";
 import { apiFetch } from "../api";
-import type { Client, Employee, Invoice, InvoiceStatus, Job } from "../types";
+import type { Client, Invoice } from "../types";
+
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      if (typeof reader.result === "string") resolve(reader.result);
+      else reject(new Error("Could not read image."));
+    };
+
+    reader.onerror = () => reject(new Error("Could not read image."));
+    reader.readAsDataURL(file);
+  });
+}
 
 export default function InvoicesPage() {
   const [invoices, setInvoices] = React.useState<Invoice[]>([]);
   const [clients, setClients] = React.useState<Client[]>([]);
-  const [employees, setEmployees] = React.useState<Employee[]>([]);
-  const [jobs, setJobs] = React.useState<Job[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
+  const [success, setSuccess] = React.useState("");
 
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [clientId, setClientId] = React.useState("");
   const [clientName, setClientName] = React.useState("");
   const [jobName, setJobName] = React.useState("");
   const [total, setTotal] = React.useState("");
-  const [status, setStatus] = React.useState<InvoiceStatus>("unpaid");
-  const [jobId, setJobId] = React.useState("");
-  const [assignedUserId, setAssignedUserId] = React.useState("");
+  const [status, setStatus] = React.useState<"paid" | "unpaid">("unpaid");
+
+  const [cashInvoiceId, setCashInvoiceId] = React.useState<string | null>(null);
+  const [cashAmount, setCashAmount] = React.useState("");
+  const [cashSalesTax, setCashSalesTax] = React.useState("");
+  const [cashTotalCollected, setCashTotalCollected] = React.useState("");
+  const [cashPhotoDataUrl, setCashPhotoDataUrl] = React.useState<string | null>(null);
+  const [cashNotes, setCashNotes] = React.useState("");
 
   const loadData = React.useCallback(async () => {
     setLoading(true);
     setError("");
 
     try {
-      const [invoiceData, clientData, employeeData, jobData] = await Promise.all([
+      const [invoiceData, clientData] = await Promise.all([
         apiFetch<{ invoices: Invoice[] }>("/api/invoices"),
-        apiFetch<{ clients: Client[] }>("/api/clients"),
-        apiFetch<{ employees: Employee[] }>("/api/employees"),
-        apiFetch<{ jobs: Job[] }>("/api/jobs")
+        apiFetch<{ clients: Client[] }>("/api/clients")
       ]);
 
       setInvoices(invoiceData.invoices);
       setClients(clientData.clients);
-      setEmployees(employeeData.employees);
-      setJobs(jobData.jobs);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load invoices");
     } finally {
@@ -53,8 +67,25 @@ export default function InvoicesPage() {
     setJobName("");
     setTotal("");
     setStatus("unpaid");
-    setJobId("");
-    setAssignedUserId("");
+  };
+
+  const resetCashForm = () => {
+    setCashInvoiceId(null);
+    setCashAmount("");
+    setCashSalesTax("");
+    setCashTotalCollected("");
+    setCashPhotoDataUrl(null);
+    setCashNotes("");
+  };
+
+  const handleClientSelect = (value: string) => {
+    setClientId(value);
+
+    const selected = clients.find((client) => client.id === value);
+
+    if (selected) {
+      setClientName(`${selected.firstName} ${selected.lastName}`);
+    }
   };
 
   const startEdit = (invoice: Invoice) => {
@@ -64,41 +95,54 @@ export default function InvoicesPage() {
     setJobName(invoice.jobName);
     setTotal(String(invoice.total));
     setStatus(invoice.status);
-    setJobId(invoice.jobId || "");
-    setAssignedUserId(invoice.assignedUserId || "");
   };
 
-  const handleClientSelect = (value: string) => {
-    setClientId(value);
+  const startCashPayment = (invoice: Invoice) => {
+    setCashInvoiceId(invoice.id);
+    setCashAmount(String(invoice.total || 0));
+    setCashSalesTax("0");
+    setCashTotalCollected(String(invoice.total || 0));
+    setCashNotes(`Cash collected for Invoice #${invoice.invoiceNumber} - ${invoice.jobName}`);
+    setCashPhotoDataUrl(null);
+  };
 
-    const selected = clients.find((c) => c.id === value);
-    if (selected) {
-      setClientName(`${selected.firstName} ${selected.lastName}`);
+  const handleCashPhoto = async (file?: File) => {
+    setError("");
+
+    if (!file) {
+      setCashPhotoDataUrl(null);
+      return;
     }
-  };
 
-  const handleJobSelect = (value: string) => {
-    setJobId(value);
+    if (!file.type.startsWith("image/")) {
+      setError("Please upload an image file.");
+      return;
+    }
 
-    const selected = jobs.find((j) => j.id === value);
-    if (selected) {
-      setJobName(selected.title);
-      setClientName(selected.client_name);
+    if (file.size > 1_800_000) {
+      setError("Cash proof image is too large. Please upload an image under about 1.8MB.");
+      return;
+    }
+
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      setCashPhotoDataUrl(dataUrl);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not load image.");
     }
   };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setSuccess("");
 
     const payload = {
       clientId: clientId || null,
       clientName,
       jobName,
       total: Number(total) || 0,
-      status,
-      jobId: jobId || null,
-      assignedUserId: assignedUserId || null
+      status
     };
 
     try {
@@ -107,11 +151,15 @@ export default function InvoicesPage() {
           method: "PATCH",
           body: JSON.stringify(payload)
         });
+
+        setSuccess("Invoice updated.");
       } else {
         await apiFetch("/api/invoices", {
           method: "POST",
           body: JSON.stringify(payload)
         });
+
+        setSuccess("Invoice created.");
       }
 
       resetForm();
@@ -121,74 +169,124 @@ export default function InvoicesPage() {
     }
   };
 
-  const deleteInvoice = async (invoiceId: string) => {
-    const ok = window.confirm("Delete this invoice?");
-    if (!ok) return;
-
-    try {
-      await apiFetch(`/api/invoices/${invoiceId}`, { method: "DELETE" });
-      await loadData();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete invoice");
-    }
-  };
-
   const createPaymentLink = async (invoiceId: string) => {
+    setError("");
+    setSuccess("");
+
     try {
-      const data = await apiFetch<{ paymentLinkUrl: string }>(
-        `/api/payments/invoices/${invoiceId}/create-stripe-link`,
-        { method: "POST" }
+      const data = await apiFetch<{ invoice: Invoice }>(
+        `/api/payments/invoices/${invoiceId}/create-payment-link`,
+        {
+          method: "POST"
+        }
       );
 
-      window.open(data.paymentLinkUrl, "_blank");
+      setSuccess("Card payment link created and emailed if the client has an email on file.");
+
+      if (data.invoice.paymentLinkUrl) {
+        window.open(data.invoice.paymentLinkUrl, "_blank");
+      }
+
       await loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create payment link");
     }
   };
 
-  const copyPaymentLink = async (url: string) => {
+  const submitCashPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+
+    if (!cashInvoiceId) {
+      setError("No invoice selected for cash payment.");
+      return;
+    }
+
+    if (!cashPhotoDataUrl) {
+      setError("Cash payments require a photo upload for admin approval.");
+      return;
+    }
+
+    const invoice = invoices.find((item) => item.id === cashInvoiceId);
+
+    if (!invoice) {
+      setError("Invoice not found.");
+      return;
+    }
+
     try {
-      await navigator.clipboard.writeText(url);
-      alert("Payment link copied.");
-    } catch {
-      alert("Could not copy link.");
+      await apiFetch("/api/pos/payments", {
+        method: "POST",
+        body: JSON.stringify({
+          invoiceId: invoice.id,
+          clientId: invoice.clientId || null,
+          clientName: invoice.clientName,
+          paymentMethod: "cash",
+          amount: Number(cashAmount) || 0,
+          salesTaxAmount: Number(cashSalesTax) || 0,
+          totalCollected: Number(cashTotalCollected) || Number(cashAmount) || 0,
+          cashPhotoDataUrl,
+          notes: cashNotes
+        })
+      });
+
+      setSuccess("Cash payment submitted for admin approval.");
+      resetCashForm();
+      await loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to submit cash payment");
     }
   };
+
+  const deleteInvoice = async (invoiceId: string) => {
+    const ok = window.confirm("Delete this invoice?");
+    if (!ok) return;
+
+    setError("");
+    setSuccess("");
+
+    try {
+      await apiFetch(`/api/invoices/${invoiceId}`, {
+        method: "DELETE"
+      });
+
+      setSuccess("Invoice deleted.");
+      await loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete invoice");
+    }
+  };
+
+  const selectedCashInvoice = invoices.find((invoice) => invoice.id === cashInvoiceId);
 
   return (
     <div className="pageGrid">
       <section className="panel">
         <div className="panelHeader">
-          <h2 className="panelTitle">{editingId ? "Edit Invoice" : "New Invoice"}</h2>
+          <div>
+            <h2 className="panelTitle">
+              {editingId ? "Edit Invoice" : "New Invoice"}
+            </h2>
+            <p className="brandSubtitle">
+              Create service invoices, send card links, and collect cash proof.
+            </p>
+          </div>
         </div>
 
         {error && <div className="errorBox">{error}</div>}
+        {success && <div className="listCard">{success}</div>}
 
         <form className="formGrid" onSubmit={submit}>
-          <select className="textInput" value={clientId} onChange={(e) => handleClientSelect(e.target.value)}>
+          <select
+            className="textInput"
+            value={clientId}
+            onChange={(e) => handleClientSelect(e.target.value)}
+          >
             <option value="">Select saved client optional</option>
             {clients.map((client) => (
               <option key={client.id} value={client.id}>
                 {client.firstName} {client.lastName}
-              </option>
-            ))}
-          </select>
-
-          <select className="textInput" value={jobId} onChange={(e) => handleJobSelect(e.target.value)}>
-            <option value="">Attach scheduled job optional</option>
-            {jobs.map((job) => (
-              <option key={job.id} value={job.id}>
-                {job.title} — {new Date(job.start_time).toLocaleDateString()}
-              </option>
-            ))}
-          </select>
-
-          <select className="textInput" value={assignedUserId} onChange={(e) => setAssignedUserId(e.target.value)}>
-            <option value="">Assign employee credit optional</option>
-            {employees.map((employee) => (
-              <option key={employee.id} value={employee.id}>
-                {employee.displayName}
               </option>
             ))}
           </select>
@@ -202,7 +300,7 @@ export default function InvoicesPage() {
 
           <input
             className="textInput"
-            placeholder="Job name"
+            placeholder="Job / service name"
             value={jobName}
             onChange={(e) => setJobName(e.target.value)}
           />
@@ -215,7 +313,11 @@ export default function InvoicesPage() {
             onChange={(e) => setTotal(e.target.value)}
           />
 
-          <select className="textInput" value={status} onChange={(e) => setStatus(e.target.value as InvoiceStatus)}>
+          <select
+            className="textInput"
+            value={status}
+            onChange={(e) => setStatus(e.target.value as "paid" | "unpaid")}
+          >
             <option value="unpaid">Unpaid</option>
             <option value="paid">Paid</option>
           </select>
@@ -234,6 +336,97 @@ export default function InvoicesPage() {
         </form>
       </section>
 
+      {cashInvoiceId && selectedCashInvoice && (
+        <section className="panel">
+          <div className="panelHeader">
+            <div>
+              <h2 className="panelTitle">Record Cash Payment</h2>
+              <p className="brandSubtitle">
+                Invoice #{selectedCashInvoice.invoiceNumber} • {selectedCashInvoice.clientName}
+              </p>
+            </div>
+
+            <button className="secondaryButton" type="button" onClick={resetCashForm}>
+              Close
+            </button>
+          </div>
+
+          <form className="formGrid" onSubmit={submitCashPayment}>
+            <input
+              className="textInput"
+              placeholder="Subtotal / invoice amount"
+              inputMode="decimal"
+              value={cashAmount}
+              onChange={(e) => setCashAmount(e.target.value)}
+            />
+
+            <input
+              className="textInput"
+              placeholder="Sales tax amount"
+              inputMode="decimal"
+              value={cashSalesTax}
+              onChange={(e) => setCashSalesTax(e.target.value)}
+            />
+
+            <input
+              className="textInput"
+              placeholder="Total cash collected"
+              inputMode="decimal"
+              value={cashTotalCollected}
+              onChange={(e) => setCashTotalCollected(e.target.value)}
+            />
+
+            <div className="assignBox">
+              <div className="assignTitle">Cash Photo Proof Required</div>
+
+              <input
+                className="textInput"
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleCashPhoto(e.target.files?.[0])}
+              />
+
+              {cashPhotoDataUrl && (
+                <div style={{ marginTop: 12 }}>
+                  <img
+                    src={cashPhotoDataUrl}
+                    alt="Cash proof preview"
+                    style={{
+                      width: "100%",
+                      maxHeight: 260,
+                      objectFit: "cover",
+                      borderRadius: 14,
+                      border: "1px solid var(--border)"
+                    }}
+                  />
+
+                  <button
+                    className="secondaryButton"
+                    type="button"
+                    style={{ marginTop: 10 }}
+                    onClick={() => setCashPhotoDataUrl(null)}
+                  >
+                    Remove Photo
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <textarea
+              className="textInput"
+              placeholder="Cash notes"
+              rows={4}
+              value={cashNotes}
+              onChange={(e) => setCashNotes(e.target.value)}
+            />
+
+            <button className="primaryButton" type="submit">
+              Submit Cash For Admin Approval
+            </button>
+          </form>
+        </section>
+      )}
+
       <section className="panel">
         <div className="panelHeader">
           <h2 className="panelTitle">Invoices</h2>
@@ -244,56 +437,64 @@ export default function InvoicesPage() {
         {!loading && (
           <div className="cardsGrid">
             {invoices.map((invoice) => (
-              <div key={invoice.id} className="invoiceCard">
+              <div key={invoice.id} className="quoteCard">
                 <div className="quoteTopRow">
                   <div className="quoteNumber">Invoice #{invoice.invoiceNumber}</div>
-                  <span className={`statusBadge ${invoice.status === "paid" ? "status-paid" : "status-unpaid"}`}>
+                  <span className={`statusBadge status-${invoice.status}`}>
                     {invoice.status}
                   </span>
                 </div>
 
-                <div className="cardLine"><strong>Client:</strong> {invoice.clientName}</div>
-                <div className="cardLine"><strong>Job:</strong> {invoice.jobName}</div>
-                <div className="cardLine"><strong>Total:</strong> ${invoice.total.toFixed(2)}</div>
-                <div className="cardLine"><strong>Scheduled Job:</strong> {invoice.jobTitle || "—"}</div>
-                <div className="cardLine"><strong>Employee Credit:</strong> {invoice.assignedEmployeeName || "—"}</div>
                 <div className="cardLine">
-                  <strong>Payment:</strong>{" "}
-                  {invoice.paymentLinkUrl ? "Stripe link created" : "No payment link"}
+                  <strong>Client:</strong> {invoice.clientName}
                 </div>
+
+                <div className="cardLine">
+                  <strong>Service:</strong> {invoice.jobName}
+                </div>
+
+                <div className="cardLine">
+                  <strong>Total:</strong> ${invoice.total.toFixed(2)}
+                </div>
+
+                <div className="cardLine">
+                  <strong>Payment:</strong> {invoice.paymentStatus || invoice.status}
+                </div>
+
+                {invoice.paymentLinkUrl && (
+                  <div className="cardLine">
+                    <strong>Payment Link:</strong>{" "}
+                    <a href={invoice.paymentLinkUrl} target="_blank" rel="noreferrer">
+                      Open
+                    </a>
+                  </div>
+                )}
 
                 <div className="buttonRow">
                   <button className="secondaryButton" onClick={() => startEdit(invoice)}>
                     Edit
                   </button>
 
+                  <button className="primaryButton" onClick={() => createPaymentLink(invoice.id)}>
+                    Email / Open Card Link
+                  </button>
+
+                  <button className="secondaryButton" onClick={() => startCashPayment(invoice)}>
+                    Record Cash
+                  </button>
+
+                  <button
+                    className="secondaryButton"
+                    onClick={() =>
+                      alert("Tap To Pay will be added later through Stripe Terminal.")
+                    }
+                  >
+                    Tap To Pay Future
+                  </button>
+
                   <button className="secondaryButton" onClick={() => deleteInvoice(invoice.id)}>
                     Delete
                   </button>
-
-                  {invoice.status === "unpaid" && !invoice.paymentLinkUrl && (
-                    <button className="primaryButton" onClick={() => createPaymentLink(invoice.id)}>
-                      Create Payment Link
-                    </button>
-                  )}
-
-                  {invoice.status === "unpaid" && invoice.paymentLinkUrl && (
-                    <>
-                      <button
-                        className="primaryButton"
-                        onClick={() => window.open(invoice.paymentLinkUrl || "", "_blank")}
-                      >
-                        Make Payment
-                      </button>
-
-                      <button
-                        className="secondaryButton"
-                        onClick={() => copyPaymentLink(invoice.paymentLinkUrl || "")}
-                      >
-                        Copy Link
-                      </button>
-                    </>
-                  )}
                 </div>
               </div>
             ))}
