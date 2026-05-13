@@ -16,9 +16,7 @@ const adminGroups: NavGroup[] = [
   {
     label: "Dashboard",
     defaultKey: "dashboard",
-    children: [
-      { key: "dashboard", label: "Main Dashboard" }
-    ]
+    children: [{ key: "dashboard", label: "Main Dashboard" }]
   },
   {
     label: "Jobs & Schedule",
@@ -75,25 +73,22 @@ const adminGroups: NavGroup[] = [
   },
   {
     label: "Payments / POS",
-    defaultKey: "invoices",
+    defaultKey: "pos",
     children: [
-      { key: "invoices", label: "Invoices & Payments" },
+      { key: "pos", label: "POS Payments" },
+      { key: "invoices", label: "Invoices & Payment Links" },
       { key: "recurring", label: "Recurring Billing" }
     ]
   },
   {
     label: "Chat",
     defaultKey: "chat",
-    children: [
-      { key: "chat", label: "Chat" }
-    ]
+    children: [{ key: "chat", label: "Chat" }]
   },
   {
     label: "Settings",
     defaultKey: "email",
-    children: [
-      { key: "email", label: "Email Test" }
-    ]
+    children: [{ key: "email", label: "Email Test" }]
   }
 ];
 
@@ -101,9 +96,7 @@ const employeeGroups: NavGroup[] = [
   {
     label: "Dashboard",
     defaultKey: "dashboard",
-    children: [
-      { key: "dashboard", label: "My Dashboard" }
-    ]
+    children: [{ key: "dashboard", label: "My Dashboard" }]
   },
   {
     label: "Jobs & Schedule",
@@ -115,11 +108,14 @@ const employeeGroups: NavGroup[] = [
     ]
   },
   {
+    label: "Payments",
+    defaultKey: "pos",
+    children: [{ key: "pos", label: "Collect Payment" }]
+  },
+  {
     label: "My Work",
     defaultKey: "my-ledger",
-    children: [
-      { key: "my-ledger", label: "My Ledger" }
-    ]
+    children: [{ key: "my-ledger", label: "My Ledger" }]
   },
   {
     label: "Knowledge Base",
@@ -132,9 +128,7 @@ const employeeGroups: NavGroup[] = [
   {
     label: "Chat",
     defaultKey: "chat",
-    children: [
-      { key: "chat", label: "Chat" }
-    ]
+    children: [{ key: "chat", label: "Chat" }]
   }
 ];
 
@@ -142,16 +136,12 @@ const clientGroups: NavGroup[] = [
   {
     label: "Client Portal",
     defaultKey: "dashboard",
-    children: [
-      { key: "dashboard", label: "Portal Home" }
-    ]
+    children: [{ key: "dashboard", label: "Portal Home" }]
   },
   {
     label: "Chat",
     defaultKey: "chat",
-    children: [
-      { key: "chat", label: "Chat" }
-    ]
+    children: [{ key: "chat", label: "Chat" }]
   }
 ];
 
