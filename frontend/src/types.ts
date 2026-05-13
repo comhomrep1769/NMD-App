@@ -20,6 +20,7 @@ export type PageKey =
   | "pricing"
   | "timeclock"
   | "email"
+  | "pos"
   | "service-request"
   | "my-ledger";
 
@@ -74,9 +75,39 @@ export type Invoice = {
   paymentProvider?: string | null;
   paymentLinkId?: string | null;
   paymentLinkUrl?: string | null;
-  paymentStatus?: "unpaid" | "link_created" | "paid" | "expired";
+  paymentStatus?: "unpaid" | "link_created" | "paid" | "expired" | string;
   paymentCreatedAt?: string | null;
   stripeCheckoutSessionId?: string | null;
+};
+
+export type POSPaymentMethod = "card_link" | "tap_to_pay" | "cash";
+
+export type POSPaymentStatus =
+  | "pending"
+  | "pending_admin_approval"
+  | "approved"
+  | "rejected"
+  | "paid"
+  | "cancelled";
+
+export type POSPayment = {
+  id: string;
+  invoiceId?: string | null;
+  clientId?: string | null;
+  clientName: string;
+  collectedBy?: string | null;
+  collectedByName?: string | null;
+  paymentMethod: POSPaymentMethod;
+  amount: number;
+  salesTaxAmount: number;
+  totalCollected: number;
+  status: POSPaymentStatus;
+  cashPhotoDataUrl?: string | null;
+  notes?: string | null;
+  approvedBy?: string | null;
+  approvedByName?: string | null;
+  approvedAt?: string | null;
+  createdAt: string;
 };
 
 export type Employee = {
