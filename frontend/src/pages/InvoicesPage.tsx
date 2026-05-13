@@ -2,6 +2,8 @@ import React from "react";
 import { apiFetch } from "../api";
 import type { Client, Invoice } from "../types";
 
+const DEFAULT_TAX_RATE = 0.065;
+
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -16,6 +18,10 @@ function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
+function formatRate(rate: number) {
+  return `${(rate * 100).toFixed(2)}%`;
+}
+
 export default function InvoicesPage() {
   const [invoices, setInvoices] = React.useState<Invoice[]>([]);
   const [clients, setClients] = React.useState<Client[]>([]);
@@ -27,6 +33,9 @@ export default function InvoicesPage() {
   const [clientId, setClientId] = React.useState("");
   const [clientName, setClientName] = React.useState("");
   const [jobName, setJobName] = React.useState("");
+  const [subtotal, setSubtotal] = React.useState("");
+  const [taxRate, setTaxRate] = React.useState("6.5");
+  const [salesTaxAmount, setSalesTaxAmount] = React.useState("");
   const [total, setTotal] = React.useState("");
   const [status, setStatus] = React.useState<"paid" | "unpaid">("unpaid");
 
@@ -60,11 +69,24 @@ export default function InvoicesPage() {
     loadData();
   }, [loadData]);
 
+  React.useEffect(() => {
+    const subtotalNumber = Number(subtotal) || 0;
+    const taxRateNumber = (Number(taxRate) || 0) / 100;
+    const tax = Number((subtotalNumber * taxRateNumber).toFixed(2));
+    const finalTotal = Number((subtotalNumber + tax).toFixed(2));
+
+    setSalesTaxAmount(String(tax));
+    setTotal(String(finalTotal));
+  }, [subtotal, taxRate]);
+
   const resetForm = () => {
     setEditingId(null);
     setClientId("");
     setClientName("");
     setJobName("");
+    setSubtotal("");
+    setTaxRate("6.5");
+    setSalesTaxAmount("");
     setTotal("");
     setStatus("unpaid");
   };
@@ -93,14 +115,17 @@ export default function InvoicesPage() {
     setClientId(invoice.clientId || "");
     setClientName(invoice.clientName);
     setJobName(invoice.jobName);
+    setSubtotal(String(invoice.subtotal ?? invoice.total ?? 0));
+    setTaxRate(String(((invoice.taxRate ?? DEFAULT_TAX_RATE) * 100).toFixed(2)));
+    setSalesTaxAmount(String(invoice.salesTaxAmount ?? 0));
     setTotal(String(invoice.total));
     setStatus(invoice.status);
   };
 
   const startCashPayment = (invoice: Invoice) => {
     setCashInvoiceId(invoice.id);
-    setCashAmount(String(invoice.total || 0));
-    setCashSalesTax("0");
+    setCashAmount(String(invoice.subtotal ?? invoice.total ?? 0));
+    setCashSalesTax(String(invoice.salesTaxAmount ?? 0));
     setCashTotalCollected(String(invoice.total || 0));
     setCashNotes(`Cash collected for Invoice #${invoice.invoiceNumber} - ${invoice.jobName}`);
     setCashPhotoDataUrl(null);
@@ -137,11 +162,19 @@ export default function InvoicesPage() {
     setError("");
     setSuccess("");
 
+    const subtotalNumber = Number(subtotal) || 0;
+    const taxRateDecimal = (Number(taxRate) || 0) / 100;
+    const salesTaxNumber = Number(salesTaxAmount) || 0;
+    const totalNumber = Number(total) || 0;
+
     const payload = {
       clientId: clientId || null,
       clientName,
       jobName,
-      total: Number(total) || 0,
+      subtotal: subtotalNumber,
+      taxRate: taxRateDecimal,
+      salesTaxAmount: salesTaxNumber,
+      total: totalNumber,
       status
     };
 
@@ -269,7 +302,7 @@ export default function InvoicesPage() {
               {editingId ? "Edit Invoice" : "New Invoice"}
             </h2>
             <p className="brandSubtitle">
-              Create service invoices, send card links, and collect cash proof.
+              Create invoices with subtotal, sales tax helper, total, card links, and cash proof.
             </p>
           </div>
         </div>
@@ -307,7 +340,31 @@ export default function InvoicesPage() {
 
           <input
             className="textInput"
-            placeholder="Total"
+            placeholder="Subtotal before tax"
+            inputMode="decimal"
+            value={subtotal}
+            onChange={(e) => setSubtotal(e.target.value)}
+          />
+
+          <input
+            className="textInput"
+            placeholder="Sales tax rate %"
+            inputMode="decimal"
+            value={taxRate}
+            onChange={(e) => setTaxRate(e.target.value)}
+          />
+
+          <input
+            className="textInput"
+            placeholder="Sales tax amount"
+            inputMode="decimal"
+            value={salesTaxAmount}
+            onChange={(e) => setSalesTaxAmount(e.target.value)}
+          />
+
+          <input
+            className="textInput"
+            placeholder="Invoice total"
             inputMode="decimal"
             value={total}
             onChange={(e) => setTotal(e.target.value)}
@@ -321,6 +378,25 @@ export default function InvoicesPage() {
             <option value="unpaid">Unpaid</option>
             <option value="paid">Paid</option>
           </select>
+
+          <div className="assignBox">
+            <div className="assignTitle">Tax Helper</div>
+            <div className="cardLine">
+              Default rate is 6.5%. Subtotal × tax rate calculates the sales tax and invoice total.
+            </div>
+            <div className="cardLine">
+              <strong>Subtotal:</strong> ${Number(subtotal || 0).toFixed(2)}
+            </div>
+            <div className="cardLine">
+              <strong>Tax Rate:</strong> {Number(taxRate || 0).toFixed(2)}%
+            </div>
+            <div className="cardLine">
+              <strong>Sales Tax:</strong> ${Number(salesTaxAmount || 0).toFixed(2)}
+            </div>
+            <div className="cardLine">
+              <strong>Total:</strong> ${Number(total || 0).toFixed(2)}
+            </div>
+          </div>
 
           <div className="buttonRow">
             <button className="primaryButton" type="submit">
@@ -451,6 +527,18 @@ export default function InvoicesPage() {
 
                 <div className="cardLine">
                   <strong>Service:</strong> {invoice.jobName}
+                </div>
+
+                <div className="cardLine">
+                  <strong>Subtotal:</strong> ${Number(invoice.subtotal ?? invoice.total ?? 0).toFixed(2)}
+                </div>
+
+                <div className="cardLine">
+                  <strong>Tax Rate:</strong> {formatRate(invoice.taxRate ?? DEFAULT_TAX_RATE)}
+                </div>
+
+                <div className="cardLine">
+                  <strong>Sales Tax:</strong> ${Number(invoice.salesTaxAmount ?? 0).toFixed(2)}
                 </div>
 
                 <div className="cardLine">
