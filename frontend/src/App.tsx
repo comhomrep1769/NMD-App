@@ -35,19 +35,23 @@ const demoClients: Client[] = [];
 const demoQuotes: Quote[] = [];
 const demoInvoices: Invoice[] = [];
 
-export default function App() {
-  const [page, setPage] = React.useState<PageKey>(() => {
-    const path = window.location.pathname;
-    if (path.includes("service-request")) return "service-request";
-    return "dashboard";
-  });
+type PortalView = "public" | "admin" | "employee" | "register" | "service-request";
 
-  const [authView, setAuthView] = React.useState<"landing" | "login" | "register">(() => {
-    const path = window.location.pathname;
-    if (path.includes("register")) return "register";
-    if (path.includes("login")) return "login";
-    return "landing";
-  });
+function getInitialPortal(): PortalView {
+  const path = window.location.pathname.toLowerCase();
+
+  if (path.startsWith("/admin")) return "admin";
+  if (path.startsWith("/employee")) return "employee";
+  if (path.startsWith("/register")) return "register";
+  if (path.startsWith("/service-request")) return "service-request";
+
+  return "public";
+}
+
+export default function App() {
+  const [portalView, setPortalView] = React.useState<PortalView>(getInitialPortal);
+
+  const [page, setPage] = React.useState<PageKey>("dashboard");
 
   const [theme, setTheme] = React.useState<ThemeMode>(() => {
     const saved = localStorage.getItem("nmd-theme");
@@ -67,14 +71,9 @@ export default function App() {
   }, [theme]);
 
   React.useEffect(() => {
-    const path = window.location.pathname;
-
-    if (path.includes("service-request")) {
-      setAuthChecked(true);
-      return;
-    }
-
-    const token = localStorage.getItem("nmd-token");
+    const token =
+      localStorage.getItem("nmd-token") ||
+      sessionStorage.getItem("nmd-token");
 
     if (!token) {
       setAuthChecked(true);
@@ -88,6 +87,7 @@ export default function App() {
       })
       .catch(() => {
         localStorage.removeItem("nmd-token");
+        sessionStorage.removeItem("nmd-token");
         setUser(null);
       })
       .finally(() => setAuthChecked(true));
@@ -95,58 +95,101 @@ export default function App() {
 
   const safeNavigate = (nextPage: PageKey) => {
     setPage(nextPage);
-    window.history.pushState({}, "", "/");
   };
 
   const handleLogin = (token: string, loggedInUser: AuthUser) => {
     localStorage.setItem("nmd-token", token);
     setUser(loggedInUser);
-    setAuthView("landing");
     setPage("dashboard");
-    window.history.pushState({}, "", "/");
+
+    if (loggedInUser.role === "admin") {
+      window.history.pushState({}, "", "/admin");
+      setPortalView("admin");
+    } else if (loggedInUser.role === "employee") {
+      window.history.pushState({}, "", "/employee");
+      setPortalView("employee");
+    } else {
+      window.history.pushState({}, "", "/");
+      setPortalView("public");
+    }
   };
 
   const handleLogout = () => {
     localStorage.removeItem("nmd-token");
+    sessionStorage.removeItem("nmd-token");
     setUser(null);
-    setAuthView("landing");
     setPage("dashboard");
+
+    if (portalView === "admin") {
+      window.history.pushState({}, "", "/admin");
+    } else if (portalView === "employee") {
+      window.history.pushState({}, "", "/employee");
+    } else {
+      window.history.pushState({}, "", "/");
+      setPortalView("public");
+    }
+  };
+
+  const goPublic = () => {
+    setPortalView("public");
     window.history.pushState({}, "", "/");
   };
 
-  const goToLogin = () => {
-    setAuthView("login");
-    window.history.pushState({}, "", "/login");
+  const goAdmin = () => {
+    setPortalView("admin");
+    window.history.pushState({}, "", "/admin");
   };
 
-  const goToRegister = () => {
-    setAuthView("register");
+  const goEmployee = () => {
+    setPortalView("employee");
+    window.history.pushState({}, "", "/employee");
+  };
+
+  const goRegister = () => {
+    setPortalView("register");
     window.history.pushState({}, "", "/register");
   };
 
-  const goToServiceRequest = () => {
-    setPage("service-request");
-    setAuthView("landing");
+  const goServiceRequest = () => {
+    setPortalView("service-request");
     window.history.pushState({}, "", "/service-request");
   };
-
-  if (page === "service-request") {
-    return <ServiceRequestPage />;
-  }
 
   if (!authChecked) {
     return <div className="loadingScreen">Loading...</div>;
   }
 
-  if (!user && authView === "login") {
-    return <LoginPage onLogin={handleLogin} />;
+  if (!user && portalView === "service-request") {
+    return <ServiceRequestPage />;
   }
 
-  if (!user && authView === "register") {
+  if (!user && portalView === "register") {
     return (
       <ClientRegisterPage
         onRegistered={handleLogin}
-        onBackToLogin={goToLogin}
+        onBackToLogin={goPublic}
+      />
+    );
+  }
+
+  if (!user && portalView === "admin") {
+    return (
+      <LoginPage
+        onLogin={handleLogin}
+        portalRole="admin"
+        title="NMD Admin Portal"
+        subtitle="Admin and Super Admin access only."
+      />
+    );
+  }
+
+  if (!user && portalView === "employee") {
+    return (
+      <LoginPage
+        onLogin={handleLogin}
+        portalRole="employee"
+        title="NMD Employee Portal"
+        subtitle="Employee schedule, time clock, chat, and job tools."
       />
     );
   }
@@ -154,9 +197,11 @@ export default function App() {
   if (!user) {
     return (
       <LandingPage
-        onLogin={goToLogin}
-        onCreateAccount={goToRegister}
-        onRequestService={goToServiceRequest}
+        onClientLogin={handleLogin}
+        onCreateAccount={goRegister}
+        onAdminLogin={goAdmin}
+        onEmployeeLogin={goEmployee}
+        onRequestService={goServiceRequest}
       />
     );
   }
@@ -168,7 +213,9 @@ export default function App() {
       <div className="mainShell">
         <Header
           theme={theme}
-          onToggleTheme={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}
+          onToggleTheme={() =>
+            setTheme((prev) => (prev === "dark" ? "light" : "dark"))
+          }
           user={user}
           onLogout={handleLogout}
         />
