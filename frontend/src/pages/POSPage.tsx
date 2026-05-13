@@ -22,6 +22,15 @@ function methodLabel(method: POSPaymentMethod) {
   return "Cash";
 }
 
+function statusLabel(status: string) {
+  if (status === "pending_admin_approval") return "Pending Admin Approval";
+  if (status === "approved") return "Approved";
+  if (status === "rejected") return "Rejected";
+  if (status === "paid") return "Paid";
+  if (status === "cancelled") return "Cancelled";
+  return "Pending";
+}
+
 export default function POSPage({ role }: { role: Role }) {
   const [invoices, setInvoices] = React.useState<Invoice[]>([]);
   const [payments, setPayments] = React.useState<POSPayment[]>([]);
@@ -29,6 +38,8 @@ export default function POSPage({ role }: { role: Role }) {
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState("");
   const [success, setSuccess] = React.useState("");
+
+  const [filter, setFilter] = React.useState<"all" | "pending" | "approved" | "rejected">("all");
 
   const [invoiceId, setInvoiceId] = React.useState("");
   const [clientId, setClientId] = React.useState("");
@@ -120,6 +131,11 @@ export default function POSPage({ role }: { role: Role }) {
     setError("");
     setSuccess("");
 
+    if (!clientName.trim()) {
+      setError("Client name is required.");
+      return;
+    }
+
     if (paymentMethod === "cash" && !cashPhotoDataUrl) {
       setError("Cash payments require a photo upload for admin approval.");
       return;
@@ -164,6 +180,9 @@ export default function POSPage({ role }: { role: Role }) {
   };
 
   const approvePayment = async (paymentId: string) => {
+    const ok = window.confirm("Approve this payment and mark the attached invoice paid if connected?");
+    if (!ok) return;
+
     setError("");
     setSuccess("");
 
@@ -230,9 +249,21 @@ export default function POSPage({ role }: { role: Role }) {
   };
 
   const pendingCash = payments.filter((payment) => payment.status === "pending_admin_approval");
-  const approvedTotal = payments
-    .filter((payment) => payment.status === "approved" || payment.status === "paid")
-    .reduce((sum, payment) => sum + payment.totalCollected, 0);
+  const approvedPayments = payments.filter(
+    (payment) => payment.status === "approved" || payment.status === "paid"
+  );
+  const rejectedPayments = payments.filter((payment) => payment.status === "rejected");
+
+  const approvedTotal = approvedPayments.reduce((sum, payment) => sum + payment.totalCollected, 0);
+  const pendingTotal = pendingCash.reduce((sum, payment) => sum + payment.totalCollected, 0);
+  const taxTrackedTotal = payments.reduce((sum, payment) => sum + payment.salesTaxAmount, 0);
+
+  const filteredPayments = payments.filter((payment) => {
+    if (filter === "pending") return payment.status === "pending_admin_approval";
+    if (filter === "approved") return payment.status === "approved" || payment.status === "paid";
+    if (filter === "rejected") return payment.status === "rejected";
+    return true;
+  });
 
   if (loading) {
     return (
@@ -266,8 +297,23 @@ export default function POSPage({ role }: { role: Role }) {
             </div>
 
             <div className="statCard">
+              <div className="statLabel">Pending Cash Total</div>
+              <div className="statValue">${pendingTotal.toFixed(2)}</div>
+            </div>
+
+            <div className="statCard">
               <div className="statLabel">Approved POS Collected</div>
               <div className="statValue">${approvedTotal.toFixed(2)}</div>
+            </div>
+
+            <div className="statCard">
+              <div className="statLabel">Sales Tax Tracked</div>
+              <div className="statValue">${taxTrackedTotal.toFixed(2)}</div>
+            </div>
+
+            <div className="statCard">
+              <div className="statLabel">Rejected Records</div>
+              <div className="statValue">{rejectedPayments.length}</div>
             </div>
 
             <div className="statCard">
@@ -335,6 +381,9 @@ export default function POSPage({ role }: { role: Role }) {
           {paymentMethod === "cash" && (
             <div className="assignBox">
               <div className="assignTitle">Cash Photo Proof Required</div>
+              <div className="cardLine">
+                Employees must upload a photo of the cash collected. Admin approval is required before the invoice is marked paid.
+              </div>
 
               <input
                 className="textInput"
@@ -400,15 +449,56 @@ export default function POSPage({ role }: { role: Role }) {
 
       {role === "admin" && (
         <section className="panel">
-          <h2 className="panelTitle">POS Payment Records</h2>
+          <div className="panelHeader">
+            <div>
+              <h2 className="panelTitle">POS Approval Dashboard</h2>
+              <p className="brandSubtitle">
+                Review cash proof, approve payments, reject incorrect submissions, and track sales tax.
+              </p>
+            </div>
+          </div>
+
+          <div className="buttonRow" style={{ marginBottom: 16 }}>
+            <button
+              className={filter === "all" ? "primaryButton" : "secondaryButton"}
+              type="button"
+              onClick={() => setFilter("all")}
+            >
+              All
+            </button>
+
+            <button
+              className={filter === "pending" ? "primaryButton" : "secondaryButton"}
+              type="button"
+              onClick={() => setFilter("pending")}
+            >
+              Pending Approval
+            </button>
+
+            <button
+              className={filter === "approved" ? "primaryButton" : "secondaryButton"}
+              type="button"
+              onClick={() => setFilter("approved")}
+            >
+              Approved / Paid
+            </button>
+
+            <button
+              className={filter === "rejected" ? "primaryButton" : "secondaryButton"}
+              type="button"
+              onClick={() => setFilter("rejected")}
+            >
+              Rejected
+            </button>
+          </div>
 
           <div className="cardsGrid">
-            {payments.map((payment) => (
+            {filteredPayments.map((payment) => (
               <div key={payment.id} className="quoteCard">
                 <div className="quoteTopRow">
                   <div className="quoteNumber">{payment.clientName}</div>
                   <span className={`statusBadge status-${payment.status}`}>
-                    {payment.status}
+                    {statusLabel(payment.status)}
                   </span>
                 </div>
 
@@ -433,7 +523,17 @@ export default function POSPage({ role }: { role: Role }) {
                 </div>
 
                 <div className="cardLine">
+                  <strong>Submitted:</strong>{" "}
+                  {payment.createdAt ? new Date(payment.createdAt).toLocaleString() : "—"}
+                </div>
+
+                <div className="cardLine">
                   <strong>Approved By:</strong> {payment.approvedByName || "—"}
+                </div>
+
+                <div className="cardLine">
+                  <strong>Approved At:</strong>{" "}
+                  {payment.approvedAt ? new Date(payment.approvedAt).toLocaleString() : "—"}
                 </div>
 
                 <div className="cardLine">
@@ -441,18 +541,21 @@ export default function POSPage({ role }: { role: Role }) {
                 </div>
 
                 {payment.cashPhotoDataUrl && (
-                  <img
-                    src={payment.cashPhotoDataUrl}
-                    alt="Cash proof"
-                    style={{
-                      width: "100%",
-                      maxHeight: 260,
-                      objectFit: "cover",
-                      borderRadius: 14,
-                      border: "1px solid var(--border)",
-                      marginTop: 12
-                    }}
-                  />
+                  <div style={{ marginTop: 12 }}>
+                    <div className="assignTitle">Cash Proof</div>
+                    <img
+                      src={payment.cashPhotoDataUrl}
+                      alt="Cash proof"
+                      style={{
+                        width: "100%",
+                        maxHeight: 320,
+                        objectFit: "cover",
+                        borderRadius: 14,
+                        border: "1px solid var(--border)",
+                        marginTop: 8
+                      }}
+                    />
+                  </div>
                 )}
 
                 {payment.status === "pending_admin_approval" && (
@@ -461,7 +564,7 @@ export default function POSPage({ role }: { role: Role }) {
                       className="primaryButton"
                       onClick={() => approvePayment(payment.id)}
                     >
-                      Approve
+                      Approve Cash
                     </button>
 
                     <button
@@ -475,8 +578,8 @@ export default function POSPage({ role }: { role: Role }) {
               </div>
             ))}
 
-            {payments.length === 0 && (
-              <div className="listCard">No POS payment records yet.</div>
+            {filteredPayments.length === 0 && (
+              <div className="listCard">No POS payment records for this filter.</div>
             )}
           </div>
         </section>
