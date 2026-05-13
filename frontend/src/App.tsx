@@ -50,7 +50,6 @@ function getInitialPortal(): PortalView {
 
 export default function App() {
   const [portalView, setPortalView] = React.useState<PortalView>(getInitialPortal);
-
   const [page, setPage] = React.useState<PageKey>("dashboard");
 
   const [theme, setTheme] = React.useState<ThemeMode>(() => {
@@ -84,6 +83,17 @@ export default function App() {
       .then((data) => {
         setUser(data.user);
         setPage("dashboard");
+
+        if (data.user.role === "admin") {
+          setPortalView("admin");
+          window.history.replaceState({}, "", "/admin");
+        } else if (data.user.role === "employee") {
+          setPortalView("employee");
+          window.history.replaceState({}, "", "/employee");
+        } else {
+          setPortalView("public");
+          window.history.replaceState({}, "", "/");
+        }
       })
       .catch(() => {
         localStorage.removeItem("nmd-token");
@@ -103,14 +113,14 @@ export default function App() {
     setPage("dashboard");
 
     if (loggedInUser.role === "admin") {
-      window.history.pushState({}, "", "/admin");
       setPortalView("admin");
+      window.history.pushState({}, "", "/admin");
     } else if (loggedInUser.role === "employee") {
-      window.history.pushState({}, "", "/employee");
       setPortalView("employee");
+      window.history.pushState({}, "", "/employee");
     } else {
-      window.history.pushState({}, "", "/");
       setPortalView("public");
+      window.history.pushState({}, "", "/");
     }
   };
 
@@ -125,24 +135,14 @@ export default function App() {
     } else if (portalView === "employee") {
       window.history.pushState({}, "", "/employee");
     } else {
-      window.history.pushState({}, "", "/");
       setPortalView("public");
+      window.history.pushState({}, "", "/");
     }
   };
 
   const goPublic = () => {
     setPortalView("public");
     window.history.pushState({}, "", "/");
-  };
-
-  const goAdmin = () => {
-    setPortalView("admin");
-    window.history.pushState({}, "", "/admin");
-  };
-
-  const goEmployee = () => {
-    setPortalView("employee");
-    window.history.pushState({}, "", "/employee");
   };
 
   const goRegister = () => {
@@ -199,8 +199,6 @@ export default function App() {
       <LandingPage
         onClientLogin={handleLogin}
         onCreateAccount={goRegister}
-        onAdminLogin={goAdmin}
-        onEmployeeLogin={goEmployee}
         onRequestService={goServiceRequest}
       />
     );
