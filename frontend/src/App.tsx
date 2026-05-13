@@ -3,6 +3,7 @@ import type { AuthUser, Client, Invoice, PageKey, Quote, ThemeMode } from "./typ
 import Header from "./components/Header";
 import Sidebar from "./components/Sidebar";
 import MobileNav from "./components/MobileNav";
+import AppUpdateBanner from "./components/AppUpdateBanner";
 import LandingPage from "./pages/LandingPage";
 import DashboardPage from "./pages/DashboardPage";
 import EmployeeDashboardPage from "./pages/EmployeeDashboardPage";
@@ -157,109 +158,135 @@ export default function App() {
   };
 
   if (!authChecked) {
-    return <div className="loadingScreen">Loading...</div>;
+    return (
+      <>
+        <AppUpdateBanner />
+        <div className="loadingScreen">Loading...</div>
+      </>
+    );
   }
 
   if (!user && portalView === "service-request") {
-    return <ServiceRequestPage />;
+    return (
+      <>
+        <AppUpdateBanner />
+        <ServiceRequestPage />
+      </>
+    );
   }
 
   if (!user && portalView === "register") {
     return (
-      <ClientRegisterPage
-        onRegistered={handleLogin}
-        onBackToLogin={goPublic}
-      />
+      <>
+        <AppUpdateBanner />
+        <ClientRegisterPage
+          onRegistered={handleLogin}
+          onBackToLogin={goPublic}
+        />
+      </>
     );
   }
 
   if (!user && portalView === "admin") {
     return (
-      <LoginPage
-        onLogin={handleLogin}
-        portalRole="admin"
-        title="NMD Admin Portal"
-        subtitle="Admin and Super Admin access only."
-      />
+      <>
+        <AppUpdateBanner />
+        <LoginPage
+          onLogin={handleLogin}
+          portalRole="admin"
+          title="NMD Admin Portal"
+          subtitle="Admin and Super Admin access only."
+        />
+      </>
     );
   }
 
   if (!user && portalView === "employee") {
     return (
-      <LoginPage
-        onLogin={handleLogin}
-        portalRole="employee"
-        title="NMD Employee Portal"
-        subtitle="Employee schedule, time clock, chat, and job tools."
-      />
+      <>
+        <AppUpdateBanner />
+        <LoginPage
+          onLogin={handleLogin}
+          portalRole="employee"
+          title="NMD Employee Portal"
+          subtitle="Employee schedule, time clock, chat, and job tools."
+        />
+      </>
     );
   }
 
   if (!user) {
     return (
-      <LandingPage
-        onClientLogin={handleLogin}
-        onCreateAccount={goRegister}
-        onRequestService={goServiceRequest}
-      />
+      <>
+        <AppUpdateBanner />
+        <LandingPage
+          onClientLogin={handleLogin}
+          onCreateAccount={goRegister}
+          onRequestService={goServiceRequest}
+        />
+      </>
     );
   }
 
   return (
-    <div className="appShell">
-      <Sidebar currentPage={page} onNavigate={safeNavigate} role={user.role} />
+    <>
+      <AppUpdateBanner />
 
-      <div className="mainShell">
-        <Header
-          theme={theme}
-          onToggleTheme={() =>
-            setTheme((prev) => (prev === "dark" ? "light" : "dark"))
-          }
-          user={user}
-          onLogout={handleLogout}
-        />
+      <div className="appShell">
+        <Sidebar currentPage={page} onNavigate={safeNavigate} role={user.role} />
 
-        <main className="pageWrap">
-          {page === "dashboard" && user.role === "admin" && (
-            <DashboardPage
-              quotes={quotes}
-              invoices={invoices}
-              onNavigate={safeNavigate}
-            />
-          )}
+        <div className="mainShell">
+          <Header
+            theme={theme}
+            onToggleTheme={() =>
+              setTheme((prev) => (prev === "dark" ? "light" : "dark"))
+            }
+            user={user}
+            onLogout={handleLogout}
+          />
 
-          {page === "dashboard" && user.role === "employee" && (
-            <EmployeeDashboardPage />
-          )}
+          <main className="pageWrap">
+            {page === "dashboard" && user.role === "admin" && (
+              <DashboardPage
+                quotes={quotes}
+                invoices={invoices}
+                onNavigate={safeNavigate}
+              />
+            )}
 
-          {page === "dashboard" && user.role === "client" && (
-            <ClientDashboardPage />
-          )}
+            {page === "dashboard" && user.role === "employee" && (
+              <EmployeeDashboardPage />
+            )}
 
-          {page === "clients" && user.role === "admin" && <ClientsPage />}
-          {page === "quotes" && user.role === "admin" && <QuotesPage />}
-          {page === "invoices" && user.role === "admin" && <InvoicesPage />}
-          {page === "schedule" && user.role !== "client" && <SchedulePage role={user.role} />}
-          {page === "employees" && user.role === "admin" && <EmployeesPage />}
-          {page === "requests" && user.role === "admin" && <RequestsPage />}
-          {page === "expenses" && user.role === "admin" && <ExpensesPage />}
-          {page === "mileage" && user.role === "admin" && <MileagePage />}
-          {page === "recurring" && user.role === "admin" && <RecurringPage />}
-          {page === "equipment" && user.role === "admin" && <EquipmentPage />}
-          {page === "treatments" && user.role !== "client" && <TreatmentsPage role={user.role} />}
-          {page === "pricing" && user.role === "admin" && <PricingPage />}
-          {page === "timeclock" && user.role !== "client" && <TimeClockPage role={user.role} />}
-          {page === "email" && user.role === "admin" && <EmailTestPage />}
-          {page === "pos" && user.role !== "client" && <POSPage role={user.role} />}
-          {page === "availability" && user.role !== "client" && <AvailabilityPage />}
-          {page === "chat" && <ChatPage currentUser={user} />}
-          {page === "tips" && user.role !== "client" && <TipsPage role={user.role} />}
-          {page === "payroll" && user.role === "admin" && <PayrollPage />}
-          {page === "my-ledger" && user.role === "employee" && <MyLedgerPage />}
-        </main>
+            {page === "dashboard" && user.role === "client" && (
+              <ClientDashboardPage />
+            )}
 
-        <MobileNav currentPage={page} onNavigate={safeNavigate} role={user.role} />
+            {page === "clients" && user.role === "admin" && <ClientsPage />}
+            {page === "quotes" && user.role === "admin" && <QuotesPage />}
+            {page === "invoices" && user.role === "admin" && <InvoicesPage />}
+            {page === "schedule" && user.role !== "client" && <SchedulePage role={user.role} />}
+            {page === "employees" && user.role === "admin" && <EmployeesPage />}
+            {page === "requests" && user.role === "admin" && <RequestsPage />}
+            {page === "expenses" && user.role === "admin" && <ExpensesPage />}
+            {page === "mileage" && user.role === "admin" && <MileagePage />}
+            {page === "recurring" && user.role === "admin" && <RecurringPage />}
+            {page === "equipment" && user.role === "admin" && <EquipmentPage />}
+            {page === "treatments" && user.role !== "client" && <TreatmentsPage role={user.role} />}
+            {page === "pricing" && user.role === "admin" && <PricingPage />}
+            {page === "timeclock" && user.role !== "client" && <TimeClockPage role={user.role} />}
+            {page === "email" && user.role === "admin" && <EmailTestPage />}
+            {page === "pos" && user.role !== "client" && <POSPage role={user.role} />}
+            {page === "availability" && user.role !== "client" && <AvailabilityPage />}
+            {page === "chat" && <ChatPage currentUser={user} />}
+            {page === "tips" && user.role !== "client" && <TipsPage role={user.role} />}
+            {page === "payroll" && user.role === "admin" && <PayrollPage />}
+            {page === "my-ledger" && user.role === "employee" && <MyLedgerPage />}
+          </main>
+
+          <MobileNav currentPage={page} onNavigate={safeNavigate} role={user.role} />
+        </div>
       </div>
-    </div>
+    </>
   );
 }
