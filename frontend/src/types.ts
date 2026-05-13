@@ -65,6 +65,9 @@ export type Invoice = {
   clientId?: string | null;
   clientName: string;
   jobName: string;
+  subtotal?: number;
+  taxRate?: number;
+  salesTaxAmount?: number;
   total: number;
   status: InvoiceStatus;
   jobId?: string | null;
