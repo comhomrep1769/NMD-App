@@ -58,6 +58,38 @@ export default function LandingPage({
               No More Dirt • Residential • Commercial • Industrial
             </p>
           </div>
+
+          <div className="buttonRow">
+            <a
+              className="secondaryButton"
+              href="https://www.instagram.com/nmdpowash"
+              target="_blank"
+              rel="noreferrer"
+              style={{ textDecoration: "none" }}
+            >
+              Instagram
+            </a>
+
+            <a
+              className="secondaryButton"
+              href="https://www.youtube.com/@NMDPressureWashing"
+              target="_blank"
+              rel="noreferrer"
+              style={{ textDecoration: "none" }}
+            >
+              YouTube
+            </a>
+
+            <a
+              className="secondaryButton"
+              href="https://www.facebook.com/people/NMD-Pressure-Washing-Services/61572361587152/"
+              target="_blank"
+              rel="noreferrer"
+              style={{ textDecoration: "none" }}
+            >
+              Facebook
+            </a>
+          </div>
         </div>
 
         <div className="pageGrid" style={{ marginTop: 24 }}>
