@@ -220,7 +220,11 @@ export default function App() {
 
         <main className="pageWrap">
           {page === "dashboard" && user.role === "admin" && (
-            <DashboardPage quotes={quotes} invoices={invoices} />
+            <DashboardPage
+              quotes={quotes}
+              invoices={invoices}
+              onNavigate={safeNavigate}
+            />
           )}
 
           {page === "dashboard" && user.role === "employee" && (
