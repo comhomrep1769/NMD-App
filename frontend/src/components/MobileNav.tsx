@@ -14,9 +14,7 @@ type NavGroup = {
 const adminGroups: NavGroup[] = [
   {
     label: "Dashboard",
-    children: [
-      { key: "dashboard", label: "Main Dashboard" }
-    ]
+    children: [{ key: "dashboard", label: "Main Dashboard" }]
   },
   {
     label: "Jobs & Schedule",
@@ -68,30 +66,25 @@ const adminGroups: NavGroup[] = [
   {
     label: "Payments / POS",
     children: [
-      { key: "invoices", label: "Invoices & Payments" },
+      { key: "pos", label: "POS Payments" },
+      { key: "invoices", label: "Invoices & Payment Links" },
       { key: "recurring", label: "Recurring Billing" }
     ]
   },
   {
     label: "Chat",
-    children: [
-      { key: "chat", label: "Chat" }
-    ]
+    children: [{ key: "chat", label: "Chat" }]
   },
   {
     label: "Settings",
-    children: [
-      { key: "email", label: "Email Test" }
-    ]
+    children: [{ key: "email", label: "Email Test" }]
   }
 ];
 
 const employeeGroups: NavGroup[] = [
   {
     label: "Dashboard",
-    children: [
-      { key: "dashboard", label: "My Dashboard" }
-    ]
+    children: [{ key: "dashboard", label: "My Dashboard" }]
   },
   {
     label: "Jobs & Schedule",
@@ -102,10 +95,12 @@ const employeeGroups: NavGroup[] = [
     ]
   },
   {
+    label: "Payments",
+    children: [{ key: "pos", label: "Collect Payment" }]
+  },
+  {
     label: "My Work",
-    children: [
-      { key: "my-ledger", label: "My Ledger" }
-    ]
+    children: [{ key: "my-ledger", label: "My Ledger" }]
   },
   {
     label: "Knowledge Base",
@@ -116,24 +111,18 @@ const employeeGroups: NavGroup[] = [
   },
   {
     label: "Chat",
-    children: [
-      { key: "chat", label: "Chat" }
-    ]
+    children: [{ key: "chat", label: "Chat" }]
   }
 ];
 
 const clientGroups: NavGroup[] = [
   {
     label: "Client Portal",
-    children: [
-      { key: "dashboard", label: "Portal Home" }
-    ]
+    children: [{ key: "dashboard", label: "Portal Home" }]
   },
   {
     label: "Chat",
-    children: [
-      { key: "chat", label: "Chat" }
-    ]
+    children: [{ key: "chat", label: "Chat" }]
   }
 ];
 
