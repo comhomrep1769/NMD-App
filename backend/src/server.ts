@@ -34,9 +34,33 @@ import posRoutes from "./routes/pos.js";
 
 const app = express();
 
+const allowedOrigins = new Set(
+  [
+    "https://nmdpowash.com",
+    "https://www.nmdpowash.com",
+    "https://nmd-frontend.onrender.com",
+    process.env.FRONTEND_URL,
+    ...(process.env.ALLOWED_ORIGINS
+      ? process.env.ALLOWED_ORIGINS.split(",").map((origin) => origin.trim())
+      : [])
+  ].filter(Boolean)
+);
+
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL,
+    origin(origin, callback) {
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      if (allowedOrigins.has(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error(`CORS blocked origin: ${origin}`));
+    },
     credentials: false
   })
 );
@@ -52,6 +76,7 @@ app.use(express.json({ limit: "3mb" }));
 app.get("/api/health", async (_req, res) => {
   try {
     const db = await pool.query("SELECT NOW()");
+
     res.json({
       ok: true,
       time: db.rows[0].now
