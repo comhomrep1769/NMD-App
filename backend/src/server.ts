@@ -31,6 +31,7 @@ import pricingRoutes from "./routes/pricing.js";
 import clientPortalRoutes from "./routes/client-portal.js";
 import emailTestRoutes from "./routes/email-test.js";
 import posRoutes from "./routes/pos.js";
+import guruRoutes from "./routes/guru.js";
 
 const app = express();
 
@@ -113,6 +114,7 @@ app.use("/api/pricing", pricingRoutes);
 app.use("/api/client-portal", clientPortalRoutes);
 app.use("/api/email-test", emailTestRoutes);
 app.use("/api/pos", posRoutes);
+app.use("/api/guru", guruRoutes);
 
 const port = Number(process.env.PORT || 10000);
 
