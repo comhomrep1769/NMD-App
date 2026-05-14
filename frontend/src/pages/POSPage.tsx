@@ -2,6 +2,8 @@ import React from "react";
 import { apiFetch } from "../api";
 import type { Invoice, POSPayment, POSPaymentMethod, Role } from "../types";
 
+const DEFAULT_TAX_RATE = 0.065;
+
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -31,6 +33,10 @@ function statusLabel(status: string) {
   return "Pending";
 }
 
+function money(value: number | string | null | undefined) {
+  return Number(value || 0).toFixed(2);
+}
+
 export default function POSPage({ role }: { role: Role }) {
   const [invoices, setInvoices] = React.useState<Invoice[]>([]);
   const [payments, setPayments] = React.useState<POSPayment[]>([]);
@@ -39,17 +45,19 @@ export default function POSPage({ role }: { role: Role }) {
   const [error, setError] = React.useState("");
   const [success, setSuccess] = React.useState("");
 
-  const [filter, setFilter] = React.useState<"all" | "pending" | "approved" | "rejected">("all");
+  const [filter, setFilter] = React.useState<"all" | "pending" | "approved" | "rejected" | "card" | "cash">("all");
 
   const [invoiceId, setInvoiceId] = React.useState("");
   const [clientId, setClientId] = React.useState("");
   const [clientName, setClientName] = React.useState("");
   const [paymentMethod, setPaymentMethod] = React.useState<POSPaymentMethod>("card_link");
   const [amount, setAmount] = React.useState("");
+  const [taxRate, setTaxRate] = React.useState("6.5");
   const [salesTaxAmount, setSalesTaxAmount] = React.useState("");
   const [totalCollected, setTotalCollected] = React.useState("");
   const [cashPhotoDataUrl, setCashPhotoDataUrl] = React.useState<string | null>(null);
   const [notes, setNotes] = React.useState("");
+  const [manualTaxMode, setManualTaxMode] = React.useState(false);
 
   const loadData = React.useCallback(async () => {
     setError("");
@@ -73,16 +81,30 @@ export default function POSPage({ role }: { role: Role }) {
     loadData();
   }, [loadData]);
 
+  React.useEffect(() => {
+    if (manualTaxMode) return;
+
+    const subtotalNumber = Number(amount) || 0;
+    const taxRateNumber = (Number(taxRate) || 0) / 100;
+    const tax = Number((subtotalNumber * taxRateNumber).toFixed(2));
+    const total = Number((subtotalNumber + tax).toFixed(2));
+
+    setSalesTaxAmount(String(tax));
+    setTotalCollected(String(total));
+  }, [amount, taxRate, manualTaxMode]);
+
   const resetForm = () => {
     setInvoiceId("");
     setClientId("");
     setClientName("");
     setPaymentMethod("card_link");
     setAmount("");
+    setTaxRate("6.5");
     setSalesTaxAmount("");
     setTotalCollected("");
     setCashPhotoDataUrl(null);
     setNotes("");
+    setManualTaxMode(false);
   };
 
   const selectInvoice = (value: string) => {
@@ -93,10 +115,12 @@ export default function POSPage({ role }: { role: Role }) {
     if (invoice) {
       setClientId(invoice.clientId || "");
       setClientName(invoice.clientName);
-      setAmount(String(invoice.total || 0));
-      setSalesTaxAmount("0");
+      setAmount(String(invoice.subtotal ?? invoice.total ?? 0));
+      setTaxRate(String(((invoice.taxRate ?? DEFAULT_TAX_RATE) * 100).toFixed(2)));
+      setSalesTaxAmount(String(invoice.salesTaxAmount ?? 0));
       setTotalCollected(String(invoice.total || 0));
       setNotes(`Invoice #${invoice.invoiceNumber} - ${invoice.jobName}`);
+      setManualTaxMode(true);
     }
   };
 
@@ -248,20 +272,42 @@ export default function POSPage({ role }: { role: Role }) {
     }
   };
 
+  const syncTaxFromFields = () => {
+    const subtotalNumber = Number(amount) || 0;
+    const taxRateNumber = (Number(taxRate) || 0) / 100;
+    const tax = Number((subtotalNumber * taxRateNumber).toFixed(2));
+    const total = Number((subtotalNumber + tax).toFixed(2));
+
+    setSalesTaxAmount(String(tax));
+    setTotalCollected(String(total));
+    setManualTaxMode(false);
+  };
+
   const pendingCash = payments.filter((payment) => payment.status === "pending_admin_approval");
   const approvedPayments = payments.filter(
     (payment) => payment.status === "approved" || payment.status === "paid"
   );
   const rejectedPayments = payments.filter((payment) => payment.status === "rejected");
+  const cardPayments = payments.filter((payment) => payment.paymentMethod === "card_link");
+  const cashPayments = payments.filter((payment) => payment.paymentMethod === "cash");
 
   const approvedTotal = approvedPayments.reduce((sum, payment) => sum + payment.totalCollected, 0);
   const pendingTotal = pendingCash.reduce((sum, payment) => sum + payment.totalCollected, 0);
+  const rejectedTotal = rejectedPayments.reduce((sum, payment) => sum + payment.totalCollected, 0);
   const taxTrackedTotal = payments.reduce((sum, payment) => sum + payment.salesTaxAmount, 0);
+  const cardTotal = cardPayments
+    .filter((payment) => payment.status === "paid" || payment.status === "approved")
+    .reduce((sum, payment) => sum + payment.totalCollected, 0);
+  const cashApprovedTotal = cashPayments
+    .filter((payment) => payment.status === "approved" || payment.status === "paid")
+    .reduce((sum, payment) => sum + payment.totalCollected, 0);
 
   const filteredPayments = payments.filter((payment) => {
     if (filter === "pending") return payment.status === "pending_admin_approval";
     if (filter === "approved") return payment.status === "approved" || payment.status === "paid";
     if (filter === "rejected") return payment.status === "rejected";
+    if (filter === "card") return payment.paymentMethod === "card_link";
+    if (filter === "cash") return payment.paymentMethod === "cash";
     return true;
   });
 
@@ -307,13 +353,23 @@ export default function POSPage({ role }: { role: Role }) {
             </div>
 
             <div className="statCard">
+              <div className="statLabel">Card Collected</div>
+              <div className="statValue">${cardTotal.toFixed(2)}</div>
+            </div>
+
+            <div className="statCard">
+              <div className="statLabel">Cash Approved</div>
+              <div className="statValue">${cashApprovedTotal.toFixed(2)}</div>
+            </div>
+
+            <div className="statCard">
               <div className="statLabel">Sales Tax Tracked</div>
               <div className="statValue">${taxTrackedTotal.toFixed(2)}</div>
             </div>
 
             <div className="statCard">
-              <div className="statLabel">Rejected Records</div>
-              <div className="statValue">{rejectedPayments.length}</div>
+              <div className="statLabel">Rejected Total</div>
+              <div className="statValue">${rejectedTotal.toFixed(2)}</div>
             </div>
 
             <div className="statCard">
@@ -359,7 +415,21 @@ export default function POSPage({ role }: { role: Role }) {
             placeholder="Subtotal / invoice amount"
             inputMode="decimal"
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            onChange={(e) => {
+              setAmount(e.target.value);
+              setManualTaxMode(false);
+            }}
+          />
+
+          <input
+            className="textInput"
+            placeholder="Sales tax rate %"
+            inputMode="decimal"
+            value={taxRate}
+            onChange={(e) => {
+              setTaxRate(e.target.value);
+              setManualTaxMode(false);
+            }}
           />
 
           <input
@@ -367,7 +437,10 @@ export default function POSPage({ role }: { role: Role }) {
             placeholder="Sales tax amount"
             inputMode="decimal"
             value={salesTaxAmount}
-            onChange={(e) => setSalesTaxAmount(e.target.value)}
+            onChange={(e) => {
+              setSalesTaxAmount(e.target.value);
+              setManualTaxMode(true);
+            }}
           />
 
           <input
@@ -375,8 +448,39 @@ export default function POSPage({ role }: { role: Role }) {
             placeholder="Total collected"
             inputMode="decimal"
             value={totalCollected}
-            onChange={(e) => setTotalCollected(e.target.value)}
+            onChange={(e) => {
+              setTotalCollected(e.target.value);
+              setManualTaxMode(true);
+            }}
           />
+
+          <div className="assignBox">
+            <div className="assignTitle">Payment Total Preview</div>
+            <div className="cardLine">
+              <strong>Subtotal:</strong> ${money(amount)}
+            </div>
+            <div className="cardLine">
+              <strong>Tax Rate:</strong> {Number(taxRate || 0).toFixed(2)}%
+            </div>
+            <div className="cardLine">
+              <strong>Sales Tax:</strong> ${money(salesTaxAmount)}
+            </div>
+            <div className="cardLine">
+              <strong>Total Collected:</strong> ${money(totalCollected)}
+            </div>
+
+            {manualTaxMode && (
+              <div className="buttonRow" style={{ marginTop: 10 }}>
+                <button
+                  className="secondaryButton"
+                  type="button"
+                  onClick={syncTaxFromFields}
+                >
+                  Recalculate From Tax Rate
+                </button>
+              </div>
+            )}
+          </div>
 
           {paymentMethod === "cash" && (
             <div className="assignBox">
@@ -443,6 +547,10 @@ export default function POSPage({ role }: { role: Role }) {
             <button className="primaryButton" type="submit" disabled={saving}>
               {saving ? "Saving..." : "Record POS Payment"}
             </button>
+
+            <button className="secondaryButton" type="button" onClick={resetForm}>
+              Clear Form
+            </button>
           </div>
         </form>
       </section>
@@ -484,6 +592,22 @@ export default function POSPage({ role }: { role: Role }) {
             </button>
 
             <button
+              className={filter === "card" ? "primaryButton" : "secondaryButton"}
+              type="button"
+              onClick={() => setFilter("card")}
+            >
+              Card
+            </button>
+
+            <button
+              className={filter === "cash" ? "primaryButton" : "secondaryButton"}
+              type="button"
+              onClick={() => setFilter("cash")}
+            >
+              Cash
+            </button>
+
+            <button
               className={filter === "rejected" ? "primaryButton" : "secondaryButton"}
               type="button"
               onClick={() => setFilter("rejected")}
@@ -519,7 +643,7 @@ export default function POSPage({ role }: { role: Role }) {
                 </div>
 
                 <div className="cardLine">
-                  <strong>Collected By:</strong> {payment.collectedByName || "—"}
+                  <strong>Collected By:</strong> {payment.collectedByName || "Stripe / System"}
                 </div>
 
                 <div className="cardLine">
