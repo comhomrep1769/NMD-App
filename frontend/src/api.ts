@@ -1,29 +1,54 @@
-const API_URL = import.meta.env.VITE_API_URL;
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "https://nmd-backend.onrender.com";
 
-if (!API_URL) {
-  console.warn("VITE_API_URL is not set");
+function getToken() {
+  return (
+    localStorage.getItem("nmd-token") ||
+    sessionStorage.getItem("nmd-token")
+  );
 }
 
-export async function apiFetch<T>(
+export async function apiFetch<T = unknown>(
   path: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const token = localStorage.getItem("nmd-token");
+  const token = getToken();
 
-  const res = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(options.headers || {})
-    }
-  });
+  const headers = new Headers(options.headers || {});
 
-  const data = await res.json();
-
-  if (!res.ok) {
-    throw new Error(data.error || "Request failed");
+  if (!headers.has("Content-Type") && options.body) {
+    headers.set("Content-Type", "application/json");
   }
 
-  return data;
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
+    headers
+  });
+
+  let data: any = null;
+
+  const contentType = response.headers.get("content-type") || "";
+
+  if (contentType.includes("application/json")) {
+    data = await response.json();
+  } else {
+    data = await response.text();
+  }
+
+  if (!response.ok) {
+    const message =
+      typeof data === "object" && data?.error
+        ? data.error
+        : typeof data === "string" && data
+          ? data
+          : "Request failed";
+
+    throw new Error(message);
+  }
+
+  return data as T;
 }
