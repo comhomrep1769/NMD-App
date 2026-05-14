@@ -42,6 +42,21 @@ function mapGuruEstimate(row: any) {
   };
 }
 
+function mapQuote(row: any) {
+  return {
+    id: row.id,
+    quoteNumber: row.quote_number,
+    clientId: row.client_id,
+    clientName: row.client_name,
+    serviceType: row.service_type,
+    total: Number(row.total || 0),
+    status: row.status,
+    convertedInvoiceId: row.converted_invoice_id,
+    acceptedAt: row.accepted_at,
+    createdAt: row.created_at
+  };
+}
+
 function getGuruReply(role: string, message: string) {
   const lower = message.toLowerCase();
 
@@ -488,6 +503,135 @@ router.patch(
     } catch (error) {
       console.error("guru estimate review error", error);
       return res.status(500).json({ error: "Server error" });
+    }
+  }
+);
+
+router.post(
+  "/estimates/:estimateId/convert-to-quote",
+  requireAuth,
+  requireRole("admin"),
+  async (req, res) => {
+    const client = await pool.connect();
+
+    try {
+      const { estimateId } = req.params;
+
+      const { quoteTotal, notes } = req.body as {
+        quoteTotal?: number;
+        notes?: string;
+      };
+
+      await client.query("BEGIN");
+
+      const estimateResult = await client.query(
+        `
+        SELECT *
+        FROM guru_estimates
+        WHERE id = $1
+        LIMIT 1
+        `,
+        [estimateId]
+      );
+
+      if (estimateResult.rows.length === 0) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({
+          error: "Guru estimate not found"
+        });
+      }
+
+      const estimate = estimateResult.rows[0];
+
+      const total =
+        quoteTotal !== undefined && quoteTotal !== null
+          ? Number(quoteTotal)
+          : Number(estimate.preliminary_estimate_high || estimate.preliminary_estimate_low || 0);
+
+      if (!total || total <= 0) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({
+          error: "Quote total must be greater than 0"
+        });
+      }
+
+      const serviceDescription = [
+        estimate.service_type,
+        estimate.property_area ? `Area: ${estimate.property_area}` : "",
+        estimate.surface_type ? `Surface: ${estimate.surface_type}` : "",
+        estimate.condition_level ? `Condition: ${estimate.condition_level}` : "",
+        estimate.square_footage ? `Size: ${estimate.square_footage}` : "",
+        estimate.special_concerns ? `Concerns: ${estimate.special_concerns}` : "",
+        notes ? `Admin notes: ${notes}` : ""
+      ]
+        .filter(Boolean)
+        .join(" | ");
+
+      const quoteResult = await client.query(
+        `
+        INSERT INTO quotes (
+          client_id,
+          client_name,
+          service_type,
+          total,
+          status
+        )
+        VALUES ($1, $2, $3, $4, 'draft')
+        RETURNING *
+        `,
+        [
+          estimate.client_id || null,
+          estimate.client_name || "Guru Client",
+          serviceDescription || estimate.service_type || "Guru Estimate",
+          total
+        ]
+      );
+
+      const updatedEstimateResult = await client.query(
+        `
+        UPDATE guru_estimates
+        SET
+          status = 'converted_to_quote',
+          reviewed_at = NOW(),
+          reviewed_by = $2
+        WHERE id = $1
+        RETURNING *
+        `,
+        [estimateId, req.user!.id]
+      );
+
+      if (estimate.user_id) {
+        await client.query(
+          `
+          INSERT INTO guru_messages (
+            user_id,
+            role_context,
+            sender,
+            body
+          )
+          VALUES ($1, 'client', 'guru', $2)
+          `,
+          [
+            estimate.user_id,
+            `Your Guru estimate has been reviewed and converted into a draft quote for admin finalization. This is still not a final sent quote until NMD sends it officially.`
+          ]
+        );
+      }
+
+      await client.query("COMMIT");
+
+      return res.status(201).json({
+        estimate: mapGuruEstimate(updatedEstimateResult.rows[0]),
+        quote: mapQuote(quoteResult.rows[0])
+      });
+    } catch (error) {
+      await client.query("ROLLBACK");
+      console.error("guru estimate convert to quote error", error);
+      return res.status(500).json({
+        error: "Server error"
+      });
+    } finally {
+      client.release();
     }
   }
 );
