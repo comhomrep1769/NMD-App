@@ -1,8 +1,18 @@
 import React from "react";
+import { apiFetch } from "../api";
 import type { AuthUser } from "../types";
 
 type GuruMessage = {
   id: string;
+  sender: "guru" | "user";
+  body: string;
+  createdAt: string;
+};
+
+type BackendGuruMessage = {
+  id: string;
+  userId: string;
+  roleContext: "admin" | "employee" | "client";
   sender: "guru" | "user";
   body: string;
   createdAt: string;
@@ -54,11 +64,26 @@ function getQuickPrompts(user: AuthUser | null) {
   ];
 }
 
+function mapBackendMessage(message: BackendGuruMessage): GuruMessage {
+  return {
+    id: message.id,
+    sender: message.sender,
+    body: message.body,
+    createdAt: message.createdAt
+  };
+}
+
+function localStorageKey(user: AuthUser | null) {
+  return user ? `nmd-guru-open-${user.id}` : "nmd-guru-open-public";
+}
+
 export default function GuruChat({ user }: { user: AuthUser | null }) {
   const [open, setOpen] = React.useState(false);
   const [hasUnread, setHasUnread] = React.useState(true);
   const [typing, setTyping] = React.useState(false);
   const [input, setInput] = React.useState("");
+  const [loadingHistory, setLoadingHistory] = React.useState(false);
+  const [error, setError] = React.useState("");
 
   const [messages, setMessages] = React.useState<GuruMessage[]>([
     {
@@ -70,15 +95,61 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
   ]);
 
   React.useEffect(() => {
-    setMessages([
-      {
-        id: "welcome",
-        sender: "guru",
-        body: getGreeting(user),
-        createdAt: new Date().toISOString()
-      }
-    ]);
-  }, [user?.role, user?.id]);
+    const savedOpen = localStorage.getItem(localStorageKey(user));
+    setOpen(savedOpen === "true");
+  }, [user?.id]);
+
+  React.useEffect(() => {
+    localStorage.setItem(localStorageKey(user), String(open));
+  }, [open, user?.id]);
+
+  React.useEffect(() => {
+    setError("");
+
+    if (!user) {
+      setMessages([
+        {
+          id: "welcome-public",
+          sender: "guru",
+          body: getGreeting(null),
+          createdAt: new Date().toISOString()
+        }
+      ]);
+      return;
+    }
+
+    setLoadingHistory(true);
+
+    apiFetch<{ messages: BackendGuruMessage[] }>("/api/guru/messages")
+      .then((data) => {
+        if (data.messages.length === 0) {
+          setMessages([
+            {
+              id: "welcome",
+              sender: "guru",
+              body: getGreeting(user),
+              createdAt: new Date().toISOString()
+            }
+          ]);
+        } else {
+          setMessages(data.messages.map(mapBackendMessage));
+        }
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : "Could not load Guru history");
+        setMessages([
+          {
+            id: "welcome-error",
+            sender: "guru",
+            body: getGreeting(user),
+            createdAt: new Date().toISOString()
+          }
+        ]);
+      })
+      .finally(() => {
+        setLoadingHistory(false);
+      });
+  }, [user?.id, user?.role]);
 
   const openGuru = () => {
     setOpen(true);
@@ -87,46 +158,143 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
 
     window.setTimeout(() => {
       setTyping(false);
-    }, 850);
+    }, 650);
   };
 
   const closeGuru = () => {
     setOpen(false);
   };
 
-  const submitMessage = (body?: string) => {
+  const getLocalGuruReply = (messageBody: string) => {
+    const lower = messageBody.toLowerCase();
+
+    if (lower.includes("quote") || lower.includes("estimate")) {
+      return "I can help start your estimate. Please tell me what area needs cleaning, the surface type, approximate size, condition, and whether you can upload photos.";
+    }
+
+    if (lower.includes("recurring")) {
+      return "Recurring service is a great option. NMD can help with routine exterior cleaning, trash can cleaning, and maintenance schedules. I can help collect the details for admin review.";
+    }
+
+    return "I have this noted. Once you create or log into a client account, Guru will save your chat history and help continue your request.";
+  };
+
+  const submitMessage = async (body?: string) => {
     const messageBody = (body || input).trim();
     if (!messageBody) return;
 
-    const now = new Date().toISOString();
+    setError("");
+    setInput("");
 
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: `user-${Date.now()}`,
+    if (!user) {
+      const userMessage: GuruMessage = {
+        id: `local-user-${Date.now()}`,
         sender: "user",
         body: messageBody,
-        createdAt: now
-      }
-    ]);
+        createdAt: new Date().toISOString()
+      };
 
-    setInput("");
+      setMessages((prev) => [...prev, userMessage]);
+      setTyping(true);
+
+      window.setTimeout(() => {
+        const guruMessage: GuruMessage = {
+          id: `local-guru-${Date.now()}`,
+          sender: "guru",
+          body: getLocalGuruReply(messageBody),
+          createdAt: new Date().toISOString()
+        };
+
+        setMessages((prev) => [...prev, guruMessage]);
+        setTyping(false);
+      }, 700);
+
+      return;
+    }
+
+    const optimisticUserMessage: GuruMessage = {
+      id: `optimistic-user-${Date.now()}`,
+      sender: "user",
+      body: messageBody,
+      createdAt: new Date().toISOString()
+    };
+
+    setMessages((prev) => [...prev, optimisticUserMessage]);
     setTyping(true);
 
-    window.setTimeout(() => {
-      setTyping(false);
+    try {
+      const data = await apiFetch<{
+        userMessage: BackendGuruMessage;
+        guruMessage: BackendGuruMessage;
+      }>("/api/guru/messages", {
+        method: "POST",
+        body: JSON.stringify({
+          body: messageBody
+        })
+      });
+
+      setMessages((prev) => {
+        const withoutOptimistic = prev.filter(
+          (message) => message.id !== optimisticUserMessage.id
+        );
+
+        return [
+          ...withoutOptimistic,
+          mapBackendMessage(data.userMessage),
+          mapBackendMessage(data.guruMessage)
+        ];
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Guru message failed");
 
       setMessages((prev) => [
         ...prev,
         {
-          id: `guru-${Date.now()}`,
+          id: `guru-error-${Date.now()}`,
           sender: "guru",
-          body:
-            "I have this noted. Full Guru intelligence, saved chat history, estimate intake, photo review, and database-backed answers are coming in the next Guru phases.",
+          body: "I could not save that message right now. Please try again.",
           createdAt: new Date().toISOString()
         }
       ]);
-    }, 900);
+    } finally {
+      setTyping(false);
+    }
+  };
+
+  const clearHistory = async () => {
+    if (!user) {
+      setMessages([
+        {
+          id: "welcome-public-reset",
+          sender: "guru",
+          body: getGreeting(null),
+          createdAt: new Date().toISOString()
+        }
+      ]);
+      return;
+    }
+
+    const ok = window.confirm("Clear your Guru chat history?");
+    if (!ok) return;
+
+    setError("");
+
+    try {
+      await apiFetch("/api/guru/messages", {
+        method: "DELETE"
+      });
+
+      setMessages([
+        {
+          id: "welcome-reset",
+          sender: "guru",
+          body: getGreeting(user),
+          createdAt: new Date().toISOString()
+        }
+      ]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not clear Guru history");
+    }
   };
 
   const roleLabel = getRoleLabel(user);
@@ -216,6 +384,12 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
                 Close
               </button>
             </div>
+
+            <div className="buttonRow" style={{ marginTop: 10 }}>
+              <button className="secondaryButton" type="button" onClick={clearHistory}>
+                Clear Chat
+              </button>
+            </div>
           </div>
 
           <div
@@ -228,6 +402,12 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
               alignContent: "start"
             }}
           >
+            {error && <div className="errorBox">{error}</div>}
+
+            {loadingHistory && (
+              <div className="listCard">Loading Guru history...</div>
+            )}
+
             {messages.map((message) => (
               <div
                 key={message.id}
