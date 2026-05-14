@@ -1,4 +1,6 @@
-import type { Invoice, PageKey, Quote } from "../types";
+import React from "react";
+import { apiFetch } from "../api";
+import type { Invoice, PageKey, POSPayment, Quote } from "../types";
 
 type DashboardPageProps = {
   quotes: Quote[];
@@ -11,6 +13,19 @@ export default function DashboardPage({
   invoices,
   onNavigate
 }: DashboardPageProps) {
+  const [posPayments, setPosPayments] = React.useState<POSPayment[]>([]);
+  const [posError, setPosError] = React.useState("");
+
+  React.useEffect(() => {
+    apiFetch<{ payments: POSPayment[] }>("/api/pos/payments")
+      .then((data) => {
+        setPosPayments(data.payments);
+      })
+      .catch((err) => {
+        setPosError(err instanceof Error ? err.message : "Could not load POS alerts");
+      });
+  }, []);
+
   const quotesSent = quotes.filter((quote) => quote.status === "sent").length;
   const quotesAccepted = quotes.filter((quote) => quote.status === "accepted").length;
   const invoicesSent = invoices.filter((invoice) => invoice.status === "unpaid").length;
@@ -24,6 +39,39 @@ export default function DashboardPage({
     .filter((invoice) => invoice.status === "paid")
     .reduce((sum, invoice) => sum + Number(invoice.total || 0), 0);
 
+  const pendingCashPayments = posPayments.filter(
+    (payment) => payment.status === "pending_admin_approval"
+  );
+
+  const pendingCashTotal = pendingCashPayments.reduce(
+    (sum, payment) => sum + Number(payment.totalCollected || 0),
+    0
+  );
+
+  const approvedPosPayments = posPayments.filter(
+    (payment) => payment.status === "approved" || payment.status === "paid"
+  );
+
+  const approvedPosTotal = approvedPosPayments.reduce(
+    (sum, payment) => sum + Number(payment.totalCollected || 0),
+    0
+  );
+
+  const cardCollectedTotal = approvedPosPayments
+    .filter((payment) => payment.paymentMethod === "card_link")
+    .reduce((sum, payment) => sum + Number(payment.totalCollected || 0), 0);
+
+  const cashCollectedTotal = approvedPosPayments
+    .filter((payment) => payment.paymentMethod === "cash")
+    .reduce((sum, payment) => sum + Number(payment.totalCollected || 0), 0);
+
+  const salesTaxTrackedTotal = approvedPosPayments.reduce(
+    (sum, payment) => sum + Number(payment.salesTaxAmount || 0),
+    0
+  );
+
+  const recentPendingCash = pendingCashPayments.slice(0, 4);
+
   return (
     <div className="pageGrid">
       <section className="panel">
@@ -35,6 +83,16 @@ export default function DashboardPage({
             </p>
           </div>
         </div>
+
+        {posError && <div className="errorBox">{posError}</div>}
+
+        {pendingCashPayments.length > 0 && (
+          <div className="errorBox">
+            {pendingCashPayments.length} cash payment
+            {pendingCashPayments.length === 1 ? "" : "s"} need admin approval.
+            Pending total: ${pendingCashTotal.toFixed(2)}
+          </div>
+        )}
 
         <div className="statsGrid">
           <div className="statCard">
@@ -66,8 +124,91 @@ export default function DashboardPage({
             <div className="statLabel">Paid Collected</div>
             <div className="statValue">${paidTotal.toFixed(2)}</div>
           </div>
+
+          <div className="statCard">
+            <div className="statLabel">Pending Cash Approval</div>
+            <div className="statValue">{pendingCashPayments.length}</div>
+          </div>
+
+          <div className="statCard">
+            <div className="statLabel">Pending Cash Total</div>
+            <div className="statValue">${pendingCashTotal.toFixed(2)}</div>
+          </div>
+
+          <div className="statCard">
+            <div className="statLabel">POS Collected</div>
+            <div className="statValue">${approvedPosTotal.toFixed(2)}</div>
+          </div>
+
+          <div className="statCard">
+            <div className="statLabel">Sales Tax Tracked</div>
+            <div className="statValue">${salesTaxTrackedTotal.toFixed(2)}</div>
+          </div>
+
+          <div className="statCard">
+            <div className="statLabel">Card Collected</div>
+            <div className="statValue">${cardCollectedTotal.toFixed(2)}</div>
+          </div>
+
+          <div className="statCard">
+            <div className="statLabel">Cash Approved</div>
+            <div className="statValue">${cashCollectedTotal.toFixed(2)}</div>
+          </div>
         </div>
       </section>
+
+      {pendingCashPayments.length > 0 && (
+        <section className="panel">
+          <div className="panelHeader">
+            <div>
+              <h2 className="panelTitle">Cash Approval Alerts</h2>
+              <p className="brandSubtitle">
+                Review cash photo proof and approve or reject submitted cash collections.
+              </p>
+            </div>
+
+            <button className="primaryButton" type="button" onClick={() => onNavigate("pos")}>
+              Review POS
+            </button>
+          </div>
+
+          <div className="cardsGrid">
+            {recentPendingCash.map((payment) => (
+              <button
+                key={payment.id}
+                className="quoteCard"
+                type="button"
+                onClick={() => onNavigate("pos")}
+                style={{ textAlign: "left" }}
+              >
+                <div className="quoteTopRow">
+                  <div className="quoteNumber">{payment.clientName}</div>
+                  <span className="statusBadge status-pending_admin_approval">
+                    Pending
+                  </span>
+                </div>
+
+                <div className="cardLine">
+                  <strong>Total:</strong> ${payment.totalCollected.toFixed(2)}
+                </div>
+
+                <div className="cardLine">
+                  <strong>Sales Tax:</strong> ${payment.salesTaxAmount.toFixed(2)}
+                </div>
+
+                <div className="cardLine">
+                  <strong>Collected By:</strong> {payment.collectedByName || "—"}
+                </div>
+
+                <div className="cardLine">
+                  <strong>Submitted:</strong>{" "}
+                  {payment.createdAt ? new Date(payment.createdAt).toLocaleString() : "—"}
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="panel">
         <h2 className="panelTitle">Operations</h2>
@@ -148,13 +289,18 @@ export default function DashboardPage({
           <button
             className="quoteCard"
             type="button"
-            onClick={() => onNavigate("invoices")}
+            onClick={() => onNavigate("pos")}
             style={{ textAlign: "left" }}
           >
             <div className="quoteNumber">Payments / POS</div>
             <div className="cardLine">
-              Invoice payment links, Stripe checkout, Zelle instructions, cash tracking, and future Tap to Pay.
+              Card payment links, cash tracking, cash proof approval, sales tax tracking, and future Tap to Pay.
             </div>
+            {pendingCashPayments.length > 0 && (
+              <div className="errorBox" style={{ marginTop: 10 }}>
+                {pendingCashPayments.length} cash approval pending
+              </div>
+            )}
           </button>
 
           <button
@@ -202,13 +348,6 @@ export default function DashboardPage({
           </div>
 
           <div className="quoteCard">
-            <div className="quoteNumber">Zelle</div>
-            <div className="cardLine">
-              Client sends payment to 321-888-6586 or nmdpowash@gmail.com, then admin confirms receipt.
-            </div>
-          </div>
-
-          <div className="quoteCard">
             <div className="quoteNumber">Cash</div>
             <div className="cardLine">
               Employee records cash collected and uploads a photo for admin approval.
@@ -225,7 +364,7 @@ export default function DashboardPage({
           <div className="quoteCard">
             <div className="quoteNumber">Sales Tax</div>
             <div className="cardLine">
-              Tax tracking will feed quotes, invoices, POS records, bookkeeping, and reports.
+              Tax tracking feeds quotes, invoices, POS records, bookkeeping, and reports.
             </div>
           </div>
         </div>
