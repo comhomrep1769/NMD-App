@@ -22,8 +22,13 @@ export default function GuruEstimatesPage() {
     "all" | "needs_review" | "reviewed" | "converted_to_quote" | "declined" | "archived"
   >("needs_review");
   const [loading, setLoading] = React.useState(true);
+  const [savingId, setSavingId] = React.useState<string | null>(null);
   const [error, setError] = React.useState("");
   const [success, setSuccess] = React.useState("");
+
+  const [convertEstimateId, setConvertEstimateId] = React.useState<string | null>(null);
+  const [quoteTotal, setQuoteTotal] = React.useState("");
+  const [convertNotes, setConvertNotes] = React.useState("");
 
   const loadEstimates = React.useCallback(async () => {
     setError("");
@@ -48,6 +53,7 @@ export default function GuruEstimatesPage() {
   ) => {
     setError("");
     setSuccess("");
+    setSavingId(estimateId);
 
     try {
       await apiFetch(`/api/guru/estimates/${estimateId}/review`, {
@@ -59,6 +65,62 @@ export default function GuruEstimatesPage() {
       await loadEstimates();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update Guru estimate");
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  const startConvert = (estimate: GuruEstimate) => {
+    setConvertEstimateId(estimate.id);
+    setQuoteTotal(String(estimate.preliminaryEstimateHigh || estimate.preliminaryEstimateLow || ""));
+    setConvertNotes("");
+    setSuccess("");
+    setError("");
+  };
+
+  const cancelConvert = () => {
+    setConvertEstimateId(null);
+    setQuoteTotal("");
+    setConvertNotes("");
+  };
+
+  const submitConvert = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!convertEstimateId) return;
+
+    setError("");
+    setSuccess("");
+    setSavingId(convertEstimateId);
+
+    try {
+      const data = await apiFetch<{
+        estimate: GuruEstimate;
+        quote: {
+          id: string;
+          quoteNumber: number;
+          total: number;
+        };
+      }>(`/api/guru/estimates/${convertEstimateId}/convert-to-quote`, {
+        method: "POST",
+        body: JSON.stringify({
+          quoteTotal: Number(quoteTotal) || 0,
+          notes: convertNotes
+        })
+      });
+
+      setSuccess(
+        `Guru estimate converted into Quote #${data.quote.quoteNumber} for $${Number(
+          data.quote.total || 0
+        ).toFixed(2)}. Open Quotes to review/edit/send it.`
+      );
+
+      cancelConvert();
+      await loadEstimates();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to convert Guru estimate");
+    } finally {
+      setSavingId(null);
     }
   };
 
@@ -81,6 +143,8 @@ export default function GuruEstimatesPage() {
     (sum, estimate) => sum + Number(estimate.preliminaryEstimateHigh || 0),
     0
   );
+
+  const selectedConvertEstimate = estimates.find((estimate) => estimate.id === convertEstimateId);
 
   if (loading) {
     return (
@@ -144,6 +208,81 @@ export default function GuruEstimatesPage() {
           </div>
         </div>
       </section>
+
+      {selectedConvertEstimate && (
+        <section className="panel">
+          <div className="panelHeader">
+            <div>
+              <h2 className="panelTitle">Convert Guru Estimate To Quote Draft</h2>
+              <p className="brandSubtitle">
+                {selectedConvertEstimate.clientName || "Client"} •{" "}
+                {selectedConvertEstimate.serviceType || "Service"}
+              </p>
+            </div>
+
+            <button className="secondaryButton" type="button" onClick={cancelConvert}>
+              Close
+            </button>
+          </div>
+
+          <form className="formGrid" onSubmit={submitConvert}>
+            <div className="listCard">
+              This creates a draft quote. Admin should still review the quote before sending it to the client.
+            </div>
+
+            <input
+              className="textInput"
+              placeholder="Quote total"
+              inputMode="decimal"
+              value={quoteTotal}
+              onChange={(e) => setQuoteTotal(e.target.value)}
+            />
+
+            <textarea
+              className="textInput"
+              placeholder="Admin conversion notes optional"
+              rows={4}
+              value={convertNotes}
+              onChange={(e) => setConvertNotes(e.target.value)}
+            />
+
+            <div className="assignBox">
+              <div className="assignTitle">Original Guru Details</div>
+              <div className="cardLine">
+                <strong>Preliminary Range:</strong> $
+                {selectedConvertEstimate.preliminaryEstimateLow.toFixed(2)} - $
+                {selectedConvertEstimate.preliminaryEstimateHigh.toFixed(2)}
+              </div>
+              <div className="cardLine">
+                <strong>Address:</strong> {selectedConvertEstimate.address || "—"}
+              </div>
+              <div className="cardLine">
+                <strong>Surface:</strong> {selectedConvertEstimate.surfaceType || "—"}
+              </div>
+              <div className="cardLine">
+                <strong>Condition:</strong> {selectedConvertEstimate.conditionLevel || "—"}
+              </div>
+              <div className="cardLine">
+                <strong>Concerns:</strong> {selectedConvertEstimate.specialConcerns || "—"}
+              </div>
+            </div>
+
+            <div className="buttonRow">
+              <button
+                className="primaryButton"
+                type="submit"
+                disabled={savingId === selectedConvertEstimate.id}
+              >
+                {savingId === selectedConvertEstimate.id ? "Converting..." : "Create Quote Draft"}
+              </button>
+
+              <button className="secondaryButton" type="button" onClick={cancelConvert}>
+                Cancel
+              </button>
+            </div>
+          </form>
+        </section>
+      )}
 
       <section className="panel">
         <div className="panelHeader">
@@ -277,6 +416,7 @@ export default function GuruEstimatesPage() {
                   <button
                     className="primaryButton"
                     type="button"
+                    disabled={savingId === estimate.id}
                     onClick={() => updateEstimateStatus(estimate.id, "reviewed")}
                   >
                     Mark Reviewed
@@ -287,9 +427,10 @@ export default function GuruEstimatesPage() {
                   <button
                     className="primaryButton"
                     type="button"
-                    onClick={() => updateEstimateStatus(estimate.id, "converted_to_quote")}
+                    disabled={savingId === estimate.id}
+                    onClick={() => startConvert(estimate)}
                   >
-                    Mark Converted
+                    Convert To Quote Draft
                   </button>
                 )}
 
@@ -297,6 +438,7 @@ export default function GuruEstimatesPage() {
                   <button
                     className="secondaryButton"
                     type="button"
+                    disabled={savingId === estimate.id}
                     onClick={() => updateEstimateStatus(estimate.id, "declined")}
                   >
                     Decline
@@ -307,6 +449,7 @@ export default function GuruEstimatesPage() {
                   <button
                     className="secondaryButton"
                     type="button"
+                    disabled={savingId === estimate.id}
                     onClick={() => updateEstimateStatus(estimate.id, "archived")}
                   >
                     Archive
