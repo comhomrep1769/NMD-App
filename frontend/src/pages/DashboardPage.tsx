@@ -1,6 +1,6 @@
 import React from "react";
 import { apiFetch } from "../api";
-import type { Invoice, PageKey, POSPayment, Quote } from "../types";
+import type { GuruEstimate, Invoice, PageKey, POSPayment, Quote } from "../types";
 
 type DashboardPageProps = {
   quotes: Quote[];
@@ -14,7 +14,9 @@ export default function DashboardPage({
   onNavigate
 }: DashboardPageProps) {
   const [posPayments, setPosPayments] = React.useState<POSPayment[]>([]);
+  const [guruEstimates, setGuruEstimates] = React.useState<GuruEstimate[]>([]);
   const [posError, setPosError] = React.useState("");
+  const [guruError, setGuruError] = React.useState("");
 
   React.useEffect(() => {
     apiFetch<{ payments: POSPayment[] }>("/api/pos/payments")
@@ -23,6 +25,14 @@ export default function DashboardPage({
       })
       .catch((err) => {
         setPosError(err instanceof Error ? err.message : "Could not load POS alerts");
+      });
+
+    apiFetch<{ estimates: GuruEstimate[] }>("/api/guru/estimates")
+      .then((data) => {
+        setGuruEstimates(data.estimates);
+      })
+      .catch((err) => {
+        setGuruError(err instanceof Error ? err.message : "Could not load Guru estimates");
       });
   }, []);
 
@@ -70,7 +80,22 @@ export default function DashboardPage({
     0
   );
 
+  const guruNeedsReview = guruEstimates.filter(
+    (estimate) => estimate.status === "needs_review"
+  );
+
+  const guruPotentialLow = guruNeedsReview.reduce(
+    (sum, estimate) => sum + Number(estimate.preliminaryEstimateLow || 0),
+    0
+  );
+
+  const guruPotentialHigh = guruNeedsReview.reduce(
+    (sum, estimate) => sum + Number(estimate.preliminaryEstimateHigh || 0),
+    0
+  );
+
   const recentPendingCash = pendingCashPayments.slice(0, 4);
+  const recentGuruEstimates = guruNeedsReview.slice(0, 4);
 
   return (
     <div className="pageGrid">
@@ -79,12 +104,21 @@ export default function DashboardPage({
           <div>
             <h2 className="panelTitle">Admin Dashboard</h2>
             <p className="brandSubtitle">
-              NMD operations, quoting, scheduling, payments, bookkeeping, and team controls.
+              NMD operations, Guru estimates, quoting, scheduling, payments, bookkeeping, and team controls.
             </p>
           </div>
         </div>
 
         {posError && <div className="errorBox">{posError}</div>}
+        {guruError && <div className="errorBox">{guruError}</div>}
+
+        {guruNeedsReview.length > 0 && (
+          <div className="errorBox">
+            {guruNeedsReview.length} Guru estimate
+            {guruNeedsReview.length === 1 ? "" : "s"} need review.
+            Potential range: ${guruPotentialLow.toFixed(2)} - ${guruPotentialHigh.toFixed(2)}
+          </div>
+        )}
 
         {pendingCashPayments.length > 0 && (
           <div className="errorBox">
@@ -95,6 +129,16 @@ export default function DashboardPage({
         )}
 
         <div className="statsGrid">
+          <div className="statCard">
+            <div className="statLabel">Guru Estimates</div>
+            <div className="statValue">{guruNeedsReview.length}</div>
+          </div>
+
+          <div className="statCard">
+            <div className="statLabel">Guru Potential High</div>
+            <div className="statValue">${guruPotentialHigh.toFixed(2)}</div>
+          </div>
+
           <div className="statCard">
             <div className="statLabel">Quotes Sent</div>
             <div className="statValue">{quotesSent}</div>
@@ -157,6 +201,64 @@ export default function DashboardPage({
         </div>
       </section>
 
+      {guruNeedsReview.length > 0 && (
+        <section className="panel">
+          <div className="panelHeader">
+            <div>
+              <h2 className="panelTitle">Guru Estimates Need Review</h2>
+              <p className="brandSubtitle">
+                Client preliminary estimates created through Guru.
+              </p>
+            </div>
+
+            <button
+              className="primaryButton"
+              type="button"
+              onClick={() => onNavigate("guru-estimates")}
+            >
+              Review Estimates
+            </button>
+          </div>
+
+          <div className="cardsGrid">
+            {recentGuruEstimates.map((estimate) => (
+              <button
+                key={estimate.id}
+                className="quoteCard"
+                type="button"
+                onClick={() => onNavigate("guru-estimates")}
+                style={{ textAlign: "left" }}
+              >
+                <div className="quoteTopRow">
+                  <div className="quoteNumber">{estimate.clientName || "Client"}</div>
+                  <span className="statusBadge status-pending_admin_approval">
+                    Needs Review
+                  </span>
+                </div>
+
+                <div className="cardLine">
+                  <strong>Service:</strong> {estimate.serviceType || "—"}
+                </div>
+
+                <div className="cardLine">
+                  <strong>Range:</strong> ${estimate.preliminaryEstimateLow.toFixed(2)} - $
+                  {estimate.preliminaryEstimateHigh.toFixed(2)}
+                </div>
+
+                <div className="cardLine">
+                  <strong>Address:</strong> {estimate.address || "—"}
+                </div>
+
+                <div className="cardLine">
+                  <strong>Submitted:</strong>{" "}
+                  {estimate.createdAt ? new Date(estimate.createdAt).toLocaleString() : "—"}
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
       {pendingCashPayments.length > 0 && (
         <section className="panel">
           <div className="panelHeader">
@@ -214,6 +316,23 @@ export default function DashboardPage({
         <h2 className="panelTitle">Operations</h2>
 
         <div className="cardsGrid">
+          <button
+            className="quoteCard"
+            type="button"
+            onClick={() => onNavigate("guru-estimates")}
+            style={{ textAlign: "left" }}
+          >
+            <div className="quoteNumber">Guru Estimates</div>
+            <div className="cardLine">
+              Review client Guru estimate requests, approve details, and prepare official quotes.
+            </div>
+            {guruNeedsReview.length > 0 && (
+              <div className="errorBox" style={{ marginTop: 10 }}>
+                {guruNeedsReview.length} estimate review pending
+              </div>
+            )}
+          </button>
+
           <button
             className="quoteCard"
             type="button"
@@ -326,47 +445,6 @@ export default function DashboardPage({
               Email test, app setup, notification checks, and future admin configuration.
             </div>
           </button>
-        </div>
-      </section>
-
-      <section className="panel">
-        <h2 className="panelTitle">Payment Collection Workflow</h2>
-
-        <div className="cardsGrid">
-          <div className="quoteCard">
-            <div className="quoteNumber">After Service Completion</div>
-            <div className="cardLine">
-              Admin or employee can collect payment after invoice is sent.
-            </div>
-          </div>
-
-          <div className="quoteCard">
-            <div className="quoteNumber">Email Payment Link</div>
-            <div className="cardLine">
-              Client receives a Stripe invoice/payment link by email.
-            </div>
-          </div>
-
-          <div className="quoteCard">
-            <div className="quoteNumber">Cash</div>
-            <div className="cardLine">
-              Employee records cash collected and uploads a photo for admin approval.
-            </div>
-          </div>
-
-          <div className="quoteCard">
-            <div className="quoteNumber">Tap To Pay</div>
-            <div className="cardLine">
-              Future Stripe Terminal layer for debit/credit card contactless payments.
-            </div>
-          </div>
-
-          <div className="quoteCard">
-            <div className="quoteNumber">Sales Tax</div>
-            <div className="cardLine">
-              Tax tracking feeds quotes, invoices, POS records, bookkeeping, and reports.
-            </div>
-          </div>
         </div>
       </section>
     </div>
