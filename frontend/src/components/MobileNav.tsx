@@ -17,6 +17,10 @@ const adminGroups: NavGroup[] = [
     children: [{ key: "dashboard", label: "Main Dashboard" }]
   },
   {
+    label: "Guru",
+    children: [{ key: "guru-estimates", label: "Estimate Review" }]
+  },
+  {
     label: "Jobs & Schedule",
     children: [
       { key: "schedule", label: "Schedule" },
