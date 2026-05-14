@@ -18,6 +18,20 @@ type BackendGuruMessage = {
   createdAt: string;
 };
 
+type EstimateForm = {
+  clientName: string;
+  phone: string;
+  email: string;
+  address: string;
+  serviceType: string;
+  propertyArea: string;
+  surfaceType: string;
+  conditionLevel: string;
+  squareFootage: string;
+  preferredSchedule: string;
+  specialConcerns: string;
+};
+
 function getRoleLabel(user: AuthUser | null) {
   if (!user) return "Client";
   if (user.role === "admin") return "Admin";
@@ -40,10 +54,10 @@ function getGreeting(user: AuthUser | null) {
 function getQuickPrompts(user: AuthUser | null) {
   if (!user || user.role === "client") {
     return [
+      "Start estimate",
       "I need a quote",
       "I want recurring service",
-      "What services do you offer?",
-      "I want to upload photos"
+      "What services do you offer?"
     ];
   }
 
@@ -57,8 +71,8 @@ function getQuickPrompts(user: AuthUser | null) {
   }
 
   return [
+    "Review Guru estimates",
     "Create quote draft",
-    "Review pending estimates",
     "Check payments",
     "Help price a job"
   ];
@@ -77,6 +91,20 @@ function localStorageKey(user: AuthUser | null) {
   return user ? `nmd-guru-open-${user.id}` : "nmd-guru-open-public";
 }
 
+const emptyEstimateForm: EstimateForm = {
+  clientName: "",
+  phone: "",
+  email: "",
+  address: "",
+  serviceType: "",
+  propertyArea: "",
+  surfaceType: "",
+  conditionLevel: "",
+  squareFootage: "",
+  preferredSchedule: "",
+  specialConcerns: ""
+};
+
 export default function GuruChat({ user }: { user: AuthUser | null }) {
   const [open, setOpen] = React.useState(false);
   const [hasUnread, setHasUnread] = React.useState(true);
@@ -84,6 +112,14 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
   const [input, setInput] = React.useState("");
   const [loadingHistory, setLoadingHistory] = React.useState(false);
   const [error, setError] = React.useState("");
+  const [estimateMode, setEstimateMode] = React.useState(false);
+  const [savingEstimate, setSavingEstimate] = React.useState(false);
+
+  const [estimateForm, setEstimateForm] = React.useState<EstimateForm>(() => ({
+    ...emptyEstimateForm,
+    clientName: user?.displayName || "",
+    email: user?.email || ""
+  }));
 
   const [messages, setMessages] = React.useState<GuruMessage[]>([
     {
@@ -97,6 +133,12 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
   React.useEffect(() => {
     const savedOpen = localStorage.getItem(localStorageKey(user));
     setOpen(savedOpen === "true");
+
+    setEstimateForm((prev) => ({
+      ...prev,
+      clientName: user?.displayName || prev.clientName,
+      email: user?.email || prev.email
+    }));
   }, [user?.id]);
 
   React.useEffect(() => {
@@ -168,20 +210,42 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
   const getLocalGuruReply = (messageBody: string) => {
     const lower = messageBody.toLowerCase();
 
-    if (lower.includes("quote") || lower.includes("estimate")) {
-      return "I can help start your estimate. Please tell me what area needs cleaning, the surface type, approximate size, condition, and whether you can upload photos.";
+    if (lower.includes("quote") || lower.includes("estimate") || lower.includes("start estimate")) {
+      return "I can help start your estimate. Please create or log into a client account so I can save your estimate request for NMD admin review.";
     }
 
     if (lower.includes("recurring")) {
-      return "Recurring service is a great option. NMD can help with routine exterior cleaning, trash can cleaning, and maintenance schedules. I can help collect the details for admin review.";
+      return "Recurring service is a great option. NMD can help with routine exterior cleaning, trash can cleaning, and maintenance schedules.";
     }
 
     return "I have this noted. Once you create or log into a client account, Guru will save your chat history and help continue your request.";
   };
 
+  const startEstimate = () => {
+    if (!user) {
+      submitMessage("Start estimate");
+      return;
+    }
+
+    if (user.role !== "client") {
+      submitMessage("Review Guru estimates");
+      return;
+    }
+
+    setEstimateMode(true);
+    setOpen(true);
+    setHasUnread(false);
+  };
+
   const submitMessage = async (body?: string) => {
     const messageBody = (body || input).trim();
     if (!messageBody) return;
+
+    if (messageBody.toLowerCase().includes("start estimate") && user?.role === "client") {
+      startEstimate();
+      setInput("");
+      return;
+    }
 
     setError("");
     setInput("");
@@ -261,6 +325,62 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
     }
   };
 
+  const submitEstimate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    if (!user || user.role !== "client") {
+      setError("Please log into a client account to submit a Guru estimate.");
+      return;
+    }
+
+    try {
+      setSavingEstimate(true);
+
+      const data = await apiFetch<{
+        estimate: {
+          id: string;
+          preliminaryEstimateLow: number;
+          preliminaryEstimateHigh: number;
+        };
+      }>("/api/guru/estimate-intake", {
+        method: "POST",
+        body: JSON.stringify(estimateForm)
+      });
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `estimate-user-${Date.now()}`,
+          sender: "user",
+          body: `Submitted estimate details for ${estimateForm.serviceType} at ${estimateForm.address}.`,
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: `estimate-guru-${Date.now()}`,
+          sender: "guru",
+          body: `Thanks. Your preliminary estimate request was submitted for admin review. Early range: $${data.estimate.preliminaryEstimateLow.toFixed(
+            2
+          )} - $${data.estimate.preliminaryEstimateHigh.toFixed(
+            2
+          )}. This is not a final quote. NMD will review and confirm official pricing.`,
+          createdAt: new Date().toISOString()
+        }
+      ]);
+
+      setEstimateMode(false);
+      setEstimateForm({
+        ...emptyEstimateForm,
+        clientName: user.displayName,
+        email: user.email
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not submit estimate");
+    } finally {
+      setSavingEstimate(false);
+    }
+  };
+
   const clearHistory = async () => {
     if (!user) {
       setMessages([
@@ -295,6 +415,13 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not clear Guru history");
     }
+  };
+
+  const updateEstimateField = (field: keyof EstimateForm, value: string) => {
+    setEstimateForm((prev) => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   const roleLabel = getRoleLabel(user);
@@ -351,8 +478,8 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
             right: 18,
             bottom: 92,
             zIndex: 130,
-            width: "min(92vw, 420px)",
-            height: "min(78vh, 680px)",
+            width: "min(92vw, 440px)",
+            height: "min(82vh, 720px)",
             background: "var(--panel)",
             border: "1px solid var(--border)",
             borderRadius: 24,
@@ -386,6 +513,12 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
             </div>
 
             <div className="buttonRow" style={{ marginTop: 10 }}>
+              {user?.role === "client" && (
+                <button className="primaryButton" type="button" onClick={startEstimate}>
+                  Start Estimate
+                </button>
+              )}
+
               <button className="secondaryButton" type="button" onClick={clearHistory}>
                 Clear Chat
               </button>
@@ -404,43 +537,159 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
           >
             {error && <div className="errorBox">{error}</div>}
 
-            {loadingHistory && (
+            {estimateMode && user?.role === "client" && (
+              <form className="formGrid" onSubmit={submitEstimate}>
+                <div className="listCard">
+                  Guru estimates are preliminary. Admin must review and approve final pricing.
+                </div>
+
+                <input
+                  className="textInput"
+                  placeholder="Full name"
+                  value={estimateForm.clientName}
+                  onChange={(e) => updateEstimateField("clientName", e.target.value)}
+                />
+
+                <input
+                  className="textInput"
+                  placeholder="Phone"
+                  value={estimateForm.phone}
+                  onChange={(e) => updateEstimateField("phone", e.target.value)}
+                />
+
+                <input
+                  className="textInput"
+                  placeholder="Email"
+                  value={estimateForm.email}
+                  onChange={(e) => updateEstimateField("email", e.target.value)}
+                />
+
+                <input
+                  className="textInput"
+                  placeholder="Service address"
+                  value={estimateForm.address}
+                  onChange={(e) => updateEstimateField("address", e.target.value)}
+                />
+
+                <select
+                  className="textInput"
+                  value={estimateForm.serviceType}
+                  onChange={(e) => updateEstimateField("serviceType", e.target.value)}
+                >
+                  <option value="">Select service type</option>
+                  <option value="House Washing">House Washing</option>
+                  <option value="Driveway / Concrete Cleaning">Driveway / Concrete Cleaning</option>
+                  <option value="Roof Cleaning">Roof Cleaning</option>
+                  <option value="Fence Cleaning">Fence Cleaning</option>
+                  <option value="Pool Deck Cleaning">Pool Deck Cleaning</option>
+                  <option value="Trash Can Cleaning">Trash Can Cleaning</option>
+                  <option value="Commercial Cleaning">Commercial Cleaning</option>
+                  <option value="Other">Other</option>
+                </select>
+
+                <input
+                  className="textInput"
+                  placeholder="Property area, example: driveway, roof, back patio"
+                  value={estimateForm.propertyArea}
+                  onChange={(e) => updateEstimateField("propertyArea", e.target.value)}
+                />
+
+                <input
+                  className="textInput"
+                  placeholder="Surface/material, example: vinyl, concrete, pavers, shingles"
+                  value={estimateForm.surfaceType}
+                  onChange={(e) => updateEstimateField("surfaceType", e.target.value)}
+                />
+
+                <select
+                  className="textInput"
+                  value={estimateForm.conditionLevel}
+                  onChange={(e) => updateEstimateField("conditionLevel", e.target.value)}
+                >
+                  <option value="">Condition level</option>
+                  <option value="Light">Light</option>
+                  <option value="Moderate">Moderate</option>
+                  <option value="Heavy">Heavy</option>
+                  <option value="Severe">Severe</option>
+                  <option value="Unsure">Unsure</option>
+                </select>
+
+                <input
+                  className="textInput"
+                  placeholder="Square footage or dimensions if known"
+                  value={estimateForm.squareFootage}
+                  onChange={(e) => updateEstimateField("squareFootage", e.target.value)}
+                />
+
+                <input
+                  className="textInput"
+                  placeholder="Preferred schedule"
+                  value={estimateForm.preferredSchedule}
+                  onChange={(e) => updateEstimateField("preferredSchedule", e.target.value)}
+                />
+
+                <textarea
+                  className="textInput"
+                  placeholder="Special concerns, stains, access issues, oxidation, plants, pets, etc."
+                  rows={4}
+                  value={estimateForm.specialConcerns}
+                  onChange={(e) => updateEstimateField("specialConcerns", e.target.value)}
+                />
+
+                <div className="buttonRow">
+                  <button className="primaryButton" type="submit" disabled={savingEstimate}>
+                    {savingEstimate ? "Submitting..." : "Submit For Admin Review"}
+                  </button>
+
+                  <button
+                    className="secondaryButton"
+                    type="button"
+                    onClick={() => setEstimateMode(false)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {!estimateMode && loadingHistory && (
               <div className="listCard">Loading Guru history...</div>
             )}
 
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                style={{
-                  justifySelf: message.sender === "user" ? "end" : "start",
-                  maxWidth: "88%",
-                  padding: "10px 12px",
-                  borderRadius: 16,
-                  border: "1px solid var(--border)",
-                  background:
-                    message.sender === "user"
-                      ? "linear-gradient(135deg, rgba(16,185,129,0.22), rgba(37,99,235,0.18))"
-                      : "rgba(255,255,255,0.04)"
-                }}
-              >
+            {!estimateMode &&
+              messages.map((message) => (
                 <div
+                  key={message.id}
                   style={{
-                    fontSize: 12,
-                    opacity: 0.75,
-                    marginBottom: 4,
-                    fontWeight: 800
+                    justifySelf: message.sender === "user" ? "end" : "start",
+                    maxWidth: "88%",
+                    padding: "10px 12px",
+                    borderRadius: 16,
+                    border: "1px solid var(--border)",
+                    background:
+                      message.sender === "user"
+                        ? "linear-gradient(135deg, rgba(16,185,129,0.22), rgba(37,99,235,0.18))"
+                        : "rgba(255,255,255,0.04)"
                   }}
                 >
-                  {message.sender === "user" ? "You" : "Guru"}
-                </div>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      opacity: 0.75,
+                      marginBottom: 4,
+                      fontWeight: 800
+                    }}
+                  >
+                    {message.sender === "user" ? "You" : "Guru"}
+                  </div>
 
-                <div className="cardLine" style={{ margin: 0 }}>
-                  {message.body}
+                  <div className="cardLine" style={{ margin: 0 }}>
+                    {message.body}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
 
-            {typing && (
+            {!estimateMode && typing && (
               <div
                 className="listCard"
                 style={{
@@ -453,61 +702,66 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
             )}
           </div>
 
-          <div
-            style={{
-              padding: 14,
-              borderTop: "1px solid var(--border)",
-              display: "grid",
-              gap: 10
-            }}
-          >
+          {!estimateMode && (
             <div
               style={{
-                display: "flex",
-                gap: 8,
-                overflowX: "auto",
-                paddingBottom: 2
-              }}
-            >
-              {quickPrompts.map((prompt) => (
-                <button
-                  key={prompt}
-                  type="button"
-                  className="secondaryButton"
-                  style={{
-                    whiteSpace: "nowrap",
-                    flex: "0 0 auto"
-                  }}
-                  onClick={() => submitMessage(prompt)}
-                >
-                  {prompt}
-                </button>
-              ))}
-            </div>
-
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                submitMessage();
-              }}
-              style={{
+                padding: 14,
+                borderTop: "1px solid var(--border)",
                 display: "grid",
-                gridTemplateColumns: "1fr auto",
-                gap: 8
+                gap: 10
               }}
             >
-              <input
-                className="textInput"
-                placeholder="Ask Guru..."
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-              />
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  overflowX: "auto",
+                  paddingBottom: 2
+                }}
+              >
+                {quickPrompts.map((prompt) => (
+                  <button
+                    key={prompt}
+                    type="button"
+                    className="secondaryButton"
+                    style={{
+                      whiteSpace: "nowrap",
+                      flex: "0 0 auto"
+                    }}
+                    onClick={() => {
+                      if (prompt === "Start estimate") startEstimate();
+                      else submitMessage(prompt);
+                    }}
+                  >
+                    {prompt}
+                  </button>
+                ))}
+              </div>
 
-              <button className="primaryButton" type="submit">
-                Send
-              </button>
-            </form>
-          </div>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  submitMessage();
+                }}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr auto",
+                  gap: 8
+                }}
+              >
+                <input
+                  className="textInput"
+                  placeholder="Ask Guru..."
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                />
+
+                <button className="primaryButton" type="submit">
+                  Send
+                </button>
+              </form>
+            </div>
+          )}
         </section>
       )}
     </>
