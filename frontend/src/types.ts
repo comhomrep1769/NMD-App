@@ -21,6 +21,7 @@ export type PageKey =
   | "timeclock"
   | "email"
   | "pos"
+  | "guru-estimates"
   | "service-request"
   | "my-ledger";
 
@@ -111,6 +112,38 @@ export type POSPayment = {
   approvedByName?: string | null;
   approvedAt?: string | null;
   createdAt: string;
+};
+
+export type GuruEstimateStatus =
+  | "needs_review"
+  | "reviewed"
+  | "converted_to_quote"
+  | "declined"
+  | "archived";
+
+export type GuruEstimate = {
+  id: string;
+  userId?: string | null;
+  clientId?: string | null;
+  source: "guru" | "manual";
+  status: GuruEstimateStatus;
+  clientName?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  serviceType?: string | null;
+  propertyArea?: string | null;
+  surfaceType?: string | null;
+  conditionLevel?: string | null;
+  squareFootage?: string | null;
+  preferredSchedule?: string | null;
+  specialConcerns?: string | null;
+  preliminaryNotes?: string | null;
+  preliminaryEstimateLow: number;
+  preliminaryEstimateHigh: number;
+  createdAt: string;
+  reviewedAt?: string | null;
+  reviewedBy?: string | null;
 };
 
 export type Employee = {
