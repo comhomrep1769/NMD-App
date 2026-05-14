@@ -16,6 +16,10 @@ function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
+function cleanCategoryName(value: string) {
+  return value.replace(/_/g, " ");
+}
+
 export default function ExpensesPage() {
   const [expenses, setExpenses] = React.useState<Expense[]>([]);
   const [employees, setEmployees] = React.useState<Employee[]>([]);
@@ -449,11 +453,11 @@ export default function ExpensesPage() {
         <h2 className="panelTitle">Expense Category Summary</h2>
 
         <div className="cardsGrid">
-          {Object.entries(categoryTotals).map(([categoryName, total]) => (
+          {Object.entries(categoryTotals).map(([categoryName, categoryTotal]) => (
             <div key={categoryName} className="quoteCard">
-              <div className="quoteNumber">{categoryName.replaceAll("_", " ")}</div>
+              <div className="quoteNumber">{cleanCategoryName(categoryName)}</div>
               <div className="cardLine">
-                <strong>Total:</strong> ${total.toFixed(2)}
+                <strong>Total:</strong> ${categoryTotal.toFixed(2)}
               </div>
             </div>
           ))}
@@ -528,7 +532,7 @@ export default function ExpensesPage() {
                 </div>
 
                 <div className="cardLine">
-                  <strong>Category:</strong> {expense.category}
+                  <strong>Category:</strong> {cleanCategoryName(expense.category)}
                 </div>
 
                 <div className="cardLine">
