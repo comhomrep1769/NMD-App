@@ -30,9 +30,11 @@ function mapPayment(row: any) {
 router.get(
   "/payments",
   requireAuth,
-  requireRole("admin"),
-  async (_req, res) => {
+  requireRole("admin", "employee"),
+  async (req, res) => {
     try {
+      const isAdmin = req.user!.role === "admin";
+
       const result = await pool.query(
         `
         SELECT
@@ -42,8 +44,12 @@ router.get(
         FROM pos_payments p
         LEFT JOIN users collected ON collected.id = p.collected_by
         LEFT JOIN users approved ON approved.id = p.approved_by
+        WHERE
+          $1::boolean = TRUE
+          OR p.collected_by = $2
         ORDER BY p.created_at DESC
-        `
+        `,
+        [isAdmin, req.user!.id]
       );
 
       return res.json({
@@ -160,6 +166,7 @@ router.post(
             title: "Cash Payment Needs Approval",
             message: `
               <p><strong>Client:</strong> ${clientName}</p>
+              <p><strong>Submitted By:</strong> ${req.user!.displayName || req.user!.email}</p>
               <p><strong>Method:</strong> Cash</p>
               <p><strong>Amount:</strong> $${Number(amount || 0).toFixed(2)}</p>
               <p><strong>Sales Tax:</strong> $${Number(salesTaxAmount || 0).toFixed(2)}</p>
