@@ -4,6 +4,7 @@ import Header from "./components/Header";
 import Sidebar from "./components/Sidebar";
 import MobileNav from "./components/MobileNav";
 import AppUpdateBanner from "./components/AppUpdateBanner";
+import GuruChat from "./components/GuruChat";
 import LandingPage from "./pages/LandingPage";
 import DashboardPage from "./pages/DashboardPage";
 import EmployeeDashboardPage from "./pages/EmployeeDashboardPage";
@@ -171,6 +172,7 @@ export default function App() {
       <>
         <AppUpdateBanner />
         <ServiceRequestPage />
+        <GuruChat user={null} />
       </>
     );
   }
@@ -183,6 +185,7 @@ export default function App() {
           onRegistered={handleLogin}
           onBackToLogin={goPublic}
         />
+        <GuruChat user={null} />
       </>
     );
   }
@@ -224,6 +227,7 @@ export default function App() {
           onCreateAccount={goRegister}
           onRequestService={goServiceRequest}
         />
+        <GuruChat user={null} />
       </>
     );
   }
@@ -287,6 +291,8 @@ export default function App() {
           <MobileNav currentPage={page} onNavigate={safeNavigate} role={user.role} />
         </div>
       </div>
+
+      <GuruChat user={user} />
     </>
   );
 }
