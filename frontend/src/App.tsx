@@ -255,7 +255,7 @@ export default function App() {
             )}
 
             {page === "dashboard" && user.role === "employee" && (
-              <EmployeeDashboardPage />
+              <EmployeeDashboardPage onNavigate={safeNavigate} />
             )}
 
             {page === "dashboard" && user.role === "client" && (
