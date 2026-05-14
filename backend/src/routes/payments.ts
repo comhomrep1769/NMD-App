@@ -19,6 +19,9 @@ function mapInvoice(row: any) {
     clientId: row.client_id,
     clientName: row.client_name,
     jobName: row.job_name,
+    subtotal: Number(row.subtotal || row.total || 0),
+    taxRate: Number(row.tax_rate || 0.065),
+    salesTaxAmount: Number(row.sales_tax_amount || 0),
     total: Number(row.total || 0),
     status: row.status,
     jobId: row.job_id,
@@ -173,6 +176,8 @@ router.post(
               <p>Hi ${updatedInvoice.client_name},</p>
               <p>Your NMD invoice is ready for payment.</p>
               <p><strong>Service:</strong> ${updatedInvoice.job_name}</p>
+              <p><strong>Subtotal:</strong> $${Number(updatedInvoice.subtotal || updatedInvoice.total || 0).toFixed(2)}</p>
+              <p><strong>Sales Tax:</strong> $${Number(updatedInvoice.sales_tax_amount || 0).toFixed(2)}</p>
               <p><strong>Total:</strong> $${Number(updatedInvoice.total || 0).toFixed(2)}</p>
               <p>You can pay securely using the button below.</p>
             `,
@@ -231,67 +236,132 @@ router.post("/stripe-webhook", async (req, res) => {
         const invoiceId = session.metadata?.invoiceId;
 
         if (invoiceId) {
-          const beforeResult = await pool.query(
-            `
-            SELECT *
-            FROM invoices
-            WHERE id = $1
-            LIMIT 1
-            `,
-            [invoiceId]
-          );
+          const dbClient = await pool.connect();
 
-          const before = beforeResult.rows[0];
+          try {
+            await dbClient.query("BEGIN");
 
-          const updatedResult = await pool.query(
-            `
-            UPDATE invoices
-            SET
-              status = 'paid',
-              payment_status = 'paid'
-            WHERE id = $1
-            RETURNING *
-            `,
-            [invoiceId]
-          );
+            const beforeResult = await dbClient.query(
+              `
+              SELECT *
+              FROM invoices
+              WHERE id = $1
+              LIMIT 1
+              `,
+              [invoiceId]
+            );
 
-          const invoice = updatedResult.rows[0];
+            const before = beforeResult.rows[0];
 
-          if (invoice && before?.payment_status !== "paid") {
-            const email = await getClientEmail(invoice.client_id, invoice.client_name);
+            const updatedResult = await dbClient.query(
+              `
+              UPDATE invoices
+              SET
+                status = 'paid',
+                payment_status = 'paid'
+              WHERE id = $1
+              RETURNING *
+              `,
+              [invoiceId]
+            );
 
-            if (email) {
+            const invoice = updatedResult.rows[0];
+
+            if (invoice) {
+              await dbClient.query(
+                `
+                INSERT INTO pos_payments (
+                  invoice_id,
+                  client_id,
+                  client_name,
+                  collected_by,
+                  payment_method,
+                  amount,
+                  sales_tax_amount,
+                  total_collected,
+                  status,
+                  cash_photo_data_url,
+                  notes
+                )
+                SELECT
+                  $1,
+                  $2,
+                  $3,
+                  NULL,
+                  'card_link',
+                  $4,
+                  $5,
+                  $6,
+                  'paid',
+                  NULL,
+                  $7
+                WHERE NOT EXISTS (
+                  SELECT 1
+                  FROM pos_payments
+                  WHERE invoice_id = $1
+                    AND payment_method = 'card_link'
+                    AND status IN ('paid', 'approved')
+                )
+                `,
+                [
+                  invoice.id,
+                  invoice.client_id || null,
+                  invoice.client_name,
+                  Number(invoice.subtotal || invoice.total || 0),
+                  Number(invoice.sales_tax_amount || 0),
+                  Number(invoice.total || 0),
+                  `Stripe card payment completed. Checkout session: ${session.id}`
+                ]
+              );
+            }
+
+            await dbClient.query("COMMIT");
+
+            if (invoice && before?.payment_status !== "paid") {
+              const email = await getClientEmail(invoice.client_id, invoice.client_name);
+
+              if (email) {
+                await sendEmail({
+                  to: email,
+                  subject: `Payment received for NMD Invoice #${invoice.invoice_number}`,
+                  html: buildNmdEmailTemplate({
+                    title: "Payment Received",
+                    message: `
+                      <p>Hi ${invoice.client_name},</p>
+                      <p>Thank you. Your payment has been received.</p>
+                      <p><strong>Invoice:</strong> #${invoice.invoice_number}</p>
+                      <p><strong>Service:</strong> ${invoice.job_name}</p>
+                      <p><strong>Subtotal:</strong> $${Number(invoice.subtotal || invoice.total || 0).toFixed(2)}</p>
+                      <p><strong>Sales Tax:</strong> $${Number(invoice.sales_tax_amount || 0).toFixed(2)}</p>
+                      <p><strong>Total Paid:</strong> $${Number(invoice.total || 0).toFixed(2)}</p>
+                    `
+                  }),
+                  text: `Payment received for NMD invoice #${invoice.invoice_number}. Thank you.`
+                });
+              }
+
               await sendEmail({
-                to: email,
-                subject: `Payment received for NMD Invoice #${invoice.invoice_number}`,
+                to: process.env.NMD_ADMIN_EMAIL || "nmdpowash@gmail.com",
+                subject: `NMD payment received: Invoice #${invoice.invoice_number}`,
                 html: buildNmdEmailTemplate({
                   title: "Payment Received",
                   message: `
-                    <p>Hi ${invoice.client_name},</p>
-                    <p>Thank you. Your payment has been received.</p>
+                    <p><strong>Client:</strong> ${invoice.client_name}</p>
                     <p><strong>Invoice:</strong> #${invoice.invoice_number}</p>
                     <p><strong>Service:</strong> ${invoice.job_name}</p>
+                    <p><strong>Subtotal:</strong> $${Number(invoice.subtotal || invoice.total || 0).toFixed(2)}</p>
+                    <p><strong>Sales Tax:</strong> $${Number(invoice.sales_tax_amount || 0).toFixed(2)}</p>
                     <p><strong>Total Paid:</strong> $${Number(invoice.total || 0).toFixed(2)}</p>
                   `
                 }),
-                text: `Payment received for NMD invoice #${invoice.invoice_number}. Thank you.`
+                text: `Payment received for invoice #${invoice.invoice_number}.`
               });
             }
-
-            await sendEmail({
-              to: process.env.NMD_ADMIN_EMAIL || "nmdpowash@gmail.com",
-              subject: `NMD payment received: Invoice #${invoice.invoice_number}`,
-              html: buildNmdEmailTemplate({
-                title: "Payment Received",
-                message: `
-                  <p><strong>Client:</strong> ${invoice.client_name}</p>
-                  <p><strong>Invoice:</strong> #${invoice.invoice_number}</p>
-                  <p><strong>Service:</strong> ${invoice.job_name}</p>
-                  <p><strong>Total Paid:</strong> $${Number(invoice.total || 0).toFixed(2)}</p>
-                `
-              }),
-              text: `Payment received for invoice #${invoice.invoice_number}.`
-            });
+          } catch (error) {
+            await dbClient.query("ROLLBACK");
+            throw error;
+          } finally {
+            dbClient.release();
           }
         }
       }
@@ -367,11 +437,13 @@ router.post("/stripe-webhook", async (req, res) => {
     }
 
     if (event.type === "invoice.payment_succeeded") {
-      const invoice = event.data.object as Stripe.Invoice;
+      const stripeInvoice = event.data.object as Stripe.Invoice;
+      const rawInvoice = stripeInvoice as any;
+
       const subscriptionId =
-        typeof invoice.subscription === "string"
-          ? invoice.subscription
-          : invoice.subscription?.id || null;
+        typeof rawInvoice.subscription === "string"
+          ? rawInvoice.subscription
+          : rawInvoice.subscription?.id || null;
 
       if (subscriptionId) {
         const updatedResult = await pool.query(
@@ -406,11 +478,13 @@ router.post("/stripe-webhook", async (req, res) => {
     }
 
     if (event.type === "invoice.payment_failed") {
-      const invoice = event.data.object as Stripe.Invoice;
+      const stripeInvoice = event.data.object as Stripe.Invoice;
+      const rawInvoice = stripeInvoice as any;
+
       const subscriptionId =
-        typeof invoice.subscription === "string"
-          ? invoice.subscription
-          : invoice.subscription?.id || null;
+        typeof rawInvoice.subscription === "string"
+          ? rawInvoice.subscription
+          : rawInvoice.subscription?.id || null;
 
       if (subscriptionId) {
         const updatedResult = await pool.query(
