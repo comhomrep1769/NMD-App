@@ -32,6 +32,7 @@ import TreatmentsPage from "./pages/TreatmentsPage";
 import PricingPage from "./pages/PricingPage";
 import EmailTestPage from "./pages/EmailTestPage";
 import POSPage from "./pages/POSPage";
+import GuruEstimatesPage from "./pages/GuruEstimatesPage";
 import { apiFetch } from "./api";
 
 const demoClients: Client[] = [];
@@ -266,6 +267,7 @@ export default function App() {
               <ClientDashboardPage />
             )}
 
+            {page === "guru-estimates" && user.role === "admin" && <GuruEstimatesPage />}
             {page === "clients" && user.role === "admin" && <ClientsPage />}
             {page === "quotes" && user.role === "admin" && <QuotesPage />}
             {page === "invoices" && user.role === "admin" && <InvoicesPage />}
