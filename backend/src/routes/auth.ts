@@ -6,7 +6,7 @@ import { requireAuth } from "../middleware/auth.js";
 
 const router = Router();
 
-const JWT_SECRET = process.env.JWT_SECRET || "dev_secret_change_me";
+const jwtSecret = process.env.JWT_SECRET || "dev-secret";
 
 function signToken(user: {
   id: string;
@@ -21,17 +21,17 @@ function signToken(user: {
       displayName: user.display_name,
       role: user.role
     },
-    JWT_SECRET,
-    { expiresIn: "7d" }
+    jwtSecret,
+    { expiresIn: "30d" }
   );
 }
 
-function mapUser(user: any) {
+function mapUser(row: any) {
   return {
-    id: user.id,
-    email: user.email,
-    displayName: user.display_name,
-    role: user.role
+    id: row.id,
+    email: row.email,
+    displayName: row.display_name,
+    role: row.role
   };
 }
 
@@ -43,7 +43,9 @@ router.post("/login", async (req, res) => {
     };
 
     if (!email || !password) {
-      return res.status(400).json({ error: "Email and password are required" });
+      return res.status(400).json({
+        error: "Email and password are required"
+      });
     }
 
     const result = await pool.query(
@@ -53,18 +55,23 @@ router.post("/login", async (req, res) => {
       WHERE LOWER(email) = LOWER($1)
       LIMIT 1
       `,
-      [email]
+      [email.trim()]
     );
 
     if (result.rows.length === 0) {
-      return res.status(401).json({ error: "Invalid login" });
+      return res.status(401).json({
+        error: "Invalid email or password"
+      });
     }
 
     const user = result.rows[0];
-    const valid = await bcrypt.compare(password, user.password_hash);
 
-    if (!valid) {
-      return res.status(401).json({ error: "Invalid login" });
+    const validPassword = await bcrypt.compare(password, user.password_hash);
+
+    if (!validPassword) {
+      return res.status(401).json({
+        error: "Invalid email or password"
+      });
     }
 
     const token = signToken(user);
@@ -75,137 +82,9 @@ router.post("/login", async (req, res) => {
     });
   } catch (error) {
     console.error("login error", error);
-    return res.status(500).json({ error: "Server error" });
-  }
-});
-
-router.post("/client-register", async (req, res) => {
-  const client = await pool.connect();
-
-  try {
-    const {
-      firstName,
-      lastName,
-      email,
-      phone,
-      address,
-      password
-    } = req.body as {
-      firstName?: string;
-      lastName?: string;
-      email?: string;
-      phone?: string;
-      address?: string;
-      password?: string;
-    };
-
-    if (!firstName || !lastName || !email || !password) {
-      return res.status(400).json({
-        error: "First name, last name, email, and password are required"
-      });
-    }
-
-    if (password.length < 8) {
-      return res.status(400).json({
-        error: "Password must be at least 8 characters"
-      });
-    }
-
-    await client.query("BEGIN");
-
-    const existingUser = await client.query(
-      `
-      SELECT id
-      FROM users
-      WHERE LOWER(email) = LOWER($1)
-      LIMIT 1
-      `,
-      [email]
-    );
-
-    if (existingUser.rows.length > 0) {
-      await client.query("ROLLBACK");
-      return res.status(400).json({
-        error: "An account with this email already exists"
-      });
-    }
-
-    const passwordHash = await bcrypt.hash(password, 12);
-    const displayName = `${firstName.trim()} ${lastName.trim()}`;
-
-    const userResult = await client.query(
-      `
-      INSERT INTO users (email, password_hash, display_name, role)
-      VALUES ($1, $2, $3, 'client')
-      RETURNING id, email, display_name, role
-      `,
-      [email.trim().toLowerCase(), passwordHash, displayName]
-    );
-
-    const user = userResult.rows[0];
-
-    const existingClient = await client.query(
-      `
-      SELECT id
-      FROM clients
-      WHERE LOWER(email) = LOWER($1)
-      LIMIT 1
-      `,
-      [email]
-    );
-
-    if (existingClient.rows.length > 0) {
-      await client.query(
-        `
-        UPDATE clients
-        SET
-          user_id = $2,
-          first_name = COALESCE(NULLIF($3, ''), first_name),
-          last_name = COALESCE(NULLIF($4, ''), last_name),
-          phone = COALESCE(NULLIF($5, ''), phone),
-          address = COALESCE(NULLIF($6, ''), address)
-        WHERE id = $1
-        `,
-        [
-          existingClient.rows[0].id,
-          user.id,
-          firstName.trim(),
-          lastName.trim(),
-          phone?.trim() || "",
-          address?.trim() || ""
-        ]
-      );
-    } else {
-      await client.query(
-        `
-        INSERT INTO clients (user_id, first_name, last_name, phone, email, address)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        `,
-        [
-          user.id,
-          firstName.trim(),
-          lastName.trim(),
-          phone?.trim() || "",
-          email.trim().toLowerCase(),
-          address?.trim() || ""
-        ]
-      );
-    }
-
-    await client.query("COMMIT");
-
-    const token = signToken(user);
-
-    return res.status(201).json({
-      token,
-      user: mapUser(user)
+    return res.status(500).json({
+      error: "Server error"
     });
-  } catch (error) {
-    await client.query("ROLLBACK");
-    console.error("client register error", error);
-    return res.status(500).json({ error: "Server error" });
-  } finally {
-    client.release();
   }
 });
 
@@ -222,7 +101,9 @@ router.get("/me", requireAuth, async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(401).json({ error: "User not found" });
+      return res.status(401).json({
+        error: "User not found"
+      });
     }
 
     return res.json({
@@ -230,7 +111,240 @@ router.get("/me", requireAuth, async (req, res) => {
     });
   } catch (error) {
     console.error("me error", error);
-    return res.status(500).json({ error: "Server error" });
+    return res.status(500).json({
+      error: "Server error"
+    });
+  }
+});
+
+router.post("/register-client", async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const {
+      firstName,
+      lastName,
+      phone,
+      email,
+      address,
+      password
+    } = req.body as {
+      firstName?: string;
+      lastName?: string;
+      phone?: string;
+      email?: string;
+      address?: string;
+      password?: string;
+    };
+
+    if (!firstName || !lastName || !email || !password) {
+      return res.status(400).json({
+        error: "First name, last name, email, and password are required"
+      });
+    }
+
+    await client.query("BEGIN");
+
+    const existing = await client.query(
+      `
+      SELECT id
+      FROM users
+      WHERE LOWER(email) = LOWER($1)
+      LIMIT 1
+      `,
+      [email.trim()]
+    );
+
+    if (existing.rows.length > 0) {
+      await client.query("ROLLBACK");
+      return res.status(409).json({
+        error: "An account with this email already exists"
+      });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    const userResult = await client.query(
+      `
+      INSERT INTO users (
+        email,
+        password_hash,
+        display_name,
+        role,
+        pay_rate
+      )
+      VALUES ($1, $2, $3, 'client', NULL)
+      RETURNING id, email, display_name, role
+      `,
+      [
+        email.trim().toLowerCase(),
+        passwordHash,
+        `${firstName.trim()} ${lastName.trim()}`
+      ]
+    );
+
+    const user = userResult.rows[0];
+
+    await client.query(
+      `
+      INSERT INTO clients (
+        user_id,
+        first_name,
+        last_name,
+        phone,
+        email,
+        address
+      )
+      VALUES ($1, $2, $3, $4, $5, $6)
+      `,
+      [
+        user.id,
+        firstName.trim(),
+        lastName.trim(),
+        phone?.trim() || "",
+        email.trim().toLowerCase(),
+        address?.trim() || ""
+      ]
+    );
+
+    await client.query("COMMIT");
+
+    const token = signToken(user);
+
+    return res.status(201).json({
+      token,
+      user: mapUser(user)
+    });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("register client error", error);
+    return res.status(500).json({
+      error: "Server error"
+    });
+  } finally {
+    client.release();
+  }
+});
+
+/**
+ * Temporary test account reset route.
+ * Delete this route after your test accounts work.
+ */
+router.post("/seed-test-users", async (req, res) => {
+  const seedKey = req.headers["x-seed-key"];
+
+  if (!process.env.TEST_SEED_KEY || seedKey !== process.env.TEST_SEED_KEY) {
+    return res.status(403).json({
+      error: "Forbidden"
+    });
+  }
+
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const adminHash = await bcrypt.hash("TestAdmin123!", 12);
+    const employeeHash = await bcrypt.hash("TestEmployee123!", 12);
+    const clientHash = await bcrypt.hash("TestClient123!", 12);
+
+    await client.query(
+      `
+      INSERT INTO users (
+        email,
+        password_hash,
+        display_name,
+        role,
+        pay_rate
+      )
+      VALUES
+        ($1, $2, 'Test Admin', 'admin', 40),
+        ($3, $4, 'Test Employee', 'employee', 30),
+        ($5, $6, 'Test Client', 'client', NULL)
+      ON CONFLICT (email) DO UPDATE
+      SET
+        password_hash = EXCLUDED.password_hash,
+        display_name = EXCLUDED.display_name,
+        role = EXCLUDED.role,
+        pay_rate = EXCLUDED.pay_rate
+      `,
+      [
+        "testadmin@nmd.local",
+        adminHash,
+        "testemployee@nmd.local",
+        employeeHash,
+        "testclient@nmd.local",
+        clientHash
+      ]
+    );
+
+    const clientUser = await client.query(
+      `
+      SELECT id, email
+      FROM users
+      WHERE email = 'testclient@nmd.local'
+      LIMIT 1
+      `
+    );
+
+    const clientUserId = clientUser.rows[0]?.id;
+
+    if (clientUserId) {
+      await client.query(
+        `
+        INSERT INTO clients (
+          user_id,
+          first_name,
+          last_name,
+          phone,
+          email,
+          address
+        )
+        VALUES (
+          $1,
+          'Test',
+          'Client',
+          '321-888-6586',
+          'testclient@nmd.local',
+          '123 Test Drive, Winter Park, FL'
+        )
+        ON CONFLICT DO NOTHING
+        `,
+        [clientUserId]
+      );
+    }
+
+    await client.query("COMMIT");
+
+    return res.json({
+      ok: true,
+      message: "Test users reset successfully",
+      logins: {
+        admin: {
+          email: "testadmin@nmd.local",
+          password: "TestAdmin123!",
+          portal: "/admin"
+        },
+        employee: {
+          email: "testemployee@nmd.local",
+          password: "TestEmployee123!",
+          portal: "/employee"
+        },
+        client: {
+          email: "testclient@nmd.local",
+          password: "TestClient123!",
+          portal: "/"
+        }
+      }
+    });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("seed test users error", error);
+    return res.status(500).json({
+      error: "Server error"
+    });
+  } finally {
+    client.release();
   }
 });
 
