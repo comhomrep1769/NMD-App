@@ -1,6 +1,6 @@
 import React from "react";
 import { apiFetch } from "../api";
-import type { GuruEstimate, GuruEstimateStatus } from "../types";
+import type { GuruEstimate, GuruEstimateStatus, PageKey } from "../types";
 
 function statusLabel(status: GuruEstimateStatus) {
   if (status === "needs_review") return "Needs Review";
@@ -23,38 +23,22 @@ function cleanText(value?: string | null) {
 function pricingExplanation(estimate: GuruEstimate) {
   const pieces: string[] = [];
 
-  if (estimate.serviceType) {
-    pieces.push(`Service type: ${estimate.serviceType}`);
-  }
-
-  if (estimate.surfaceType) {
-    pieces.push(`Surface/material: ${estimate.surfaceType}`);
-  }
-
-  if (estimate.propertyArea) {
-    pieces.push(`Area: ${estimate.propertyArea}`);
-  }
-
-  if (estimate.squareFootage) {
-    pieces.push(`Size/dimensions: ${estimate.squareFootage}`);
-  }
-
-  if (estimate.conditionLevel) {
-    pieces.push(`Condition: ${estimate.conditionLevel}`);
-  }
-
-  if (estimate.specialConcerns) {
-    pieces.push(`Special concerns: ${estimate.specialConcerns}`);
-  }
-
-  if (estimate.photoDataUrl) {
-    pieces.push("Client uploaded a photo for review");
-  }
+  if (estimate.serviceType) pieces.push(`Service type: ${estimate.serviceType}`);
+  if (estimate.surfaceType) pieces.push(`Surface/material: ${estimate.surfaceType}`);
+  if (estimate.propertyArea) pieces.push(`Area: ${estimate.propertyArea}`);
+  if (estimate.squareFootage) pieces.push(`Size/dimensions: ${estimate.squareFootage}`);
+  if (estimate.conditionLevel) pieces.push(`Condition: ${estimate.conditionLevel}`);
+  if (estimate.specialConcerns) pieces.push(`Special concerns: ${estimate.specialConcerns}`);
+  if (estimate.photoDataUrl) pieces.push("Client uploaded a photo for review");
 
   return pieces;
 }
 
-export default function GuruEstimatesPage() {
+export default function GuruEstimatesPage({
+  onNavigate
+}: {
+  onNavigate: (page: PageKey) => void;
+}) {
   const [estimates, setEstimates] = React.useState<GuruEstimate[]>([]);
   const [filter, setFilter] = React.useState<
     "all" | "needs_review" | "reviewed" | "converted_to_quote" | "declined" | "archived"
@@ -63,6 +47,7 @@ export default function GuruEstimatesPage() {
   const [savingId, setSavingId] = React.useState<string | null>(null);
   const [error, setError] = React.useState("");
   const [success, setSuccess] = React.useState("");
+  const [convertedQuoteNumber, setConvertedQuoteNumber] = React.useState<number | null>(null);
 
   const [convertEstimateId, setConvertEstimateId] = React.useState<string | null>(null);
   const [quoteTotal, setQuoteTotal] = React.useState("");
@@ -94,6 +79,7 @@ export default function GuruEstimatesPage() {
   ) => {
     setError("");
     setSuccess("");
+    setConvertedQuoteNumber(null);
     setSavingId(estimateId);
 
     try {
@@ -117,6 +103,7 @@ export default function GuruEstimatesPage() {
     setConvertNotes("");
     setSuccess("");
     setError("");
+    setConvertedQuoteNumber(null);
   };
 
   const cancelConvert = () => {
@@ -132,6 +119,7 @@ export default function GuruEstimatesPage() {
 
     setError("");
     setSuccess("");
+    setConvertedQuoteNumber(null);
     setSavingId(convertEstimateId);
 
     try {
@@ -153,8 +141,9 @@ export default function GuruEstimatesPage() {
       setSuccess(
         `Guru estimate converted into Quote #${data.quote.quoteNumber} for $${Number(
           data.quote.total || 0
-        ).toFixed(2)}. Open Quotes to review/edit/send it.`
+        ).toFixed(2)}.`
       );
+      setConvertedQuoteNumber(data.quote.quoteNumber);
 
       cancelConvert();
       await loadEstimates();
@@ -319,7 +308,36 @@ export default function GuruEstimatesPage() {
         </div>
 
         {error && <div className="errorBox">{error}</div>}
-        {success && <div className="listCard">{success}</div>}
+
+        {success && (
+          <div className="listCard">
+            <div>{success}</div>
+
+            {convertedQuoteNumber && (
+              <div className="buttonRow" style={{ marginTop: 12 }}>
+                <button
+                  className="primaryButton"
+                  type="button"
+                  onClick={() => onNavigate("quotes")}
+                >
+                  Open Quotes
+                </button>
+
+                <button
+                  className="secondaryButton"
+                  type="button"
+                  onClick={() => {
+                    setFilter("converted_to_quote");
+                    setSuccess("");
+                    setConvertedQuoteNumber(null);
+                  }}
+                >
+                  View Converted Estimates
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {needsReview.length > 0 && (
           <div className="errorBox">
