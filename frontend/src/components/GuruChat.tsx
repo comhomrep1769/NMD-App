@@ -44,7 +44,7 @@ type EstimateForm = {
   photoNote: string;
 };
 
-const GURU_ICON_SRC = "/icons/NMD-Guru-Icon.png?v=2026051421";
+const GURU_ICON_SRC = "/icons/NMD-Guru-Icon.png?v=2026051422";
 
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -361,6 +361,26 @@ export default function GuruChat({
     }
   };
 
+  const openAdminQuotes = () => {
+    if (onNavigate) navigateFromGuru("quotes");
+    else submitMessage("Create quote draft");
+  };
+
+  const openAdminPayments = () => {
+    if (onNavigate) navigateFromGuru("pos");
+    else submitMessage("Check payments");
+  };
+
+  const openAdminPricing = () => {
+    if (onNavigate) navigateFromGuru("pricing");
+    else submitMessage("Help price a job");
+  };
+
+  const openAdminSchedule = () => {
+    if (onNavigate) navigateFromGuru("schedule");
+    else submitMessage("Open schedule");
+  };
+
   const openClientEstimates = () => {
     if (onNavigate) {
       navigateFromGuru("client-estimates");
@@ -447,6 +467,30 @@ export default function GuruChat({
 
     if (messageBody === "Review Guru estimates" && user?.role === "admin" && onNavigate) {
       openGuruEstimatesReview();
+      setInput("");
+      return;
+    }
+
+    if (messageBody === "Create quote draft" && user?.role === "admin" && onNavigate) {
+      openAdminQuotes();
+      setInput("");
+      return;
+    }
+
+    if (messageBody === "Check payments" && user?.role === "admin" && onNavigate) {
+      openAdminPayments();
+      setInput("");
+      return;
+    }
+
+    if (messageBody === "Help price a job" && user?.role === "admin" && onNavigate) {
+      openAdminPricing();
+      setInput("");
+      return;
+    }
+
+    if (messageBody === "Open schedule" && user?.role === "admin" && onNavigate) {
+      openAdminSchedule();
       setInput("");
       return;
     }
@@ -869,6 +913,34 @@ export default function GuruChat({
               </div>
             )}
 
+            {user?.role === "admin" && (
+              <div className="listCard" style={{ marginTop: 10 }}>
+                Admin shortcuts for estimates, quotes, pricing, scheduling, and payments.
+
+                <div className="buttonRow" style={{ marginTop: 10 }}>
+                  <button className="primaryButton" type="button" onClick={openGuruEstimatesReview}>
+                    Estimate Review
+                  </button>
+
+                  <button className="secondaryButton" type="button" onClick={openAdminQuotes}>
+                    Quotes
+                  </button>
+
+                  <button className="secondaryButton" type="button" onClick={openAdminPricing}>
+                    Pricing
+                  </button>
+
+                  <button className="secondaryButton" type="button" onClick={openAdminSchedule}>
+                    Schedule
+                  </button>
+
+                  <button className="secondaryButton" type="button" onClick={openAdminPayments}>
+                    Payments
+                  </button>
+                </div>
+              </div>
+            )}
+
             {user?.role === "client" && clientUpdateCount > 0 && (
               <div className="listCard" style={{ marginTop: 10 }}>
                 You have {clientUpdateCount} Guru estimate or quote update
@@ -930,12 +1002,6 @@ export default function GuruChat({
               {user?.role === "client" && (
                 <button className="primaryButton" type="button" onClick={startEstimate}>
                   Start Estimate
-                </button>
-              )}
-
-              {user?.role === "admin" && (
-                <button className="primaryButton" type="button" onClick={openGuruEstimatesReview}>
-                  Estimate Review
                 </button>
               )}
 
@@ -1201,6 +1267,12 @@ export default function GuruChat({
                       if (prompt === "Start estimate") startEstimate();
                       else if (prompt === "Review Guru estimates" && user?.role === "admin") {
                         openGuruEstimatesReview();
+                      } else if (prompt === "Create quote draft" && user?.role === "admin") {
+                        openAdminQuotes();
+                      } else if (prompt === "Check payments" && user?.role === "admin") {
+                        openAdminPayments();
+                      } else if (prompt === "Help price a job" && user?.role === "admin") {
+                        openAdminPricing();
                       } else if (prompt === "My estimates" && user?.role === "client") {
                         openClientEstimates();
                       } else if (prompt === "My quotes" && user?.role === "client") {
