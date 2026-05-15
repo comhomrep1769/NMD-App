@@ -30,7 +30,23 @@ type EstimateForm = {
   squareFootage: string;
   preferredSchedule: string;
   specialConcerns: string;
+  photoDataUrl: string | null;
+  photoNote: string;
 };
+
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      if (typeof reader.result === "string") resolve(reader.result);
+      else reject(new Error("Could not read image."));
+    };
+
+    reader.onerror = () => reject(new Error("Could not read image."));
+    reader.readAsDataURL(file);
+  });
+}
 
 function getRoleLabel(user: AuthUser | null) {
   if (!user) return "Client";
@@ -102,7 +118,9 @@ const emptyEstimateForm: EstimateForm = {
   conditionLevel: "",
   squareFootage: "",
   preferredSchedule: "",
-  specialConcerns: ""
+  specialConcerns: "",
+  photoDataUrl: null,
+  photoNote: ""
 };
 
 export default function GuruChat({ user }: { user: AuthUser | null }) {
@@ -325,6 +343,32 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
     }
   };
 
+  const handleEstimatePhoto = async (file?: File) => {
+    setError("");
+
+    if (!file) {
+      updateEstimateField("photoDataUrl", null);
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setError("Please upload an image file.");
+      return;
+    }
+
+    if (file.size > 1_800_000) {
+      setError("Estimate photo is too large. Please upload an image under about 1.8MB.");
+      return;
+    }
+
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      updateEstimateField("photoDataUrl", dataUrl);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not load estimate photo.");
+    }
+  };
+
   const submitEstimate = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -417,7 +461,7 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
     }
   };
 
-  const updateEstimateField = (field: keyof EstimateForm, value: string) => {
+  const updateEstimateField = (field: keyof EstimateForm, value: string | null) => {
     setEstimateForm((prev) => ({
       ...prev,
       [field]: value
@@ -634,6 +678,52 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
                   rows={4}
                   value={estimateForm.specialConcerns}
                   onChange={(e) => updateEstimateField("specialConcerns", e.target.value)}
+                />
+
+                <div className="assignBox">
+                  <div className="assignTitle">Upload Photo Optional</div>
+                  <div className="cardLine">
+                    Add one clear photo of the surface, stains, access area, or problem spot.
+                  </div>
+
+                  <input
+                    className="textInput"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleEstimatePhoto(e.target.files?.[0])}
+                  />
+
+                  {estimateForm.photoDataUrl && (
+                    <div style={{ marginTop: 12 }}>
+                      <img
+                        src={estimateForm.photoDataUrl}
+                        alt="Estimate preview"
+                        style={{
+                          width: "100%",
+                          maxHeight: 240,
+                          objectFit: "cover",
+                          borderRadius: 14,
+                          border: "1px solid var(--border)"
+                        }}
+                      />
+
+                      <button
+                        className="secondaryButton"
+                        type="button"
+                        style={{ marginTop: 10 }}
+                        onClick={() => updateEstimateField("photoDataUrl", null)}
+                      >
+                        Remove Photo
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <input
+                  className="textInput"
+                  placeholder="Photo note optional"
+                  value={estimateForm.photoNote}
+                  onChange={(e) => updateEstimateField("photoNote", e.target.value)}
                 />
 
                 <div className="buttonRow">
