@@ -13,7 +13,7 @@ export default function ClientDashboardPage({
           <div>
             <h2 className="panelTitle">Client Portal</h2>
             <p className="brandSubtitle">
-              Request service, track estimates, view communication, and manage your NMD account.
+              Request service, track estimates, view quotes, communicate with NMD, and manage your account.
             </p>
           </div>
         </div>
@@ -27,7 +27,19 @@ export default function ClientDashboardPage({
           >
             <div className="quoteNumber">My Estimates</div>
             <div className="cardLine">
-              View Guru estimate requests, review status, and preliminary pricing ranges.
+              View Guru estimate requests, review status, uploaded photos, and preliminary pricing ranges.
+            </div>
+          </button>
+
+          <button
+            className="quoteCard"
+            type="button"
+            onClick={() => onNavigate("client-quotes")}
+            style={{ textAlign: "left" }}
+          >
+            <div className="quoteNumber">My Quotes</div>
+            <div className="cardLine">
+              View official NMD quote records that are being prepared, sent, accepted, or declined.
             </div>
           </button>
 
@@ -47,13 +59,6 @@ export default function ClientDashboardPage({
             <div className="quoteNumber">Start A New Estimate</div>
             <div className="cardLine">
               Tap the floating Guru button in the corner and choose “Start Estimate.”
-            </div>
-          </div>
-
-          <div className="quoteCard">
-            <div className="quoteNumber">Official Quotes</div>
-            <div className="cardLine">
-              Guru estimates are preliminary. Official quotes will appear after NMD review in a future portal update.
             </div>
           </div>
 
