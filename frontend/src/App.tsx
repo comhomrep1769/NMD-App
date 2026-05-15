@@ -54,6 +54,10 @@ function getInitialPortal(): PortalView {
   return "public";
 }
 
+function isAdminRole(user: AuthUser | null) {
+  return user?.role === "admin" || user?.role === "superadmin";
+}
+
 export default function App() {
   const [portalView, setPortalView] = React.useState<PortalView>(getInitialPortal);
   const [page, setPage] = React.useState<PageKey>("dashboard");
@@ -90,7 +94,7 @@ export default function App() {
         setUser(data.user);
         setPage("dashboard");
 
-        if (data.user.role === "admin") {
+        if (data.user.role === "admin" || data.user.role === "superadmin") {
           setPortalView("admin");
           window.history.replaceState({}, "", "/admin");
         } else if (data.user.role === "employee") {
@@ -118,7 +122,7 @@ export default function App() {
     setUser(loggedInUser);
     setPage("dashboard");
 
-    if (loggedInUser.role === "admin") {
+    if (loggedInUser.role === "admin" || loggedInUser.role === "superadmin") {
       setPortalView("admin");
       window.history.pushState({}, "", "/admin");
     } else if (loggedInUser.role === "employee") {
@@ -235,6 +239,8 @@ export default function App() {
     );
   }
 
+  const adminAccess = isAdminRole(user);
+
   return (
     <>
       <AppUpdateBanner />
@@ -253,11 +259,12 @@ export default function App() {
           />
 
           <main className="pageWrap">
-            {page === "dashboard" && user.role === "admin" && (
+            {page === "dashboard" && adminAccess && (
               <DashboardPage
                 quotes={quotes}
                 invoices={invoices}
                 onNavigate={safeNavigate}
+                role={user.role}
               />
             )}
 
@@ -269,7 +276,7 @@ export default function App() {
               <ClientDashboardPage onNavigate={safeNavigate} />
             )}
 
-            {page === "guru-estimates" && user.role === "admin" && (
+            {page === "guru-estimates" && adminAccess && (
               <GuruEstimatesPage onNavigate={safeNavigate} />
             )}
 
@@ -281,32 +288,32 @@ export default function App() {
               <ClientQuotesPage />
             )}
 
-            {page === "clients" && user.role === "admin" && <ClientsPage />}
-            {page === "quotes" && user.role === "admin" && <QuotesPage />}
-            {page === "invoices" && user.role === "admin" && <InvoicesPage />}
+            {page === "clients" && adminAccess && <ClientsPage />}
+            {page === "quotes" && adminAccess && <QuotesPage />}
+            {page === "invoices" && adminAccess && <InvoicesPage />}
 
             {page === "schedule" && user.role !== "client" && (
               <SchedulePage role={user.role} />
             )}
 
-            {page === "employees" && user.role === "admin" && <EmployeesPage />}
-            {page === "requests" && user.role === "admin" && <RequestsPage />}
-            {page === "expenses" && user.role === "admin" && <ExpensesPage />}
-            {page === "mileage" && user.role === "admin" && <MileagePage />}
-            {page === "recurring" && user.role === "admin" && <RecurringPage />}
-            {page === "equipment" && user.role === "admin" && <EquipmentPage />}
+            {page === "employees" && adminAccess && <EmployeesPage />}
+            {page === "requests" && adminAccess && <RequestsPage />}
+            {page === "expenses" && adminAccess && <ExpensesPage />}
+            {page === "mileage" && adminAccess && <MileagePage />}
+            {page === "recurring" && adminAccess && <RecurringPage />}
+            {page === "equipment" && adminAccess && <EquipmentPage />}
 
             {page === "treatments" && user.role !== "client" && (
               <TreatmentsPage role={user.role} />
             )}
 
-            {page === "pricing" && user.role === "admin" && <PricingPage />}
+            {page === "pricing" && adminAccess && <PricingPage />}
 
             {page === "timeclock" && user.role !== "client" && (
               <TimeClockPage role={user.role} />
             )}
 
-            {page === "email" && user.role === "admin" && <EmailTestPage />}
+            {page === "email" && adminAccess && <EmailTestPage />}
             {page === "pos" && user.role !== "client" && <POSPage role={user.role} />}
             {page === "availability" && user.role !== "client" && <AvailabilityPage />}
             {page === "chat" && <ChatPage currentUser={user} />}
@@ -315,7 +322,7 @@ export default function App() {
               <TipsPage role={user.role} />
             )}
 
-            {page === "payroll" && user.role === "admin" && <PayrollPage />}
+            {page === "payroll" && adminAccess && <PayrollPage />}
             {page === "my-ledger" && user.role === "employee" && <MyLedgerPage />}
           </main>
 
