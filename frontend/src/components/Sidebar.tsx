@@ -144,6 +144,11 @@ const clientGroups: NavGroup[] = [
     children: [{ key: "dashboard", label: "Portal Home" }]
   },
   {
+    label: "Estimates",
+    defaultKey: "client-estimates",
+    children: [{ key: "client-estimates", label: "My Estimates" }]
+  },
+  {
     label: "Chat",
     defaultKey: "chat",
     children: [{ key: "chat", label: "Chat" }]
