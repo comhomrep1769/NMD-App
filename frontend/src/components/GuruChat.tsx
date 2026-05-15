@@ -486,12 +486,11 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
           right: 18,
           bottom: open ? 18 : 86,
           zIndex: 120,
-          width: 88,
-          height: 88,
+          width: 82,
+          height: 82,
           borderRadius: "999px",
-          border: "2px solid rgba(52, 211, 153, 0.75)",
-          background:
-            "radial-gradient(circle at 30% 25%, rgba(59,130,246,0.96), rgba(16,185,129,0.92) 45%, rgba(2,6,23,0.98) 100%)",
+          border: "3px solid rgba(52, 211, 153, 0.85)",
+          background: "rgba(255,255,255,0.95)",
           color: "#ffffff",
           fontWeight: 900,
           fontSize: 14,
@@ -500,7 +499,7 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
           display: "grid",
           placeItems: "center",
           padding: 0,
-          overflow: "visible"
+          overflow: "hidden"
         }}
       >
         {iconLoaded ? (
@@ -509,11 +508,13 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
             alt="Guru"
             onError={() => setIconLoaded(false)}
             style={{
-              width: "118%",
-              height: "118%",
+              width: "100%",
+              height: "100%",
               objectFit: "cover",
               borderRadius: "999px",
-              filter: "drop-shadow(0 8px 14px rgba(0,0,0,0.35))"
+              transform: "scale(1.9)",
+              transformOrigin: "center center",
+              filter: "drop-shadow(0 8px 14px rgba(0,0,0,0.25))"
             }}
           />
         ) : (
@@ -531,7 +532,8 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
               borderRadius: "999px",
               background: "#ef4444",
               border: "2px solid #ffffff",
-              boxShadow: "0 0 0 3px rgba(239,68,68,0.25)"
+              boxShadow: "0 0 0 3px rgba(239,68,68,0.25)",
+              zIndex: 2
             }}
           />
         )}
@@ -542,7 +544,7 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
           style={{
             position: "fixed",
             right: 18,
-            bottom: 112,
+            bottom: 106,
             zIndex: 130,
             width: "min(92vw, 440px)",
             height: "min(82vh, 720px)",
@@ -566,19 +568,31 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
             <div className="panelHeader">
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 {iconLoaded && (
-                  <img
-                    src={GURU_ICON_SRC}
-                    alt="Guru"
-                    onError={() => setIconLoaded(false)}
+                  <div
                     style={{
-                      width: 52,
-                      height: 52,
-                      objectFit: "cover",
+                      width: 54,
+                      height: 54,
                       borderRadius: "999px",
-                      background: "rgba(255,255,255,0.08)",
-                      border: "1px solid var(--border)"
+                      overflow: "hidden",
+                      border: "1px solid var(--border)",
+                      background: "rgba(255,255,255,0.95)",
+                      display: "grid",
+                      placeItems: "center"
                     }}
-                  />
+                  >
+                    <img
+                      src={GURU_ICON_SRC}
+                      alt="Guru"
+                      onError={() => setIconLoaded(false)}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        transform: "scale(1.75)",
+                        transformOrigin: "center center"
+                      }}
+                    />
+                  </div>
                 )}
 
                 <div>
