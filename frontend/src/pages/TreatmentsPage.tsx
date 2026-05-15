@@ -1,130 +1,315 @@
 import React from "react";
 import { apiFetch } from "../api";
-import type { Role } from "../types";
+import type { AuthUserRole, TreatmentItem } from "../types";
+import { isAdminRole } from "../utils/roles";
 
-type Treatment = {
-  id: string;
-  title: string;
+type TreatmentForm = {
+  id: string | null;
+  name: string;
   category: string;
-  surfaceType: string;
-  stainType: string;
-  severity: string;
-  chemicalName: string;
-  dilutionRatio?: string | null;
-  applicationMethod?: string | null;
-  dwellTime?: string | null;
-  rinseMethod?: string | null;
-  safetyNotes?: string | null;
-  damageWarnings?: string | null;
-  estimatedMaterialCost?: number;
-  purchaseLink?: string | null;
-  notes?: string | null;
+  surfaceTypes: string;
+  chemical: string;
+  dilutionRatio: string;
+  useCase: string;
+  safetyNotes: string;
+  instructions: string;
+  purchaseLink: string;
+  costReference: string;
 };
 
-export default function TreatmentsPage({ role }: { role: Role }) {
-  const [treatments, setTreatments] = React.useState<Treatment[]>([]);
-  const [search, setSearch] = React.useState("");
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState("");
+const emptyForm: TreatmentForm = {
+  id: null,
+  name: "",
+  category: "General",
+  surfaceTypes: "",
+  chemical: "",
+  dilutionRatio: "",
+  useCase: "",
+  safetyNotes: "",
+  instructions: "",
+  purchaseLink: "",
+  costReference: ""
+};
 
-  const [form, setForm] = React.useState({
-    title: "",
-    category: "",
-    surfaceType: "",
-    stainType: "",
-    severity: "",
-    chemicalName: "",
-    dilutionRatio: "",
-    applicationMethod: "",
-    dwellTime: "",
-    rinseMethod: "",
-    safetyNotes: "",
-    damageWarnings: "",
-    estimatedMaterialCost: "",
-    purchaseLink: "",
-    notes: ""
+function normalizeTreatment(item: TreatmentItem): TreatmentItem {
+  return {
+    ...item,
+    surfaceTypes: Array.isArray(item.surfaceTypes) ? item.surfaceTypes : [],
+    chemical: item.chemical || "",
+    dilutionRatio: item.dilutionRatio || "",
+    useCase: item.useCase || "",
+    safetyNotes: item.safetyNotes || "",
+    instructions: item.instructions || "",
+    purchaseLink: item.purchaseLink || "",
+    costReference: item.costReference || "",
+    createdAt: item.createdAt || "",
+    updatedAt: item.updatedAt || ""
+  };
+}
+
+function treatmentToForm(treatment: TreatmentItem): TreatmentForm {
+  return {
+    id: treatment.id,
+    name: treatment.name || "",
+    category: treatment.category || "General",
+    surfaceTypes: Array.isArray(treatment.surfaceTypes)
+      ? treatment.surfaceTypes.join(", ")
+      : "",
+    chemical: treatment.chemical || "",
+    dilutionRatio: treatment.dilutionRatio || "",
+    useCase: treatment.useCase || "",
+    safetyNotes: treatment.safetyNotes || "",
+    instructions: treatment.instructions || "",
+    purchaseLink: treatment.purchaseLink || "",
+    costReference: treatment.costReference || ""
+  };
+}
+
+function formToPayload(form: TreatmentForm) {
+  return {
+    name: form.name.trim(),
+    category: form.category.trim() || "General",
+    surfaceTypes: form.surfaceTypes
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean),
+    chemical: form.chemical.trim(),
+    dilutionRatio: form.dilutionRatio.trim(),
+    useCase: form.useCase.trim(),
+    safetyNotes: form.safetyNotes.trim(),
+    instructions: form.instructions.trim(),
+    purchaseLink: form.purchaseLink.trim(),
+    costReference: form.costReference.trim()
+  };
+}
+
+function uniqueCategories(treatments: TreatmentItem[]) {
+  const categories = new Set<string>();
+
+  treatments.forEach((treatment) => {
+    if (treatment.category) categories.add(treatment.category);
   });
+
+  return Array.from(categories).sort((a, b) => a.localeCompare(b));
+}
+
+function includesSearch(treatment: TreatmentItem, search: string) {
+  if (!search.trim()) return true;
+
+  const q = search.toLowerCase();
+
+  return [
+    treatment.name,
+    treatment.category,
+    treatment.chemical,
+    treatment.dilutionRatio,
+    treatment.useCase,
+    treatment.safetyNotes,
+    treatment.instructions,
+    treatment.costReference,
+    ...(treatment.surfaceTypes || [])
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase()
+    .includes(q);
+}
+
+export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
+  const adminAccess = isAdminRole(role);
+
+  const [treatments, setTreatments] = React.useState<TreatmentItem[]>([]);
+  const [search, setSearch] = React.useState("");
+  const [categoryFilter, setCategoryFilter] = React.useState("all");
+  const [selectedId, setSelectedId] = React.useState<string | null>(null);
+  const [form, setForm] = React.useState<TreatmentForm>(emptyForm);
+  const [showForm, setShowForm] = React.useState(false);
+  const [loading, setLoading] = React.useState(true);
+  const [saving, setSaving] = React.useState(false);
+  const [seeding, setSeeding] = React.useState(false);
+  const [error, setError] = React.useState("");
+  const [success, setSuccess] = React.useState("");
 
   const loadTreatments = React.useCallback(async () => {
     setError("");
 
     try {
-      const query = search ? `?search=${encodeURIComponent(search)}` : "";
-
-      const data = await apiFetch<{ treatments: Treatment[] }>(
-        `/api/treatments${query}`
-      );
-
-      setTreatments(data.treatments);
+      const data = await apiFetch<{ treatments: TreatmentItem[] }>("/api/treatments");
+      setTreatments((data.treatments || []).map(normalizeTreatment));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load treatments");
+      setError(err instanceof Error ? err.message : "Failed to load treatments.");
     } finally {
       setLoading(false);
     }
-  }, [search]);
+  }, []);
 
   React.useEffect(() => {
     loadTreatments();
   }, [loadTreatments]);
 
-  const createTreatment = async () => {
+  const categories = uniqueCategories(treatments);
+
+  const visibleTreatments = treatments.filter((treatment) => {
+    const matchesCategory =
+      categoryFilter === "all" || treatment.category === categoryFilter;
+
+    return matchesCategory && includesSearch(treatment, search);
+  });
+
+  const selectedTreatment =
+    treatments.find((treatment) => treatment.id === selectedId) ||
+    visibleTreatments[0] ||
+    null;
+
+  React.useEffect(() => {
+    if (!selectedId && visibleTreatments[0]) {
+      setSelectedId(visibleTreatments[0].id);
+    }
+  }, [selectedId, visibleTreatments]);
+
+  const updateForm = (field: keyof TreatmentForm, value: string) => {
+    setForm((prev) => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const startCreate = () => {
+    setForm(emptyForm);
+    setShowForm(true);
     setError("");
+    setSuccess("");
+  };
+
+  const startEdit = (treatment: TreatmentItem) => {
+    setForm(treatmentToForm(treatment));
+    setShowForm(true);
+    setError("");
+    setSuccess("");
+  };
+
+  const cancelForm = () => {
+    setForm(emptyForm);
+    setShowForm(false);
+    setError("");
+  };
+
+  const seedTreatments = async () => {
+    setError("");
+    setSuccess("");
+    setSeeding(true);
 
     try {
-      await apiFetch("/api/treatments", {
-        method: "POST",
-        body: JSON.stringify({
-          ...form,
-          estimatedMaterialCost: form.estimatedMaterialCost
-            ? Number(form.estimatedMaterialCost)
-            : null
-        })
+      const data = await apiFetch<{
+        message: string;
+        treatments: TreatmentItem[];
+      }>("/api/treatments/seed", {
+        method: "POST"
       });
 
-      setForm({
-        title: "",
-        category: "",
-        surfaceType: "",
-        stainType: "",
-        severity: "",
-        chemicalName: "",
-        dilutionRatio: "",
-        applicationMethod: "",
-        dwellTime: "",
-        rinseMethod: "",
-        safetyNotes: "",
-        damageWarnings: "",
-        estimatedMaterialCost: "",
-        purchaseLink: "",
-        notes: ""
-      });
-
-      await loadTreatments();
+      setTreatments((data.treatments || []).map(normalizeTreatment));
+      setSuccess(data.message || "Treatment database seeded.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create treatment");
+      setError(err instanceof Error ? err.message : "Failed to seed treatments.");
+    } finally {
+      setSeeding(false);
     }
   };
 
-  const deleteTreatment = async (id: string) => {
-    const ok = window.confirm("Delete this treatment?");
-    if (!ok) return;
+  const saveTreatment = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!adminAccess) {
+      setError("Only Admin or Super Admin can manage treatments.");
+      return;
+    }
+
+    if (!form.name.trim()) {
+      setError("Treatment name is required.");
+      return;
+    }
+
+    setSaving(true);
+    setError("");
+    setSuccess("");
+
+    const payload = formToPayload(form);
 
     try {
-      await apiFetch(`/api/treatments/${id}`, {
+      if (form.id) {
+        const data = await apiFetch<{ treatment: TreatmentItem }>(
+          `/api/treatments/${form.id}`,
+          {
+            method: "PATCH",
+            body: JSON.stringify(payload)
+          }
+        );
+
+        const updated = normalizeTreatment(data.treatment);
+
+        setTreatments((prev) =>
+          prev.map((treatment) => (treatment.id === updated.id ? updated : treatment))
+        );
+
+        setSelectedId(updated.id);
+        setSuccess("Treatment updated.");
+      } else {
+        const data = await apiFetch<{ treatment: TreatmentItem }>("/api/treatments", {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+
+        const created = normalizeTreatment(data.treatment);
+
+        setTreatments((prev) =>
+          [...prev, created].sort((a, b) =>
+            `${a.category}-${a.name}`.localeCompare(`${b.category}-${b.name}`)
+          )
+        );
+
+        setSelectedId(created.id);
+        setSuccess("Treatment created.");
+      }
+
+      setForm(emptyForm);
+      setShowForm(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save treatment.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteTreatment = async (treatment: TreatmentItem) => {
+    if (!adminAccess) {
+      setError("Only Admin or Super Admin can delete treatments.");
+      return;
+    }
+
+    const ok = window.confirm(`Delete treatment "${treatment.name}"?`);
+    if (!ok) return;
+
+    setError("");
+    setSuccess("");
+
+    try {
+      await apiFetch(`/api/treatments/${treatment.id}`, {
         method: "DELETE"
       });
 
-      await loadTreatments();
+      setTreatments((prev) => prev.filter((item) => item.id !== treatment.id));
+      setSelectedId(null);
+      setSuccess("Treatment deleted.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Delete failed");
+      setError(err instanceof Error ? err.message : "Failed to delete treatment.");
     }
   };
 
   if (loading) {
     return (
       <section className="panel">
-        <h2 className="panelTitle">Treatments</h2>
-        <div className="listCard">Loading treatments...</div>
+        <h2 className="panelTitle">Treatment Options & Cases</h2>
+        <div className="listCard">Loading treatment database...</div>
       </section>
     );
   }
@@ -132,227 +317,395 @@ export default function TreatmentsPage({ role }: { role: Role }) {
   return (
     <div className="pageGrid">
       <section className="panel">
-        <h2 className="panelTitle">Search Treatments</h2>
+        <div className="panelHeader">
+          <div>
+            <h2 className="panelTitle">Treatment Options & Cases</h2>
+            <p className="brandSubtitle">
+              Search chemical usage, dilution ratios, safety notes, surfaces, cases, and field instructions.
+            </p>
+          </div>
+
+          {adminAccess && (
+            <div className="buttonRow">
+              <button className="primaryButton" type="button" onClick={startCreate}>
+                Add Treatment
+              </button>
+
+              <button
+                className="secondaryButton"
+                type="button"
+                onClick={seedTreatments}
+                disabled={seeding}
+              >
+                {seeding ? "Seeding..." : "Seed Defaults"}
+              </button>
+            </div>
+          )}
+        </div>
 
         {error && <div className="errorBox">{error}</div>}
 
-        <div className="formGrid">
-          <input
-            className="textInput"
-            placeholder="Search by chemical, stain, surface..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+        {success && <div className="listCard">{success}</div>}
 
-          <button className="primaryButton" onClick={loadTreatments}>
-            Search
-          </button>
+        <div className="statsGrid" style={{ marginTop: 16 }}>
+          <div className="statCard">
+            <div className="statLabel">Treatments</div>
+            <div className="statValue">{treatments.length}</div>
+          </div>
+
+          <div className="statCard">
+            <div className="statLabel">Categories</div>
+            <div className="statValue">{categories.length}</div>
+          </div>
+
+          <div className="statCard">
+            <div className="statLabel">Visible</div>
+            <div className="statValue">{visibleTreatments.length}</div>
+          </div>
+
+          <div className="statCard">
+            <div className="statLabel">Access</div>
+            <div className="statValue" style={{ fontSize: 18 }}>
+              {adminAccess ? "Manage" : "View"}
+            </div>
+          </div>
         </div>
       </section>
 
-      {role === "admin" && (
+      {showForm && adminAccess && (
         <section className="panel">
-          <h2 className="panelTitle">Add Treatment</h2>
+          <div className="panelHeader">
+            <div>
+              <h2 className="panelTitle">
+                {form.id ? "Edit Treatment" : "Add Treatment"}
+              </h2>
+              <p className="brandSubtitle">
+                Admin/Super Admin can manage treatment records used by employees and Guru.
+              </p>
+            </div>
 
-          <div className="formGrid">
-            <input
-              className="textInput"
-              placeholder="Title"
-              value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-            />
-
-            <input
-              className="textInput"
-              placeholder="Category"
-              value={form.category}
-              onChange={(e) => setForm({ ...form, category: e.target.value })}
-            />
-
-            <input
-              className="textInput"
-              placeholder="Surface Type"
-              value={form.surfaceType}
-              onChange={(e) => setForm({ ...form, surfaceType: e.target.value })}
-            />
-
-            <input
-              className="textInput"
-              placeholder="Stain Type"
-              value={form.stainType}
-              onChange={(e) => setForm({ ...form, stainType: e.target.value })}
-            />
-
-            <input
-              className="textInput"
-              placeholder="Severity"
-              value={form.severity}
-              onChange={(e) => setForm({ ...form, severity: e.target.value })}
-            />
-
-            <input
-              className="textInput"
-              placeholder="Chemical Name"
-              value={form.chemicalName}
-              onChange={(e) => setForm({ ...form, chemicalName: e.target.value })}
-            />
-
-            <input
-              className="textInput"
-              placeholder="Dilution Ratio"
-              value={form.dilutionRatio}
-              onChange={(e) => setForm({ ...form, dilutionRatio: e.target.value })}
-            />
-
-            <input
-              className="textInput"
-              placeholder="Application Method"
-              value={form.applicationMethod}
-              onChange={(e) => setForm({ ...form, applicationMethod: e.target.value })}
-            />
-
-            <input
-              className="textInput"
-              placeholder="Dwell Time"
-              value={form.dwellTime}
-              onChange={(e) => setForm({ ...form, dwellTime: e.target.value })}
-            />
-
-            <input
-              className="textInput"
-              placeholder="Rinse Method"
-              value={form.rinseMethod}
-              onChange={(e) => setForm({ ...form, rinseMethod: e.target.value })}
-            />
-
-            <textarea
-              className="textInput"
-              placeholder="Safety Notes"
-              rows={3}
-              value={form.safetyNotes}
-              onChange={(e) => setForm({ ...form, safetyNotes: e.target.value })}
-            />
-
-            <textarea
-              className="textInput"
-              placeholder="Damage Warnings"
-              rows={3}
-              value={form.damageWarnings}
-              onChange={(e) => setForm({ ...form, damageWarnings: e.target.value })}
-            />
-
-            <input
-              className="textInput"
-              placeholder="Estimated Material Cost"
-              value={form.estimatedMaterialCost}
-              onChange={(e) => setForm({ ...form, estimatedMaterialCost: e.target.value })}
-            />
-
-            <input
-              className="textInput"
-              placeholder="Purchase Link"
-              value={form.purchaseLink}
-              onChange={(e) => setForm({ ...form, purchaseLink: e.target.value })}
-            />
-
-            <textarea
-              className="textInput"
-              placeholder="Notes"
-              rows={4}
-              value={form.notes}
-              onChange={(e) => setForm({ ...form, notes: e.target.value })}
-            />
+            <button className="secondaryButton" type="button" onClick={cancelForm}>
+              Cancel
+            </button>
           </div>
 
-          <button className="primaryButton" onClick={createTreatment}>
-            Save Treatment
-          </button>
+          <form className="formGrid" onSubmit={saveTreatment}>
+            <label className="fieldLabel">
+              Treatment Name
+              <input
+                className="textInput"
+                value={form.name}
+                onChange={(e) => updateForm("name", e.target.value)}
+                placeholder="Example: Rust Stain Removal"
+              />
+            </label>
+
+            <label className="fieldLabel">
+              Category
+              <input
+                className="textInput"
+                value={form.category}
+                onChange={(e) => updateForm("category", e.target.value)}
+                placeholder="Example: Specialty Restoration"
+              />
+            </label>
+
+            <label className="fieldLabel">
+              Surface Types
+              <input
+                className="textInput"
+                value={form.surfaceTypes}
+                onChange={(e) => updateForm("surfaceTypes", e.target.value)}
+                placeholder="Comma separated: concrete, pavers, stucco"
+              />
+            </label>
+
+            <label className="fieldLabel">
+              Chemical / Product
+              <input
+                className="textInput"
+                value={form.chemical}
+                onChange={(e) => updateForm("chemical", e.target.value)}
+                placeholder="Example: F9 BARC, oxalic acid, SH"
+              />
+            </label>
+
+            <label className="fieldLabel">
+              Dilution Ratio
+              <input
+                className="textInput"
+                value={form.dilutionRatio}
+                onChange={(e) => updateForm("dilutionRatio", e.target.value)}
+                placeholder="Example: 6–8 oz per gallon"
+              />
+            </label>
+
+            <label className="fieldLabel">
+              Use Case
+              <textarea
+                className="textInput"
+                rows={3}
+                value={form.useCase}
+                onChange={(e) => updateForm("useCase", e.target.value)}
+                placeholder="What problem does this treatment solve?"
+              />
+            </label>
+
+            <label className="fieldLabel">
+              Safety Notes
+              <textarea
+                className="textInput"
+                rows={3}
+                value={form.safetyNotes}
+                onChange={(e) => updateForm("safetyNotes", e.target.value)}
+                placeholder="PPE, plant protection, runoff, customer expectation notes..."
+              />
+            </label>
+
+            <label className="fieldLabel">
+              Instructions
+              <textarea
+                className="textInput"
+                rows={4}
+                value={form.instructions}
+                onChange={(e) => updateForm("instructions", e.target.value)}
+                placeholder="Step-by-step field workflow..."
+              />
+            </label>
+
+            <label className="fieldLabel">
+              Purchase Link Optional
+              <input
+                className="textInput"
+                value={form.purchaseLink}
+                onChange={(e) => updateForm("purchaseLink", e.target.value)}
+                placeholder="https://..."
+              />
+            </label>
+
+            <label className="fieldLabel">
+              Cost / Pricing Reference
+              <textarea
+                className="textInput"
+                rows={3}
+                value={form.costReference}
+                onChange={(e) => updateForm("costReference", e.target.value)}
+                placeholder="Material cost, pricing note, add-on guidance..."
+              />
+            </label>
+
+            <div className="buttonRow">
+              <button className="primaryButton" type="submit" disabled={saving}>
+                {saving ? "Saving..." : form.id ? "Save Treatment" : "Create Treatment"}
+              </button>
+
+              <button className="secondaryButton" type="button" onClick={cancelForm}>
+                Cancel
+              </button>
+            </div>
+          </form>
         </section>
       )}
 
       <section className="panel">
-        <h2 className="panelTitle">Treatment Database</h2>
+        <div className="panelHeader">
+          <div>
+            <h2 className="panelTitle">Search Treatments</h2>
+            <p className="brandSubtitle">
+              Employees can quickly filter by category, surface, chemical, stain type, or safety concern.
+            </p>
+          </div>
+        </div>
 
-        <div className="cardsGrid">
-          {treatments.map((item) => (
-            <div key={item.id} className="quoteCard">
-              <div className="quoteTopRow">
-                <div className="quoteNumber">{item.title}</div>
-                <span className="statusBadge status-scheduled">
-                  {item.category}
-                </span>
-              </div>
+        <div className="formGrid">
+          <input
+            className="textInput"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search: roof, rust, concrete, SH, oxidation, plants..."
+          />
 
-              <div className="cardLine">
-                <strong>Surface:</strong> {item.surfaceType}
-              </div>
+          <select
+            className="textInput"
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+          >
+            <option value="all">All Categories</option>
+            {categories.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+          </select>
+        </div>
 
-              <div className="cardLine">
-                <strong>Stain:</strong> {item.stainType}
-              </div>
+        <div className="cardsGrid" style={{ marginTop: 16 }}>
+          {visibleTreatments.map((treatment) => {
+            const active = selectedTreatment?.id === treatment.id;
 
-              <div className="cardLine">
-                <strong>Severity:</strong> {item.severity}
-              </div>
+            return (
+              <button
+                key={treatment.id}
+                className="quoteCard"
+                type="button"
+                onClick={() => setSelectedId(treatment.id)}
+                style={{
+                  textAlign: "left",
+                  cursor: "pointer",
+                  borderColor: active ? "rgba(56, 189, 248, 0.7)" : undefined
+                }}
+              >
+                <div className="quoteTopRow">
+                  <div className="quoteNumber">{treatment.name}</div>
+                  <span className="statusBadge status-approved">
+                    {treatment.category}
+                  </span>
+                </div>
 
-              <div className="cardLine">
-                <strong>Chemical:</strong> {item.chemicalName}
-              </div>
+                <div className="cardLine">
+                  <strong>Chemical:</strong> {treatment.chemical || "—"}
+                </div>
 
-              <div className="cardLine">
-                <strong>Ratio:</strong> {item.dilutionRatio || "—"}
-              </div>
+                <div className="cardLine">
+                  <strong>Dilution:</strong> {treatment.dilutionRatio || "—"}
+                </div>
 
-              <div className="cardLine">
-                <strong>Application:</strong> {item.applicationMethod || "—"}
-              </div>
+                <div className="cardLine">
+                  <strong>Surfaces:</strong>{" "}
+                  {treatment.surfaceTypes?.length
+                    ? treatment.surfaceTypes.join(", ")
+                    : "—"}
+                </div>
+              </button>
+            );
+          })}
 
-              <div className="cardLine">
-                <strong>Dwell:</strong> {item.dwellTime || "—"}
-              </div>
-
-              <div className="cardLine">
-                <strong>Rinse:</strong> {item.rinseMethod || "—"}
-              </div>
-
-              <div className="cardLine">
-                <strong>Safety:</strong> {item.safetyNotes || "—"}
-              </div>
-
-              <div className="cardLine">
-                <strong>Warnings:</strong> {item.damageWarnings || "—"}
-              </div>
-
-              <div className="cardLine">
-                <strong>Cost:</strong> ${Number(item.estimatedMaterialCost || 0).toFixed(2)}
-              </div>
-
-              <div className="cardLine">
-                <strong>Notes:</strong> {item.notes || "—"}
-              </div>
-
-              {item.purchaseLink && (
-                <a href={item.purchaseLink} target="_blank" rel="noreferrer">
-                  Purchase Link
-                </a>
-              )}
-
-              {role === "admin" && (
-                <button
-                  className="secondaryButton"
-                  onClick={() => deleteTreatment(item.id)}
-                >
-                  Delete
-                </button>
-              )}
-            </div>
-          ))}
-
-          {treatments.length === 0 && (
-            <div className="listCard">No treatments yet.</div>
+          {visibleTreatments.length === 0 && (
+            <div className="listCard">No treatments found for this search/filter.</div>
           )}
         </div>
       </section>
+
+      {selectedTreatment && (
+        <section className="panel">
+          <div className="panelHeader">
+            <div>
+              <h2 className="panelTitle">{selectedTreatment.name}</h2>
+              <p className="brandSubtitle">
+                {selectedTreatment.category} • Treatment guidance and field workflow
+              </p>
+            </div>
+
+            {adminAccess && (
+              <div className="buttonRow">
+                <button
+                  className="primaryButton"
+                  type="button"
+                  onClick={() => startEdit(selectedTreatment)}
+                >
+                  Edit
+                </button>
+
+                <button
+                  className="secondaryButton"
+                  type="button"
+                  onClick={() => deleteTreatment(selectedTreatment)}
+                >
+                  Delete
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="statsGrid">
+            <div className="statCard">
+              <div className="statLabel">Category</div>
+              <div className="statValue" style={{ fontSize: 18 }}>
+                {selectedTreatment.category || "General"}
+              </div>
+            </div>
+
+            <div className="statCard">
+              <div className="statLabel">Surfaces</div>
+              <div className="statValue" style={{ fontSize: 18 }}>
+                {selectedTreatment.surfaceTypes?.length || 0}
+              </div>
+            </div>
+
+            <div className="statCard">
+              <div className="statLabel">Chemical</div>
+              <div className="statValue" style={{ fontSize: 18 }}>
+                {selectedTreatment.chemical ? "Listed" : "None"}
+              </div>
+            </div>
+          </div>
+
+          <div className="assignBox" style={{ marginTop: 16 }}>
+            <div className="assignTitle">Surface Types</div>
+            <div className="buttonRow">
+              {(selectedTreatment.surfaceTypes || []).map((surface) => (
+                <span key={surface} className="statusBadge status-approved">
+                  {surface}
+                </span>
+              ))}
+
+              {(!selectedTreatment.surfaceTypes ||
+                selectedTreatment.surfaceTypes.length === 0) && (
+                <div className="cardLine">No surface types listed.</div>
+              )}
+            </div>
+          </div>
+
+          <div className="assignBox">
+            <div className="assignTitle">Chemical / Product</div>
+            <div className="cardLine">{selectedTreatment.chemical || "—"}</div>
+          </div>
+
+          <div className="assignBox">
+            <div className="assignTitle">Dilution Ratio</div>
+            <div className="cardLine">{selectedTreatment.dilutionRatio || "—"}</div>
+          </div>
+
+          <div className="assignBox">
+            <div className="assignTitle">Use Case</div>
+            <div className="cardLine">{selectedTreatment.useCase || "—"}</div>
+          </div>
+
+          <div className="assignBox">
+            <div className="assignTitle">Instructions</div>
+            <div className="cardLine">{selectedTreatment.instructions || "—"}</div>
+          </div>
+
+          <div className="assignBox">
+            <div className="assignTitle">Safety Notes</div>
+            <div className="cardLine">{selectedTreatment.safetyNotes || "—"}</div>
+          </div>
+
+          <div className="assignBox">
+            <div className="assignTitle">Cost / Pricing Reference</div>
+            <div className="cardLine">{selectedTreatment.costReference || "—"}</div>
+          </div>
+
+          {selectedTreatment.purchaseLink && (
+            <div className="assignBox">
+              <div className="assignTitle">Purchase Link</div>
+              <a
+                className="primaryButton"
+                href={selectedTreatment.purchaseLink}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  display: "inline-flex",
+                  width: "fit-content",
+                  textDecoration: "none"
+                }}
+              >
+                Open Product Link
+              </a>
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 }
