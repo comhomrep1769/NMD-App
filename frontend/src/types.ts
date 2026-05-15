@@ -1,6 +1,6 @@
 export type ThemeMode = "dark" | "light";
 
-export type AuthUserRole = "admin" | "employee" | "client";
+export type AuthUserRole = "superadmin" | "admin" | "employee" | "client";
 
 export type PageKey =
   | "dashboard"
@@ -260,7 +260,14 @@ export type RecurringService = {
   clientId?: string | null;
   clientName: string;
   serviceType: string;
-  frequency: "weekly" | "biweekly" | "monthly" | "bimonthly" | "quarterly" | "biannual" | "annual";
+  frequency:
+    | "weekly"
+    | "biweekly"
+    | "monthly"
+    | "bimonthly"
+    | "quarterly"
+    | "biannual"
+    | "annual";
   price: number;
   nextServiceDate?: string | null;
   status: RecurringServiceStatus;
