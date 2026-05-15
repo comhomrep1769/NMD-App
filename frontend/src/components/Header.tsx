@@ -1,13 +1,6 @@
 import React from "react";
 import type { AuthUser, ThemeMode } from "../types";
-
-function roleLabel(user: AuthUser | null) {
-  if (!user) return "Guest";
-  if (user.role === "superadmin") return "Super Admin";
-  if (user.role === "admin") return "Admin";
-  if (user.role === "employee") return "Employee";
-  return "Client";
-}
+import { getRoleLabel } from "../utils/roles";
 
 function roleBadgeClass(user: AuthUser | null) {
   if (!user) return "statusBadge status-archived";
@@ -15,6 +8,14 @@ function roleBadgeClass(user: AuthUser | null) {
   if (user.role === "admin") return "statusBadge status-approved";
   if (user.role === "employee") return "statusBadge status-pending_admin_approval";
   return "statusBadge status-approved";
+}
+
+function headerTitle(user: AuthUser | null) {
+  if (!user) return "No More Dirt";
+  if (user.role === "superadmin") return "Owner Command Center";
+  if (user.role === "admin") return "Admin Command Center";
+  if (user.role === "employee") return "Employee Portal";
+  return "Client Portal";
 }
 
 export default function Header({
@@ -32,17 +33,7 @@ export default function Header({
     <header className="topHeader">
       <div>
         <div className="headerKicker">NMD Pressure Washing Services</div>
-        <h1 className="headerTitle">
-          {user?.role === "superadmin"
-            ? "Owner Command Center"
-            : user?.role === "admin"
-              ? "Admin Command Center"
-              : user?.role === "employee"
-                ? "Employee Portal"
-                : user?.role === "client"
-                  ? "Client Portal"
-                  : "No More Dirt"}
-        </h1>
+        <h1 className="headerTitle">{headerTitle(user)}</h1>
       </div>
 
       <div className="headerActions">
@@ -53,7 +44,7 @@ export default function Header({
               <div className="userEmail">{user.email}</div>
             </div>
 
-            <span className={roleBadgeClass(user)}>{roleLabel(user)}</span>
+            <span className={roleBadgeClass(user)}>{getRoleLabel(user)}</span>
           </div>
         )}
 
