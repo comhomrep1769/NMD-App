@@ -36,6 +36,8 @@ function mapGuruEstimate(row: any) {
     preliminaryNotes: row.preliminary_notes,
     preliminaryEstimateLow: Number(row.preliminary_estimate_low || 0),
     preliminaryEstimateHigh: Number(row.preliminary_estimate_high || 0),
+    photoDataUrl: row.photo_data_url,
+    photoNote: row.photo_note,
     createdAt: row.created_at,
     reviewedAt: row.reviewed_at,
     reviewedBy: row.reviewed_by
@@ -70,7 +72,7 @@ function getGuruReply(role: string, message: string) {
     }
 
     if (lower.includes("photo") || lower.includes("image")) {
-      return "Photos help NMD estimate more accurately. Please upload clear pictures showing the full area, stains, surface type, access points, and any problem spots. Photo upload for Guru is coming in a later phase.";
+      return "Photos help NMD estimate more accurately. Upload clear pictures showing the full area, stains, surface type, access points, and any problem spots.";
     }
 
     if (lower.includes("status") || lower.includes("history")) {
@@ -314,7 +316,9 @@ router.post("/estimate-intake", requireAuth, async (req, res) => {
       conditionLevel,
       squareFootage,
       preferredSchedule,
-      specialConcerns
+      specialConcerns,
+      photoDataUrl,
+      photoNote
     } = req.body as {
       clientName?: string;
       phone?: string;
@@ -327,11 +331,19 @@ router.post("/estimate-intake", requireAuth, async (req, res) => {
       squareFootage?: string;
       preferredSchedule?: string;
       specialConcerns?: string;
+      photoDataUrl?: string | null;
+      photoNote?: string;
     };
 
     if (!clientName || !phone || !email || !address || !serviceType) {
       return res.status(400).json({
         error: "Name, phone, email, address, and service type are required"
+      });
+    }
+
+    if (photoDataUrl && photoDataUrl.length > 2_500_000) {
+      return res.status(400).json({
+        error: "Estimate photo is too large. Please upload a smaller image."
       });
     }
 
@@ -377,10 +389,12 @@ router.post("/estimate-intake", requireAuth, async (req, res) => {
         special_concerns,
         preliminary_notes,
         preliminary_estimate_low,
-        preliminary_estimate_high
+        preliminary_estimate_high,
+        photo_data_url,
+        photo_note
       )
       VALUES (
-        $1,$2,'guru','needs_review',$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16
+        $1,$2,'guru','needs_review',$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18
       )
       RETURNING *
       `,
@@ -400,7 +414,9 @@ router.post("/estimate-intake", requireAuth, async (req, res) => {
         specialConcerns?.trim() || "",
         "Preliminary Guru estimate only. Final pricing requires admin review, photos when available, and/or in-person verification.",
         range.low,
-        range.high
+        range.high,
+        photoDataUrl || null,
+        photoNote?.trim() || ""
       ]
     );
 
@@ -418,12 +434,12 @@ router.post("/estimate-intake", requireAuth, async (req, res) => {
       `,
       [
         req.user!.id,
-        `Submitted Guru estimate intake for ${serviceType} at ${address}.`,
+        `Submitted Guru estimate intake for ${serviceType} at ${address}${photoDataUrl ? " with a photo." : "."}`,
         `Thanks. I submitted your preliminary estimate request for admin review. Early range: $${range.low.toFixed(
           2
         )} - $${range.high.toFixed(
           2
-        )}. This is not a final quote. NMD will review the details before confirming official pricing.`
+        )}. This is not a final quote. NMD will review the details${photoDataUrl ? " and photo" : ""} before confirming official pricing.`
       ]
     );
 
@@ -588,6 +604,7 @@ router.post(
         estimate.condition_level ? `Condition: ${estimate.condition_level}` : "",
         estimate.square_footage ? `Size: ${estimate.square_footage}` : "",
         estimate.special_concerns ? `Concerns: ${estimate.special_concerns}` : "",
+        estimate.photo_note ? `Photo note: ${estimate.photo_note}` : "",
         notes ? `Admin notes: ${notes}` : ""
       ]
         .filter(Boolean)
