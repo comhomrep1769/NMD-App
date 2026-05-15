@@ -13,13 +13,22 @@ type NavGroup = {
   items: NavItem[];
 };
 
-function getAdminGroups(): NavGroup[] {
+function isAdminRole(role: AuthUserRole) {
+  return role === "admin" || role === "superadmin";
+}
+
+function getAdminGroups(role: AuthUserRole): NavGroup[] {
   return [
     {
-      title: "Main",
+      title: role === "superadmin" ? "Super Admin" : "Main",
       items: [
         { key: "dashboard", label: "Dashboard", description: "Admin overview" },
-        { key: "guru-estimates", label: "Guru Review", description: "Review Guru estimates", badge: "AI" },
+        {
+          key: "guru-estimates",
+          label: "Guru Review",
+          description: "Review Guru estimates",
+          badge: role === "superadmin" ? "Owner AI" : "AI"
+        },
         { key: "schedule", label: "Schedule", description: "Live team schedule" },
         { key: "chat", label: "Chat", description: "Team and client messages" }
       ]
@@ -94,7 +103,12 @@ function getClientGroups(): NavGroup[] {
       title: "Client",
       items: [
         { key: "dashboard", label: "Dashboard", description: "Client overview" },
-        { key: "client-estimates", label: "My Estimates", description: "Guru estimate requests", badge: "Guru" },
+        {
+          key: "client-estimates",
+          label: "My Estimates",
+          description: "Guru estimate requests",
+          badge: "Guru"
+        },
         { key: "client-quotes", label: "My Quotes", description: "NMD quote records" },
         { key: "chat", label: "Chat", description: "Message NMD" }
       ]
@@ -103,9 +117,16 @@ function getClientGroups(): NavGroup[] {
 }
 
 function getGroups(role: AuthUserRole): NavGroup[] {
-  if (role === "admin") return getAdminGroups();
+  if (isAdminRole(role)) return getAdminGroups(role);
   if (role === "employee") return getEmployeeGroups();
   return getClientGroups();
+}
+
+function getPortalLabel(role: AuthUserRole) {
+  if (role === "superadmin") return "Super Admin Portal";
+  if (role === "admin") return "Admin Portal";
+  if (role === "employee") return "Employee Portal";
+  return "Client Portal";
 }
 
 export default function Sidebar({
@@ -126,9 +147,7 @@ export default function Sidebar({
 
         <div>
           <div className="sidebarTitle">No More Dirt</div>
-          <div className="sidebarSubtitle">
-            {role === "admin" ? "Admin Portal" : role === "employee" ? "Employee Portal" : "Client Portal"}
-          </div>
+          <div className="sidebarSubtitle">{getPortalLabel(role)}</div>
         </div>
       </div>
 
@@ -167,7 +186,9 @@ export default function Sidebar({
       </nav>
 
       <div className="sidebarFooter">
-        <div className="sidebarFooterTitle">Guru Assistant</div>
+        <div className="sidebarFooterTitle">
+          {role === "superadmin" ? "Owner Guru Assistant" : "Guru Assistant"}
+        </div>
         <div className="sidebarFooterText">
           Use the floating Guru icon for estimates, field tools, pricing help, and workflow shortcuts.
         </div>
