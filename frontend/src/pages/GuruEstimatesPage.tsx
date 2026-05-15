@@ -30,6 +30,8 @@ export default function GuruEstimatesPage() {
   const [quoteTotal, setQuoteTotal] = React.useState("");
   const [convertNotes, setConvertNotes] = React.useState("");
 
+  const [expandedPhotoId, setExpandedPhotoId] = React.useState<string | null>(null);
+
   const loadEstimates = React.useCallback(async () => {
     setError("");
 
@@ -145,6 +147,7 @@ export default function GuruEstimatesPage() {
   );
 
   const selectedConvertEstimate = estimates.find((estimate) => estimate.id === convertEstimateId);
+  const expandedPhotoEstimate = estimates.find((estimate) => estimate.id === expandedPhotoId);
 
   if (loading) {
     return (
@@ -157,12 +160,51 @@ export default function GuruEstimatesPage() {
 
   return (
     <div className="pageGrid">
+      {expandedPhotoEstimate?.photoDataUrl && (
+        <section className="panel">
+          <div className="panelHeader">
+            <div>
+              <h2 className="panelTitle">Estimate Photo</h2>
+              <p className="brandSubtitle">
+                {expandedPhotoEstimate.clientName || "Client"} •{" "}
+                {expandedPhotoEstimate.serviceType || "Service"}
+              </p>
+            </div>
+
+            <button
+              className="secondaryButton"
+              type="button"
+              onClick={() => setExpandedPhotoId(null)}
+            >
+              Close Photo
+            </button>
+          </div>
+
+          <img
+            src={expandedPhotoEstimate.photoDataUrl}
+            alt="Guru estimate uploaded photo"
+            style={{
+              width: "100%",
+              maxHeight: "72vh",
+              objectFit: "contain",
+              borderRadius: 18,
+              border: "1px solid var(--border)",
+              background: "rgba(0,0,0,0.2)"
+            }}
+          />
+
+          <div className="listCard" style={{ marginTop: 12 }}>
+            <strong>Photo Note:</strong> {expandedPhotoEstimate.photoNote || "No photo note provided."}
+          </div>
+        </section>
+      )}
+
       <section className="panel">
         <div className="panelHeader">
           <div>
             <h2 className="panelTitle">Guru Estimates Review</h2>
             <p className="brandSubtitle">
-              Review preliminary client estimates created through Guru before converting them into official quotes.
+              Review preliminary client estimates, uploaded photos, and details before converting them into official quotes.
             </p>
           </div>
         </div>
@@ -195,6 +237,13 @@ export default function GuruEstimatesPage() {
           <div className="statCard">
             <div className="statLabel">Declined</div>
             <div className="statValue">{declined.length}</div>
+          </div>
+
+          <div className="statCard">
+            <div className="statLabel">With Photos</div>
+            <div className="statValue">
+              {estimates.filter((estimate) => Boolean(estimate.photoDataUrl)).length}
+            </div>
           </div>
 
           <div className="statCard">
@@ -265,6 +314,20 @@ export default function GuruEstimatesPage() {
               <div className="cardLine">
                 <strong>Concerns:</strong> {selectedConvertEstimate.specialConcerns || "—"}
               </div>
+              <div className="cardLine">
+                <strong>Photo Note:</strong> {selectedConvertEstimate.photoNote || "—"}
+              </div>
+
+              {selectedConvertEstimate.photoDataUrl && (
+                <button
+                  className="secondaryButton"
+                  type="button"
+                  onClick={() => setExpandedPhotoId(selectedConvertEstimate.id)}
+                  style={{ marginTop: 10 }}
+                >
+                  View Uploaded Photo
+                </button>
+              )}
             </div>
 
             <div className="buttonRow">
@@ -357,6 +420,32 @@ export default function GuruEstimatesPage() {
                 </span>
               </div>
 
+              {estimate.photoDataUrl && (
+                <div style={{ marginBottom: 12 }}>
+                  <img
+                    src={estimate.photoDataUrl}
+                    alt="Guru estimate uploaded preview"
+                    style={{
+                      width: "100%",
+                      height: 190,
+                      objectFit: "cover",
+                      borderRadius: 14,
+                      border: "1px solid var(--border)"
+                    }}
+                  />
+
+                  <div className="buttonRow" style={{ marginTop: 8 }}>
+                    <button
+                      className="secondaryButton"
+                      type="button"
+                      onClick={() => setExpandedPhotoId(estimate.id)}
+                    >
+                      View Photo
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="cardLine">
                 <strong>Service:</strong> {estimate.serviceType || "—"}
               </div>
@@ -400,6 +489,10 @@ export default function GuruEstimatesPage() {
 
               <div className="cardLine">
                 <strong>Special Concerns:</strong> {estimate.specialConcerns || "—"}
+              </div>
+
+              <div className="cardLine">
+                <strong>Photo Note:</strong> {estimate.photoNote || "—"}
               </div>
 
               <div className="cardLine">
