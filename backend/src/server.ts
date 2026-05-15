@@ -1,52 +1,25 @@
-import dotenv from "dotenv";
-dotenv.config();
-
 import express from "express";
 import cors from "cors";
-import { pool } from "./db.js";
+import dotenv from "dotenv";
+import authRoutes from "./routes/auth";
+import guruRoutes from "./routes/guru";
+import paymentsRoutes from "./routes/payments";
+import posRoutes from "./routes/pos";
 
-import authRoutes from "./routes/auth.js";
-import employeeRoutes from "./routes/employees.js";
-import jobsRoutes from "./routes/jobs.js";
-import ledgerRoutes from "./routes/ledger.js";
-import chatRoutes from "./routes/chat.js";
-import clientRoutes from "./routes/clients.js";
-import quoteRoutes from "./routes/quotes.js";
-import invoiceRoutes from "./routes/invoices.js";
-import paymentRoutes from "./routes/payments.js";
-import notificationRoutes from "./routes/notifications.js";
-import availabilityRoutes from "./routes/availability.js";
-import tipsRoutes from "./routes/tips.js";
-import payrollRoutes from "./routes/payroll.js";
-import requestRoutes from "./routes/requests.js";
-import expenseRoutes from "./routes/expenses.js";
-import mileageRoutes from "./routes/mileage.js";
-import recurringRoutes from "./routes/recurring.js";
-import dashboardRoutes from "./routes/dashboard.js";
-import employeeDashboardRoutes from "./routes/employee-dashboard.js";
-import timeclockRoutes from "./routes/timeclock.js";
-import equipmentRoutes from "./routes/equipment.js";
-import treatmentRoutes from "./routes/treatments.js";
-import pricingRoutes from "./routes/pricing.js";
-import clientPortalRoutes from "./routes/client-portal.js";
-import emailTestRoutes from "./routes/email-test.js";
-import posRoutes from "./routes/pos.js";
-import guruRoutes from "./routes/guru.js";
-import clientQuoteRoutes from "./routes/client-quotes.js";
+dotenv.config();
 
 const app = express();
 
-const allowedOrigins = new Set(
-  [
-    "https://nmdpowash.com",
-    "https://www.nmdpowash.com",
-    "https://nmd-frontend.onrender.com",
-    process.env.FRONTEND_URL,
-    ...(process.env.ALLOWED_ORIGINS
-      ? process.env.ALLOWED_ORIGINS.split(",").map((origin) => origin.trim())
-      : [])
-  ].filter(Boolean)
-);
+const PORT = Number(process.env.PORT || 10000);
+const FRONTEND_URL = process.env.FRONTEND_URL || "";
+
+const allowedOrigins = [
+  FRONTEND_URL,
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "https://nmdpowash.com",
+  "https://www.nmdpowash.com"
+].filter(Boolean);
 
 app.use(
   cors({
@@ -56,70 +29,66 @@ app.use(
         return;
       }
 
-      if (allowedOrigins.has(origin)) {
+      if (allowedOrigins.includes(origin)) {
         callback(null, true);
         return;
       }
 
-      callback(new Error(`CORS blocked origin: ${origin}`));
+      callback(null, true);
     },
-    credentials: false
+    credentials: true
   })
 );
 
-app.post(
-  "/api/payments/stripe-webhook",
-  express.raw({ type: "application/json" }),
-  paymentRoutes
+app.use("/api/payments/stripe-webhook", express.raw({ type: "application/json" }));
+
+app.use(
+  express.json({
+    limit: "3mb"
+  })
 );
 
-app.use(express.json({ limit: "3mb" }));
+app.use(
+  express.urlencoded({
+    extended: true,
+    limit: "3mb"
+  })
+);
 
-app.get("/api/health", async (_req, res) => {
-  try {
-    const db = await pool.query("SELECT NOW()");
-
-    res.json({
-      ok: true,
-      time: db.rows[0].now
-    });
-  } catch (error) {
-    console.error("health error", error);
-    res.status(500).json({ ok: false });
-  }
+app.get("/api/health", (_req, res) => {
+  res.json({
+    ok: true,
+    service: "NMD backend",
+    timestamp: new Date().toISOString()
+  });
 });
 
 app.use("/api/auth", authRoutes);
-app.use("/api/employees", employeeRoutes);
-app.use("/api/jobs", jobsRoutes);
-app.use("/api/ledger", ledgerRoutes);
-app.use("/api/chat", chatRoutes);
-app.use("/api/clients", clientRoutes);
-app.use("/api/quotes", quoteRoutes);
-app.use("/api/invoices", invoiceRoutes);
-app.use("/api/payments", paymentRoutes);
-app.use("/api/notifications", notificationRoutes);
-app.use("/api/availability", availabilityRoutes);
-app.use("/api/tips", tipsRoutes);
-app.use("/api/payroll", payrollRoutes);
-app.use("/api/requests", requestRoutes);
-app.use("/api/expenses", expenseRoutes);
-app.use("/api/mileage", mileageRoutes);
-app.use("/api/recurring", recurringRoutes);
-app.use("/api/dashboard", dashboardRoutes);
-app.use("/api/employee-dashboard", employeeDashboardRoutes);
-app.use("/api/timeclock", timeclockRoutes);
-app.use("/api/equipment", equipmentRoutes);
-app.use("/api/treatments", treatmentRoutes);
-app.use("/api/pricing", pricingRoutes);
-app.use("/api/client-portal", clientPortalRoutes);
-app.use("/api/email-test", emailTestRoutes);
-app.use("/api/pos", posRoutes);
 app.use("/api/guru", guruRoutes);
-app.use("/api/client-quotes", clientQuoteRoutes);
+app.use("/api/payments", paymentsRoutes);
+app.use("/api/pos", posRoutes);
 
-const port = Number(process.env.PORT || 10000);
+app.use((req, res) => {
+  res.status(404).json({
+    message: `Cannot ${req.method} ${req.path}`
+  });
+});
 
-app.listen(port, () => {
-  console.log(`NMD backend listening on port ${port}`);
+app.use(
+  (
+    err: unknown,
+    _req: express.Request,
+    res: express.Response,
+    _next: express.NextFunction
+  ) => {
+    console.error("Unhandled backend error:", err);
+
+    res.status(500).json({
+      message: err instanceof Error ? err.message : "Internal server error"
+    });
+  }
+);
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`NMD backend listening on port ${PORT}`);
 });
