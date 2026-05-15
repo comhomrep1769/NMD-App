@@ -16,6 +16,44 @@ function statusClass(status: GuruEstimateStatus) {
   return `status-${status}`;
 }
 
+function cleanText(value?: string | null) {
+  return value && value.trim() ? value : "—";
+}
+
+function pricingExplanation(estimate: GuruEstimate) {
+  const pieces: string[] = [];
+
+  if (estimate.serviceType) {
+    pieces.push(`Service type: ${estimate.serviceType}`);
+  }
+
+  if (estimate.surfaceType) {
+    pieces.push(`Surface/material: ${estimate.surfaceType}`);
+  }
+
+  if (estimate.propertyArea) {
+    pieces.push(`Area: ${estimate.propertyArea}`);
+  }
+
+  if (estimate.squareFootage) {
+    pieces.push(`Size/dimensions: ${estimate.squareFootage}`);
+  }
+
+  if (estimate.conditionLevel) {
+    pieces.push(`Condition: ${estimate.conditionLevel}`);
+  }
+
+  if (estimate.specialConcerns) {
+    pieces.push(`Special concerns: ${estimate.specialConcerns}`);
+  }
+
+  if (estimate.photoDataUrl) {
+    pieces.push("Client uploaded a photo for review");
+  }
+
+  return pieces;
+}
+
 export default function GuruEstimatesPage() {
   const [estimates, setEstimates] = React.useState<GuruEstimate[]>([]);
   const [filter, setFilter] = React.useState<
@@ -31,6 +69,7 @@ export default function GuruEstimatesPage() {
   const [convertNotes, setConvertNotes] = React.useState("");
 
   const [expandedPhotoId, setExpandedPhotoId] = React.useState<string | null>(null);
+  const [expandedPricingId, setExpandedPricingId] = React.useState<string | null>(null);
 
   const loadEstimates = React.useCallback(async () => {
     setError("");
@@ -148,6 +187,7 @@ export default function GuruEstimatesPage() {
 
   const selectedConvertEstimate = estimates.find((estimate) => estimate.id === convertEstimateId);
   const expandedPhotoEstimate = estimates.find((estimate) => estimate.id === expandedPhotoId);
+  const expandedPricingEstimate = estimates.find((estimate) => estimate.id === expandedPricingId);
 
   if (loading) {
     return (
@@ -199,12 +239,81 @@ export default function GuruEstimatesPage() {
         </section>
       )}
 
+      {expandedPricingEstimate && (
+        <section className="panel">
+          <div className="panelHeader">
+            <div>
+              <h2 className="panelTitle">Guru Pricing Explanation</h2>
+              <p className="brandSubtitle">
+                {expandedPricingEstimate.clientName || "Client"} •{" "}
+                {expandedPricingEstimate.serviceType || "Service"}
+              </p>
+            </div>
+
+            <button
+              className="secondaryButton"
+              type="button"
+              onClick={() => setExpandedPricingId(null)}
+            >
+              Close Explanation
+            </button>
+          </div>
+
+          <div className="statsGrid">
+            <div className="statCard">
+              <div className="statLabel">Preliminary Low</div>
+              <div className="statValue">
+                ${expandedPricingEstimate.preliminaryEstimateLow.toFixed(2)}
+              </div>
+            </div>
+
+            <div className="statCard">
+              <div className="statLabel">Preliminary High</div>
+              <div className="statValue">
+                ${expandedPricingEstimate.preliminaryEstimateHigh.toFixed(2)}
+              </div>
+            </div>
+          </div>
+
+          <div className="assignBox" style={{ marginTop: 16 }}>
+            <div className="assignTitle">Pricing Basis</div>
+            <div className="cardLine">
+              {expandedPricingEstimate.preliminaryNotes ||
+                "Guru used the selected service type, condition, surface, size, and concerns to create a preliminary range."}
+            </div>
+          </div>
+
+          <div className="assignBox">
+            <div className="assignTitle">Inputs Guru Considered</div>
+
+            {pricingExplanation(expandedPricingEstimate).map((item) => (
+              <div key={item} className="cardLine">
+                • {item}
+              </div>
+            ))}
+
+            {pricingExplanation(expandedPricingEstimate).length === 0 && (
+              <div className="cardLine">No detailed estimate inputs were provided.</div>
+            )}
+          </div>
+
+          <div className="assignBox">
+            <div className="assignTitle">Admin Review Reminder</div>
+            <div className="cardLine">
+              This range is not final pricing. Review photos, property access, surface condition,
+              risk, oxidation, plant protection, chemical needs, labor time, travel, minimum service
+              charge, and customer expectations before sending the official quote.
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="panel">
         <div className="panelHeader">
           <div>
             <h2 className="panelTitle">Guru Estimates Review</h2>
             <p className="brandSubtitle">
-              Review preliminary client estimates, uploaded photos, and details before converting them into official quotes.
+              Review preliminary client estimates, uploaded photos, pricing logic, and details before converting them into official quotes.
             </p>
           </div>
         </div>
@@ -318,16 +427,25 @@ export default function GuruEstimatesPage() {
                 <strong>Photo Note:</strong> {selectedConvertEstimate.photoNote || "—"}
               </div>
 
-              {selectedConvertEstimate.photoDataUrl && (
+              <div className="buttonRow" style={{ marginTop: 10 }}>
                 <button
                   className="secondaryButton"
                   type="button"
-                  onClick={() => setExpandedPhotoId(selectedConvertEstimate.id)}
-                  style={{ marginTop: 10 }}
+                  onClick={() => setExpandedPricingId(selectedConvertEstimate.id)}
                 >
-                  View Uploaded Photo
+                  View Pricing Explanation
                 </button>
-              )}
+
+                {selectedConvertEstimate.photoDataUrl && (
+                  <button
+                    className="secondaryButton"
+                    type="button"
+                    onClick={() => setExpandedPhotoId(selectedConvertEstimate.id)}
+                  >
+                    View Uploaded Photo
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="buttonRow">
@@ -446,57 +564,68 @@ export default function GuruEstimatesPage() {
                 </div>
               )}
 
-              <div className="cardLine">
-                <strong>Service:</strong> {estimate.serviceType || "—"}
+              <div className="assignBox" style={{ marginBottom: 12 }}>
+                <div className="assignTitle">Guru Pricing</div>
+                <div className="cardLine">
+                  <strong>Range:</strong> ${estimate.preliminaryEstimateLow.toFixed(2)} - $
+                  {estimate.preliminaryEstimateHigh.toFixed(2)}
+                </div>
+                <div className="cardLine">
+                  <strong>Basis:</strong> {cleanText(estimate.preliminaryNotes)}
+                </div>
+
+                <button
+                  className="secondaryButton"
+                  type="button"
+                  onClick={() => setExpandedPricingId(estimate.id)}
+                  style={{ marginTop: 10 }}
+                >
+                  View Pricing Explanation
+                </button>
               </div>
 
               <div className="cardLine">
-                <strong>Range:</strong> ${estimate.preliminaryEstimateLow.toFixed(2)} - $
-                {estimate.preliminaryEstimateHigh.toFixed(2)}
+                <strong>Service:</strong> {cleanText(estimate.serviceType)}
               </div>
 
               <div className="cardLine">
-                <strong>Phone:</strong> {estimate.phone || "—"}
+                <strong>Phone:</strong> {cleanText(estimate.phone)}
               </div>
 
               <div className="cardLine">
-                <strong>Email:</strong> {estimate.email || "—"}
+                <strong>Email:</strong> {cleanText(estimate.email)}
               </div>
 
               <div className="cardLine">
-                <strong>Address:</strong> {estimate.address || "—"}
+                <strong>Address:</strong> {cleanText(estimate.address)}
               </div>
 
               <div className="cardLine">
-                <strong>Property Area:</strong> {estimate.propertyArea || "—"}
+                <strong>Property Area:</strong> {cleanText(estimate.propertyArea)}
               </div>
 
               <div className="cardLine">
-                <strong>Surface:</strong> {estimate.surfaceType || "—"}
+                <strong>Surface:</strong> {cleanText(estimate.surfaceType)}
               </div>
 
               <div className="cardLine">
-                <strong>Condition:</strong> {estimate.conditionLevel || "—"}
+                <strong>Condition:</strong> {cleanText(estimate.conditionLevel)}
               </div>
 
               <div className="cardLine">
-                <strong>Size:</strong> {estimate.squareFootage || "—"}
+                <strong>Size:</strong> {cleanText(estimate.squareFootage)}
               </div>
 
               <div className="cardLine">
-                <strong>Preferred Schedule:</strong> {estimate.preferredSchedule || "—"}
+                <strong>Preferred Schedule:</strong> {cleanText(estimate.preferredSchedule)}
               </div>
 
               <div className="cardLine">
-                <strong>Special Concerns:</strong> {estimate.specialConcerns || "—"}
+                <strong>Special Concerns:</strong> {cleanText(estimate.specialConcerns)}
               </div>
 
               <div className="cardLine">
-                <strong>Photo Note:</strong> {estimate.photoNote || "—"}
-              </div>
-
-              <div className="cardLine">
-                <strong>Notes:</strong> {estimate.preliminaryNotes || "—"}
+                <strong>Photo Note:</strong> {cleanText(estimate.photoNote)}
               </div>
 
               <div className="cardLine">
