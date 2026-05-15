@@ -21,6 +21,10 @@ function mapGuruEstimate(row: any) {
     id: row.id,
     userId: row.user_id,
     clientId: row.client_id,
+    quoteId: row.quote_id,
+    quoteNumber: row.quote_number ? Number(row.quote_number) : null,
+    quoteTotal: row.quote_total ? Number(row.quote_total) : null,
+    quoteStatus: row.quote_status || null,
     source: row.source,
     status: row.status,
     clientName: row.client_name,
@@ -216,8 +220,8 @@ function estimateRange(input: {
     pricingBasis = "Fence cleaning preliminary range";
 
     if (sqft > 0) {
-      low = Math.max(low, sqft * 0.20);
-      high = Math.max(high, sqft * 0.60);
+      low = Math.max(low, sqft * 0.2);
+      high = Math.max(high, sqft * 0.6);
     }
   }
 
@@ -228,7 +232,7 @@ function estimateRange(input: {
 
     if (sqft > 0) {
       low = Math.max(low, sqft * 0.15);
-      high = Math.max(high, sqft * 0.80);
+      high = Math.max(high, sqft * 0.8);
     }
   }
 
@@ -239,7 +243,7 @@ function estimateRange(input: {
 
     if (sqft > 0) {
       low = Math.max(150, sqft * 0.15);
-      high = Math.max(400, sqft * 0.80);
+      high = Math.max(400, sqft * 0.8);
     }
   }
 
@@ -263,7 +267,7 @@ function estimateRange(input: {
     pricingBasis = "Rust removal / specialty restoration preliminary range";
 
     if (sqft > 0) {
-      low = Math.max(low, sqft * 0.40);
+      low = Math.max(low, sqft * 0.4);
       high = Math.max(high, sqft * 1.25);
     }
   }
@@ -745,11 +749,16 @@ router.get("/my-estimates", requireAuth, requireRole("client"), async (req, res)
   try {
     const result = await pool.query(
       `
-      SELECT *
-      FROM guru_estimates
-      WHERE user_id = $1
-         OR LOWER(email) = LOWER($2)
-      ORDER BY created_at DESC
+      SELECT
+        ge.*,
+        q.quote_number,
+        q.total AS quote_total,
+        q.status AS quote_status
+      FROM guru_estimates ge
+      LEFT JOIN quotes q ON q.id = ge.quote_id
+      WHERE ge.user_id = $1
+         OR LOWER(ge.email) = LOWER($2)
+      ORDER BY ge.created_at DESC
       `,
       [req.user!.id, req.user!.email]
     );
@@ -771,9 +780,14 @@ router.get(
     try {
       const result = await pool.query(
         `
-        SELECT *
-        FROM guru_estimates
-        ORDER BY created_at DESC
+        SELECT
+          ge.*,
+          q.quote_number,
+          q.total AS quote_total,
+          q.status AS quote_status
+        FROM guru_estimates ge
+        LEFT JOIN quotes q ON q.id = ge.quote_id
+        ORDER BY ge.created_at DESC
         `
       );
 
@@ -957,21 +971,23 @@ router.post(
         ]
       );
 
+      const quote = quoteResult.rows[0];
+
       const updatedEstimateResult = await client.query(
         `
         UPDATE guru_estimates
         SET
           status = 'converted_to_quote',
+          quote_id = $2,
           reviewed_at = NOW(),
-          reviewed_by = $2
+          reviewed_by = $3
         WHERE id = $1
         RETURNING *
         `,
-        [estimateId, req.user!.id]
+        [estimateId, quote.id, req.user!.id]
       );
 
       const updatedEstimate = updatedEstimateResult.rows[0];
-      const quote = quoteResult.rows[0];
 
       if (estimate.user_id) {
         await client.query(
@@ -986,7 +1002,7 @@ router.post(
           `,
           [
             estimate.user_id,
-            `Your Guru estimate has been reviewed and converted into a draft quote for admin finalization. This is still not a final sent quote until NMD sends it officially.`
+            `Your Guru estimate has been reviewed and connected to draft Quote #${quote.quote_number}. This is still not a final sent quote until NMD sends it officially.`
           ]
         );
       }
@@ -1002,7 +1018,12 @@ router.post(
       });
 
       return res.status(201).json({
-        estimate: mapGuruEstimate(updatedEstimate),
+        estimate: mapGuruEstimate({
+          ...updatedEstimate,
+          quote_number: quote.quote_number,
+          quote_total: quote.total,
+          quote_status: quote.status
+        }),
         quote: mapQuote(quote)
       });
     } catch (error) {
