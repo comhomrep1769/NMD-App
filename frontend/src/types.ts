@@ -1,12 +1,14 @@
 export type ThemeMode = "dark" | "light";
 
+export type AuthUserRole = "admin" | "employee" | "client";
+
 export type PageKey =
   | "dashboard"
   | "clients"
   | "quotes"
   | "invoices"
-  | "schedule"
   | "employees"
+  | "schedule"
   | "chat"
   | "availability"
   | "tips"
@@ -15,34 +17,38 @@ export type PageKey =
   | "expenses"
   | "mileage"
   | "recurring"
+  | "timeclock"
   | "equipment"
   | "treatments"
   | "pricing"
-  | "timeclock"
   | "email"
   | "pos"
+  | "my-ledger"
   | "guru-estimates"
   | "client-estimates"
-  | "client-quotes"
-  | "service-request"
-  | "my-ledger";
-
-export type Role = "admin" | "employee" | "client";
+  | "client-quotes";
 
 export type AuthUser = {
   id: string;
   email: string;
   displayName: string;
-  role: Role;
+  role: AuthUserRole;
+  payRate?: number | null;
+  phone?: string | null;
+  dateJoined?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type Client = {
   id: string;
-  firstName: string;
-  lastName: string;
-  phone: string;
-  email: string;
-  address: string;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  notes?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type QuoteStatus = "draft" | "sent" | "accepted" | "declined" | "expired";
@@ -51,69 +57,57 @@ export type Quote = {
   id: string;
   quoteNumber: number;
   clientId?: string | null;
-  clientName: string;
-  serviceType: string;
+  clientName?: string | null;
+  clientEmail?: string | null;
+  clientPhone?: string | null;
+  serviceType?: string | null;
+  serviceAddress?: string | null;
+  description?: string | null;
+  subtotal?: number;
+  taxRate?: number;
+  taxAmount?: number;
   total: number;
   status: QuoteStatus;
-  convertedInvoiceId?: string | null;
-  acceptedAt?: string | null;
+  notes?: string | null;
   createdAt?: string;
+  updatedAt?: string;
+  sentAt?: string | null;
+  acceptedAt?: string | null;
+  declinedAt?: string | null;
 };
 
-export type InvoiceStatus = "paid" | "unpaid";
+export type InvoiceStatus =
+  | "draft"
+  | "sent"
+  | "paid"
+  | "partial"
+  | "overdue"
+  | "void"
+  | "cancelled";
 
 export type Invoice = {
   id: string;
   invoiceNumber: number;
   clientId?: string | null;
-  clientName: string;
-  jobName: string;
+  clientName?: string | null;
+  clientEmail?: string | null;
+  clientPhone?: string | null;
+  serviceType?: string | null;
+  serviceAddress?: string | null;
+  description?: string | null;
   subtotal?: number;
   taxRate?: number;
-  salesTaxAmount?: number;
+  taxAmount?: number;
   total: number;
+  amountPaid?: number;
+  balanceDue?: number;
   status: InvoiceStatus;
-  jobId?: string | null;
-  jobTitle?: string | null;
-  assignedUserId?: string | null;
-  assignedEmployeeName?: string | null;
-  createdAt?: string;
-  paymentProvider?: string | null;
-  paymentLinkId?: string | null;
-  paymentLinkUrl?: string | null;
-  paymentStatus?: "unpaid" | "link_created" | "paid" | "expired" | string;
-  paymentCreatedAt?: string | null;
-  stripeCheckoutSessionId?: string | null;
-};
-
-export type POSPaymentMethod = "card_link" | "tap_to_pay" | "cash";
-
-export type POSPaymentStatus =
-  | "pending"
-  | "pending_admin_approval"
-  | "approved"
-  | "rejected"
-  | "paid"
-  | "cancelled";
-
-export type POSPayment = {
-  id: string;
-  invoiceId?: string | null;
-  clientId?: string | null;
-  clientName: string;
-  collectedBy?: string | null;
-  collectedByName?: string | null;
-  paymentMethod: POSPaymentMethod;
-  amount: number;
-  salesTaxAmount: number;
-  totalCollected: number;
-  status: POSPaymentStatus;
-  cashPhotoDataUrl?: string | null;
+  dueDate?: string | null;
   notes?: string | null;
-  approvedBy?: string | null;
-  approvedByName?: string | null;
-  approvedAt?: string | null;
-  createdAt: string;
+  createdAt?: string;
+  updatedAt?: string;
+  sentAt?: string | null;
+  paidAt?: string | null;
 };
 
 export type GuruEstimateStatus =
@@ -125,232 +119,215 @@ export type GuruEstimateStatus =
 
 export type GuruEstimate = {
   id: string;
-  userId?: string | null;
+
+  clientUserId?: string | null;
   clientId?: string | null;
+  clientName: string;
+  phone: string;
+  email: string;
+  address: string;
+
+  serviceType: string;
+  propertyArea: string;
+  surfaceType: string;
+  conditionLevel: string;
+  squareFootage: string;
+  preferredSchedule: string;
+  specialConcerns: string;
+
+  photoDataUrl?: string | null;
+  photoNote?: string | null;
+
+  preliminaryEstimateLow: number;
+  preliminaryEstimateHigh: number;
+  preliminaryNotes?: string | null;
+
+  status: GuruEstimateStatus;
+
   quoteId?: string | null;
   quoteNumber?: number | null;
   quoteTotal?: number | null;
   quoteStatus?: QuoteStatus | string | null;
-  source: "guru" | "manual";
-  status: GuruEstimateStatus;
-  clientName?: string | null;
+
+  createdAt?: string;
+  updatedAt?: string;
+  reviewedAt?: string | null;
+  convertedAt?: string | null;
+  declinedAt?: string | null;
+  archivedAt?: string | null;
+};
+
+export type ServiceRequestStatus =
+  | "new"
+  | "reviewing"
+  | "scheduled"
+  | "quoted"
+  | "completed"
+  | "archived";
+
+export type ServiceRequest = {
+  id: string;
+  clientName: string;
   phone?: string | null;
   email?: string | null;
   address?: string | null;
   serviceType?: string | null;
-  propertyArea?: string | null;
-  surfaceType?: string | null;
-  conditionLevel?: string | null;
-  squareFootage?: string | null;
+  message?: string | null;
   preferredSchedule?: string | null;
-  specialConcerns?: string | null;
-  preliminaryNotes?: string | null;
-  preliminaryEstimateLow: number;
-  preliminaryEstimateHigh: number;
   photoDataUrl?: string | null;
-  photoNote?: string | null;
-  createdAt: string;
-  reviewedAt?: string | null;
-  reviewedBy?: string | null;
+  status: ServiceRequestStatus;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type Employee = {
   id: string;
-  email: string;
-  displayName: string;
-  role: Role;
-  createdAt: string;
-};
-
-export type JobStatus = "scheduled" | "in_progress" | "completed" | "cancelled";
-
-export type AssignedEmployee = {
-  id: string;
   displayName: string;
   email: string;
+  phone?: string | null;
+  role: "employee";
+  payRate?: number | null;
+  dateJoined?: string | null;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
-export type Job = {
+export type ScheduleEvent = {
   id: string;
   title: string;
-  client_name: string;
-  address: string;
-  start_time: string;
-  end_time: string;
-  status: JobStatus;
-  notes: string | null;
-  assigned_employees: AssignedEmployee[];
-};
-
-export type ChatUser = {
-  id: string;
-  email: string;
-  displayName: string;
-  role: Role;
-};
-
-export type Conversation = {
-  id: string;
-  created_at: string;
-  members: ChatUser[];
-  last_message: string | null;
-  last_message_at: string | null;
+  startTime: string;
+  endTime: string;
+  employeeId?: string | null;
+  employeeName?: string | null;
+  clientId?: string | null;
+  clientName?: string | null;
+  location?: string | null;
+  notes?: string | null;
+  color?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type ChatMessage = {
   id: string;
-  conversation_id: string;
-  sender_id: string;
+  senderId: string;
+  senderName: string;
+  senderRole: AuthUserRole;
   body: string;
-  created_at: string;
-  sender_display_name: string;
-  sender_email: string;
-  sender_role: Role;
-};
-
-export type TipNote = {
-  id: string;
-  title: string;
-  content: string;
-  category: string;
-  pinned: boolean;
-  created_by?: string | null;
-  created_at: string;
-  updated_at: string;
-};
-
-export type PayRunItem = {
-  id?: string;
-  userId: string;
-  displayName: string;
-  email: string;
-  amount: number;
-  notes?: string | null;
-};
-
-export type PayRun = {
-  id: string;
-  periodStart: string;
-  periodEnd: string;
-  status: "draft" | "approved" | "paid_in_roll";
-  notes?: string | null;
-  approvedAt?: string | null;
-  paidAt?: string | null;
-  createdBy?: string | null;
+  roomId?: string | null;
   createdAt: string;
-  items: PayRunItem[];
+  deletedAt?: string | null;
 };
 
-export type ServiceRequestStatus = "pending" | "reviewed" | "scheduled" | "declined";
-
-export type ServiceRequest = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  phone?: string | null;
-  email?: string | null;
-  address: string;
-  serviceType: string;
-  preferredDate?: string | null;
-  preferredTime?: string | null;
-  notes?: string | null;
-  photoDataUrl?: string | null;
-  photoNote?: string | null;
-  waiverAccepted?: boolean;
-  waiverSignature?: string | null;
-  waiverSignedAt?: string | null;
-  status: ServiceRequestStatus;
-  createdAt: string;
-};
-
-export type ExpenseReimbursementStatus =
-  | "not_reimbursed"
-  | "pending"
-  | "approved"
-  | "reimbursed";
+export type ExpenseStatus = "pending" | "approved" | "rejected" | "paid";
 
 export type Expense = {
   id: string;
   employeeId?: string | null;
   employeeName?: string | null;
-  title: string;
   category: string;
   amount: number;
-  expenseDate: string;
-  vendor?: string | null;
   notes?: string | null;
   receiptDataUrl?: string | null;
-  reimbursementStatus: ExpenseReimbursementStatus;
-  createdBy?: string | null;
-  createdAt: string;
+  status: ExpenseStatus;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
-export type MileageStatus = "pending" | "approved" | "reimbursed" | "denied";
+export type MileageEntryStatus = "pending" | "approved" | "rejected" | "paid";
 
-export type MileageLog = {
+export type MileageEntry = {
   id: string;
   employeeId?: string | null;
   employeeName?: string | null;
-  tripDate: string;
-  startLocation: string;
-  endLocation: string;
-  milesDriven: number;
-  reimbursementRate: number;
+  startOdometer?: number | null;
+  endOdometer?: number | null;
+  miles: number;
+  ratePerMile: number;
   reimbursementTotal: number;
-  purpose?: string | null;
-  odometerPhotoDataUrl?: string | null;
-  reimbursementStatus: MileageStatus;
-  createdAt: string;
+  reason?: string | null;
+  proofDataUrl?: string | null;
+  status: MileageEntryStatus;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
-export type RecurringFrequency = "weekly" | "biweekly" | "monthly" | "quarterly";
-
-export type RecurringStatus = "active" | "paused" | "cancelled";
+export type RecurringServiceStatus = "active" | "paused" | "cancelled" | "completed";
 
 export type RecurringService = {
   id: string;
   clientId?: string | null;
   clientName: string;
-  phone?: string | null;
-  email?: string | null;
-  address: string;
   serviceType: string;
-  frequency: RecurringFrequency;
+  frequency: "weekly" | "biweekly" | "monthly" | "bimonthly" | "quarterly" | "biannual" | "annual";
   price: number;
-  status: RecurringStatus;
   nextServiceDate?: string | null;
+  status: RecurringServiceStatus;
   notes?: string | null;
-  createdBy?: string | null;
-  createdAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
-export type TimeSession = {
+export type TimeClockStatus = "clocked_out" | "clocked_in" | "on_break" | "on_lunch";
+
+export type TimeClockEntry = {
   id: string;
-  userId: string;
+  employeeId: string;
   employeeName?: string | null;
-  workDate: string;
-  clockInAt: string;
+  clockInAt?: string | null;
   clockOutAt?: string | null;
-  status: "open" | "closed";
-  totalMinutes: number;
-  breakMinutes: number;
-  penaltyMinutes: number;
-  paidMinutes: number;
-  adminNotes?: string | null;
-  createdAt: string;
+  breakStartAt?: string | null;
+  breakEndAt?: string | null;
+  lunchStartAt?: string | null;
+  lunchEndAt?: string | null;
+  status: TimeClockStatus;
+  paidHours?: number;
+  notes?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
-export type BreakType = "break_15_1" | "break_15_2" | "lunch_30" | "break_60";
-
-export type BreakLog = {
+export type Equipment = {
   id: string;
-  sessionId: string;
-  userId: string;
-  breakType: BreakType;
-  allowedMinutes: number;
-  startedAt: string;
-  endedAt?: string | null;
-  overtimePenaltyMinutes: number;
-  status: "active" | "completed";
-  createdAt: string;
+  name: string;
+  category?: string | null;
+  assignedEmployeeId?: string | null;
+  assignedEmployeeName?: string | null;
+  condition?: string | null;
+  notes?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type TreatmentItem = {
+  id: string;
+  name: string;
+  category: string;
+  surfaceTypes?: string[];
+  chemical?: string | null;
+  dilutionRatio?: string | null;
+  useCase?: string | null;
+  safetyNotes?: string | null;
+  instructions?: string | null;
+  purchaseLink?: string | null;
+  costReference?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type PricingReferenceItem = {
+  id: string;
+  serviceCategory: string;
+  serviceName: string;
+  surfaceType?: string | null;
+  conditionLevel?: string | null;
+  priceLow?: number | null;
+  priceHigh?: number | null;
+  unit?: "flat" | "sqft" | "hourly" | "monthly" | "custom";
+  minimumCharge?: number | null;
+  notes?: string | null;
+  quoteGuidance?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 };
