@@ -19,11 +19,38 @@ function statusClass(status: QuoteStatus) {
   return `status-${status}`;
 }
 
+function buildGuruQuoteExplanation(quote: Quote) {
+  const total = Number(quote.total || 0).toFixed(2);
+
+  if (quote.status === "draft") {
+    return `Quote #${quote.quoteNumber} is currently being prepared by NMD. The current total shown is $${total}, but this may still need final admin review before it is officially sent. Review the service type and wait for NMD to confirm the final version.`;
+  }
+
+  if (quote.status === "sent") {
+    return `Quote #${quote.quoteNumber} has been sent or is ready for your review. The quoted total is $${total}. This is the amount NMD is presenting for the listed service scope unless changes are requested or the job details change.`;
+  }
+
+  if (quote.status === "accepted") {
+    return `Quote #${quote.quoteNumber} has been accepted. The accepted total is $${total}. NMD may now convert this into an invoice, schedule the job, or continue the service workflow.`;
+  }
+
+  if (quote.status === "declined") {
+    return `Quote #${quote.quoteNumber} was declined. The previous total was $${total}. You may need to request an updated quote or contact NMD if you want to revise the service scope.`;
+  }
+
+  if (quote.status === "expired") {
+    return `Quote #${quote.quoteNumber} has expired. The old total was $${total}, but pricing may need to be reviewed again before NMD can honor or recreate the quote.`;
+  }
+
+  return `Quote #${quote.quoteNumber} has a current total of $${total}. Review the quote status and contact NMD if anything looks incorrect.`;
+}
+
 export default function ClientQuotesPage() {
   const [quotes, setQuotes] = React.useState<Quote[]>([]);
   const [filter, setFilter] = React.useState<"all" | QuoteStatus>("all");
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
+  const [explanationQuoteId, setExplanationQuoteId] = React.useState<string | null>(null);
 
   const loadQuotes = React.useCallback(async () => {
     setError("");
@@ -161,46 +188,65 @@ export default function ClientQuotesPage() {
         </div>
 
         <div className="cardsGrid">
-          {visibleQuotes.map((quote) => (
-            <div key={quote.id} className="quoteCard">
-              <div className="quoteTopRow">
-                <div className="quoteNumber">Quote #{quote.quoteNumber}</div>
-                <span className={`statusBadge ${statusClass(quote.status)}`}>
-                  {statusLabel(quote.status)}
-                </span>
-              </div>
+          {visibleQuotes.map((quote) => {
+            const explanationOpen = explanationQuoteId === quote.id;
 
-              <div className="cardLine">
-                <strong>Service:</strong> {quote.serviceType || "—"}
-              </div>
+            return (
+              <div key={quote.id} className="quoteCard">
+                <div className="quoteTopRow">
+                  <div className="quoteNumber">Quote #{quote.quoteNumber}</div>
+                  <span className={`statusBadge ${statusClass(quote.status)}`}>
+                    {statusLabel(quote.status)}
+                  </span>
+                </div>
 
-              <div className="cardLine">
-                <strong>Total:</strong> ${Number(quote.total || 0).toFixed(2)}
-              </div>
+                <div className="buttonRow" style={{ marginBottom: 12 }}>
+                  <button
+                    className="secondaryButton"
+                    type="button"
+                    onClick={() => setExplanationQuoteId(explanationOpen ? null : quote.id)}
+                  >
+                    {explanationOpen ? "Hide Guru Explanation" : "Ask Guru To Explain"}
+                  </button>
+                </div>
 
-              <div className="cardLine">
-                <strong>Status:</strong> {statusLabel(quote.status)}
-              </div>
+                {explanationOpen && (
+                  <div className="assignBox" style={{ marginBottom: 12 }}>
+                    <div className="assignTitle">Guru Explanation</div>
+                    <div className="cardLine">{buildGuruQuoteExplanation(quote)}</div>
+                  </div>
+                )}
 
-              <div className="cardLine">
-                <strong>Created:</strong>{" "}
-                {quote.createdAt ? new Date(quote.createdAt).toLocaleString() : "—"}
-              </div>
+                <div className="cardLine">
+                  <strong>Service:</strong> {quote.serviceType || "—"}
+                </div>
 
-              <div className="listCard" style={{ marginTop: 10 }}>
-                {quote.status === "draft" &&
-                  "NMD is preparing this quote. It is not final until officially sent."}
-                {quote.status === "sent" &&
-                  "This quote has been sent or is ready for client review."}
-                {quote.status === "accepted" &&
-                  "This quote has been accepted and may be converted into an invoice/job."}
-                {quote.status === "declined" &&
-                  "This quote was declined."}
-                {quote.status === "expired" &&
-                  "This quote has expired."}
+                <div className="cardLine">
+                  <strong>Total:</strong> ${Number(quote.total || 0).toFixed(2)}
+                </div>
+
+                <div className="cardLine">
+                  <strong>Status:</strong> {statusLabel(quote.status)}
+                </div>
+
+                <div className="cardLine">
+                  <strong>Created:</strong>{" "}
+                  {quote.createdAt ? new Date(quote.createdAt).toLocaleString() : "—"}
+                </div>
+
+                <div className="listCard" style={{ marginTop: 10 }}>
+                  {quote.status === "draft" &&
+                    "NMD is preparing this quote. It is not final until officially sent."}
+                  {quote.status === "sent" &&
+                    "This quote has been sent or is ready for client review."}
+                  {quote.status === "accepted" &&
+                    "This quote has been accepted and may be converted into an invoice/job."}
+                  {quote.status === "declined" && "This quote was declined."}
+                  {quote.status === "expired" && "This quote has expired."}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {visibleQuotes.length === 0 && (
             <div className="listCard">No quotes found for this filter.</div>
