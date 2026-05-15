@@ -1,55 +1,11 @@
 import React from "react";
-import { apiFetch } from "../api";
-import type { PageKey, POSPayment } from "../types";
+import type { PageKey } from "../types";
 
 export default function EmployeeDashboardPage({
   onNavigate
 }: {
   onNavigate: (page: PageKey) => void;
 }) {
-  const [payments, setPayments] = React.useState<POSPayment[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState("");
-
-  React.useEffect(() => {
-    apiFetch<{ payments: POSPayment[] }>("/api/pos/payments")
-      .then((data) => {
-        setPayments(data.payments);
-      })
-      .catch((err) => {
-        setError(err instanceof Error ? err.message : "Could not load payment records");
-      })
-      .finally(() => setLoading(false));
-  }, []);
-
-  const pendingCash = payments.filter(
-    (payment) => payment.status === "pending_admin_approval"
-  );
-
-  const approvedCash = payments.filter(
-    (payment) =>
-      payment.paymentMethod === "cash" &&
-      (payment.status === "approved" || payment.status === "paid")
-  );
-
-  const rejectedCash = payments.filter(
-    (payment) =>
-      payment.paymentMethod === "cash" &&
-      payment.status === "rejected"
-  );
-
-  const pendingCashTotal = pendingCash.reduce(
-    (sum, payment) => sum + Number(payment.totalCollected || 0),
-    0
-  );
-
-  const approvedCashTotal = approvedCash.reduce(
-    (sum, payment) => sum + Number(payment.totalCollected || 0),
-    0
-  );
-
-  const recentPayments = payments.slice(0, 6);
-
   return (
     <div className="pageGrid">
       <section className="panel">
@@ -57,68 +13,72 @@ export default function EmployeeDashboardPage({
           <div>
             <h2 className="panelTitle">Employee Dashboard</h2>
             <p className="brandSubtitle">
-              View your schedule, clock in/out, collect payments, and track submitted cash approvals.
+              Field tools for schedule, time clock, treatments, notes, payments, and job workflow.
             </p>
           </div>
         </div>
 
-        {error && <div className="errorBox">{error}</div>}
-
-        {pendingCash.length > 0 && (
-          <div className="listCard">
-            You have {pendingCash.length} cash payment
-            {pendingCash.length === 1 ? "" : "s"} waiting for admin approval.
-          </div>
-        )}
-
         <div className="statsGrid">
           <div className="statCard">
-            <div className="statLabel">Pending Cash Approvals</div>
-            <div className="statValue">{pendingCash.length}</div>
+            <div className="statLabel">Today</div>
+            <div className="statValue">Ready</div>
           </div>
 
           <div className="statCard">
-            <div className="statLabel">Pending Cash Total</div>
-            <div className="statValue">${pendingCashTotal.toFixed(2)}</div>
+            <div className="statLabel">Schedule</div>
+            <div className="statValue">View</div>
           </div>
 
           <div className="statCard">
-            <div className="statLabel">Approved Cash</div>
-            <div className="statValue">${approvedCashTotal.toFixed(2)}</div>
+            <div className="statLabel">Time Clock</div>
+            <div className="statValue">Open</div>
           </div>
 
           <div className="statCard">
-            <div className="statLabel">Rejected Cash Records</div>
-            <div className="statValue">{rejectedCash.length}</div>
+            <div className="statLabel">Guru</div>
+            <div className="statValue">Live</div>
           </div>
         </div>
       </section>
 
       <section className="panel">
-        <h2 className="panelTitle">Quick Actions</h2>
+        <div className="panelHeader">
+          <div>
+            <h2 className="panelTitle">Guru Field Shortcuts</h2>
+            <p className="brandSubtitle">
+              Fast access to the field pages employees use most while working jobs.
+            </p>
+          </div>
+        </div>
 
         <div className="cardsGrid">
           <button
             className="quoteCard"
             type="button"
-            onClick={() => onNavigate("schedule")}
-            style={{ textAlign: "left" }}
+            onClick={() => onNavigate("treatments")}
+            style={{ textAlign: "left", cursor: "pointer" }}
           >
-            <div className="quoteNumber">My Schedule</div>
+            <div className="quoteTopRow">
+              <div className="quoteNumber">Treatments</div>
+              <span className="statusBadge status-approved">Guidance</span>
+            </div>
             <div className="cardLine">
-              View today’s assigned jobs and upcoming work.
+              Open treatment options, chemical use cases, dilution guidance, safety notes, and surface-specific cleaning notes.
             </div>
           </button>
 
           <button
             className="quoteCard"
             type="button"
-            onClick={() => onNavigate("timeclock")}
-            style={{ textAlign: "left" }}
+            onClick={() => onNavigate("tips")}
+            style={{ textAlign: "left", cursor: "pointer" }}
           >
-            <div className="quoteNumber">Time Clock</div>
+            <div className="quoteTopRow">
+              <div className="quoteNumber">Tips & Notes</div>
+              <span className="statusBadge status-paid">Best Practices</span>
+            </div>
             <div className="cardLine">
-              Clock in, clock out, start breaks, and manage lunch/break timers.
+              Open workflow tips, efficiency notes, equipment usage, sales reminders, and field best practices.
             </div>
           </button>
 
@@ -126,116 +86,69 @@ export default function EmployeeDashboardPage({
             className="quoteCard"
             type="button"
             onClick={() => onNavigate("pos")}
-            style={{ textAlign: "left" }}
+            style={{ textAlign: "left", cursor: "pointer" }}
           >
-            <div className="quoteNumber">Collect Payment</div>
-            <div className="cardLine">
-              Open POS to send card payment links or submit cash photo proof.
+            <div className="quoteTopRow">
+              <div className="quoteNumber">Collect Payment</div>
+              <span className="statusBadge status-pending_admin_approval">POS</span>
             </div>
-
-            {pendingCash.length > 0 && (
-              <div className="listCard" style={{ marginTop: 10 }}>
-                {pendingCash.length} cash approval pending
-              </div>
-            )}
-          </button>
-
-          <button
-            className="quoteCard"
-            type="button"
-            onClick={() => onNavigate("my-ledger")}
-            style={{ textAlign: "left" }}
-          >
-            <div className="quoteNumber">My Ledger</div>
             <div className="cardLine">
-              View your work history, totals, and collected payment records.
+              Record payment collection, cash proof, and customer payment notes for admin review.
             </div>
           </button>
 
           <button
             className="quoteCard"
             type="button"
-            onClick={() => onNavigate("treatments")}
-            style={{ textAlign: "left" }}
+            onClick={() => onNavigate("schedule")}
+            style={{ textAlign: "left", cursor: "pointer" }}
           >
-            <div className="quoteNumber">Treatments</div>
-            <div className="cardLine">
-              Check treatment guidance, dilution ratios, and surface warnings.
+            <div className="quoteTopRow">
+              <div className="quoteNumber">My Schedule</div>
+              <span className="statusBadge status-approved">Jobs</span>
             </div>
-          </button>
-
-          <button
-            className="quoteCard"
-            type="button"
-            onClick={() => onNavigate("chat")}
-            style={{ textAlign: "left" }}
-          >
-            <div className="quoteNumber">Chat</div>
             <div className="cardLine">
-              Open company chat or message admins.
+              View assigned work, schedule notes, job timing, and admin-visible schedule information.
             </div>
           </button>
         </div>
       </section>
 
       <section className="panel">
-        <h2 className="panelTitle">My Recent Payment Submissions</h2>
-
-        {loading && <div className="listCard">Loading payment records...</div>}
-
-        {!loading && (
-          <div className="cardsGrid">
-            {recentPayments.map((payment) => (
-              <div key={payment.id} className="quoteCard">
-                <div className="quoteTopRow">
-                  <div className="quoteNumber">{payment.clientName}</div>
-                  <span className={`statusBadge status-${payment.status}`}>
-                    {payment.status}
-                  </span>
-                </div>
-
-                <div className="cardLine">
-                  <strong>Method:</strong>{" "}
-                  {payment.paymentMethod === "cash"
-                    ? "Cash"
-                    : payment.paymentMethod === "card_link"
-                      ? "Card Link"
-                      : "Tap To Pay"}
-                </div>
-
-                <div className="cardLine">
-                  <strong>Subtotal:</strong> ${payment.amount.toFixed(2)}
-                </div>
-
-                <div className="cardLine">
-                  <strong>Sales Tax:</strong> ${payment.salesTaxAmount.toFixed(2)}
-                </div>
-
-                <div className="cardLine">
-                  <strong>Total:</strong> ${payment.totalCollected.toFixed(2)}
-                </div>
-
-                <div className="cardLine">
-                  <strong>Submitted:</strong>{" "}
-                  {payment.createdAt ? new Date(payment.createdAt).toLocaleString() : "—"}
-                </div>
-
-                <div className="cardLine">
-                  <strong>Approved:</strong>{" "}
-                  {payment.approvedAt ? new Date(payment.approvedAt).toLocaleString() : "—"}
-                </div>
-
-                <div className="cardLine">
-                  <strong>Notes:</strong> {payment.notes || "—"}
-                </div>
-              </div>
-            ))}
-
-            {recentPayments.length === 0 && (
-              <div className="listCard">No payment submissions yet.</div>
-            )}
+        <div className="panelHeader">
+          <div>
+            <h2 className="panelTitle">Employee Quick Actions</h2>
+            <p className="brandSubtitle">
+              Shortcuts for daily employee workflow.
+            </p>
           </div>
-        )}
+        </div>
+
+        <div className="buttonRow">
+          <button className="primaryButton" type="button" onClick={() => onNavigate("timeclock")}>
+            Time Clock
+          </button>
+
+          <button className="secondaryButton" type="button" onClick={() => onNavigate("schedule")}>
+            Schedule
+          </button>
+
+          <button className="secondaryButton" type="button" onClick={() => onNavigate("chat")}>
+            Chat
+          </button>
+
+          <button className="secondaryButton" type="button" onClick={() => onNavigate("availability")}>
+            Availability
+          </button>
+
+          <button className="secondaryButton" type="button" onClick={() => onNavigate("my-ledger")}>
+            My Ledger
+          </button>
+
+          <button className="secondaryButton" type="button" onClick={() => onNavigate("pos")}>
+            POS
+          </button>
+        </div>
       </section>
     </div>
   );
