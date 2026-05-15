@@ -21,11 +21,18 @@ type BackendGuruMessage = {
 type GuruEstimateSummary = {
   id: string;
   status: string;
+  reviewedAt?: string | null;
+  createdAt?: string | null;
+  quoteId?: string | null;
+  quoteNumber?: number | null;
+  quoteStatus?: string | null;
 };
 
 type ClientQuoteSummary = {
   id: string;
   status: string;
+  createdAt?: string | null;
+  acceptedAt?: string | null;
 };
 
 type EstimateForm = {
@@ -44,7 +51,12 @@ type EstimateForm = {
   photoNote: string;
 };
 
-const GURU_ICON_SRC = "/icons/NMD-Guru-Icon.png?v=2026051422";
+type ClientUpdateSnapshot = {
+  estimateKeys: string[];
+  quoteKeys: string[];
+};
+
+const GURU_ICON_SRC = "/icons/NMD-Guru-Icon.png?v=2026051423";
 
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -104,6 +116,82 @@ function localStorageKey(user: AuthUser | null) {
   return user ? `nmd-guru-open-${user.id}` : "nmd-guru-open-public";
 }
 
+function clientSeenStorageKey(user: AuthUser | null) {
+  return user ? `nmd-guru-client-seen-updates-${user.id}` : "nmd-guru-client-seen-updates-public";
+}
+
+function readClientSeenUpdates(user: AuthUser | null): ClientUpdateSnapshot {
+  try {
+    const raw = localStorage.getItem(clientSeenStorageKey(user));
+    if (!raw) {
+      return {
+        estimateKeys: [],
+        quoteKeys: []
+      };
+    }
+
+    const parsed = JSON.parse(raw) as Partial<ClientUpdateSnapshot>;
+
+    return {
+      estimateKeys: Array.isArray(parsed.estimateKeys) ? parsed.estimateKeys : [],
+      quoteKeys: Array.isArray(parsed.quoteKeys) ? parsed.quoteKeys : []
+    };
+  } catch {
+    return {
+      estimateKeys: [],
+      quoteKeys: []
+    };
+  }
+}
+
+function writeClientSeenUpdates(user: AuthUser | null, snapshot: ClientUpdateSnapshot) {
+  localStorage.setItem(clientSeenStorageKey(user), JSON.stringify(snapshot));
+}
+
+function getEstimateUpdateKey(estimate: GuruEstimateSummary) {
+  return [
+    estimate.id,
+    estimate.status,
+    estimate.reviewedAt || "",
+    estimate.quoteId || "",
+    estimate.quoteNumber || "",
+    estimate.quoteStatus || ""
+  ].join(":");
+}
+
+function getQuoteUpdateKey(quote: ClientQuoteSummary) {
+  return [quote.id, quote.status, quote.createdAt || "", quote.acceptedAt || ""].join(":");
+}
+
+function buildClientUpdateSnapshot(input: {
+  estimates: GuruEstimateSummary[];
+  quotes: ClientQuoteSummary[];
+}): ClientUpdateSnapshot {
+  const estimateKeys = input.estimates
+    .filter((estimate) => ["reviewed", "converted_to_quote"].includes(estimate.status))
+    .map(getEstimateUpdateKey);
+
+  const quoteKeys = input.quotes
+    .filter((quote) => ["draft", "sent"].includes(quote.status))
+    .map(getQuoteUpdateKey);
+
+  return {
+    estimateKeys,
+    quoteKeys
+  };
+}
+
+function countUnseenClientUpdates(user: AuthUser | null, snapshot: ClientUpdateSnapshot) {
+  const seen = readClientSeenUpdates(user);
+  const seenEstimateKeys = new Set(seen.estimateKeys);
+  const seenQuoteKeys = new Set(seen.quoteKeys);
+
+  const unseenEstimates = snapshot.estimateKeys.filter((key) => !seenEstimateKeys.has(key));
+  const unseenQuotes = snapshot.quoteKeys.filter((key) => !seenQuoteKeys.has(key));
+
+  return unseenEstimates.length + unseenQuotes.length;
+}
+
 const emptyEstimateForm: EstimateForm = {
   clientName: "",
   phone: "",
@@ -131,6 +219,10 @@ export default function GuruChat({
   const [hasUnread, setHasUnread] = React.useState(true);
   const [adminReviewCount, setAdminReviewCount] = React.useState(0);
   const [clientUpdateCount, setClientUpdateCount] = React.useState(0);
+  const [clientUpdateSnapshot, setClientUpdateSnapshot] = React.useState<ClientUpdateSnapshot>({
+    estimateKeys: [],
+    quoteKeys: []
+  });
   const [clientEstimateSubmitted, setClientEstimateSubmitted] = React.useState(false);
   const [typing, setTyping] = React.useState(false);
   const [input, setInput] = React.useState("");
@@ -239,6 +331,10 @@ export default function GuruChat({
     const loadClientUpdates = async () => {
       if (!user || user.role !== "client") {
         setClientUpdateCount(0);
+        setClientUpdateSnapshot({
+          estimateKeys: [],
+          quoteKeys: []
+        });
         return;
       }
 
@@ -250,24 +346,26 @@ export default function GuruChat({
 
         if (cancelled) return;
 
-        const estimateUpdates = estimateData.estimates.filter((estimate) =>
-          ["reviewed", "converted_to_quote"].includes(estimate.status)
-        ).length;
+        const snapshot = buildClientUpdateSnapshot({
+          estimates: estimateData.estimates,
+          quotes: quoteData.quotes
+        });
 
-        const quoteUpdates = quoteData.quotes.filter((quote) =>
-          ["draft", "sent"].includes(quote.status)
-        ).length;
+        const unseenCount = countUnseenClientUpdates(user, snapshot);
 
-        const totalUpdates = estimateUpdates + quoteUpdates;
+        setClientUpdateSnapshot(snapshot);
+        setClientUpdateCount(unseenCount);
 
-        setClientUpdateCount(totalUpdates);
-
-        if (totalUpdates > 0 && !open) {
+        if (unseenCount > 0 && !open) {
           setHasUnread(true);
         }
       } catch {
         if (!cancelled) {
           setClientUpdateCount(0);
+          setClientUpdateSnapshot({
+            estimateKeys: [],
+            quoteKeys: []
+          });
         }
       }
     };
@@ -353,6 +451,15 @@ export default function GuruChat({
     }
   };
 
+  const markClientUpdatesSeen = () => {
+    if (user?.role !== "client") return;
+
+    writeClientSeenUpdates(user, clientUpdateSnapshot);
+    setClientUpdateCount(0);
+    setHasUnread(false);
+    setClientEstimateSubmitted(false);
+  };
+
   const openGuruEstimatesReview = () => {
     if (onNavigate) {
       navigateFromGuru("guru-estimates");
@@ -383,8 +490,8 @@ export default function GuruChat({
 
   const openClientEstimates = () => {
     if (onNavigate) {
+      markClientUpdatesSeen();
       navigateFromGuru("client-estimates");
-      setClientEstimateSubmitted(false);
     } else {
       submitMessage("My estimates");
     }
@@ -392,6 +499,7 @@ export default function GuruChat({
 
   const openClientQuotes = () => {
     if (onNavigate) {
+      markClientUpdatesSeen();
       navigateFromGuru("client-quotes");
     } else {
       submitMessage("My quotes");
@@ -943,7 +1051,7 @@ export default function GuruChat({
 
             {user?.role === "client" && clientUpdateCount > 0 && (
               <div className="listCard" style={{ marginTop: 10 }}>
-                You have {clientUpdateCount} Guru estimate or quote update
+                You have {clientUpdateCount} new Guru estimate or quote update
                 {clientUpdateCount === 1 ? "" : "s"}.
 
                 <div className="buttonRow" style={{ marginTop: 10 }}>
