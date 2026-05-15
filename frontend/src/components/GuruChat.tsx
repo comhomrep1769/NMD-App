@@ -39,7 +39,7 @@ type EstimateForm = {
   photoNote: string;
 };
 
-const GURU_ICON_SRC = "/icons/NMD-Guru-Icon.png?v=2026051418";
+const GURU_ICON_SRC = "/icons/NMD-Guru-Icon.png?v=2026051419";
 
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -78,8 +78,8 @@ function getQuickPrompts(user: AuthUser | null) {
   if (!user || user.role === "client") {
     return [
       "Start estimate",
-      "I need a quote",
-      "I want recurring service",
+      "My estimates",
+      "My quotes",
       "What services do you offer?"
     ];
   }
@@ -140,6 +140,7 @@ export default function GuruChat({
   const [open, setOpen] = React.useState(false);
   const [hasUnread, setHasUnread] = React.useState(true);
   const [adminReviewCount, setAdminReviewCount] = React.useState(0);
+  const [clientEstimateSubmitted, setClientEstimateSubmitted] = React.useState(false);
   const [typing, setTyping] = React.useState(false);
   const [input, setInput] = React.useState("");
   const [loadingHistory, setLoadingHistory] = React.useState(false);
@@ -243,6 +244,7 @@ export default function GuruChat({
 
   React.useEffect(() => {
     setError("");
+    setClientEstimateSubmitted(false);
 
     if (!user) {
       setMessages([
@@ -313,6 +315,27 @@ export default function GuruChat({
     }
   };
 
+  const openClientEstimates = () => {
+    if (onNavigate) {
+      onNavigate("client-estimates");
+      setOpen(false);
+      setHasUnread(false);
+      setClientEstimateSubmitted(false);
+    } else {
+      submitMessage("My estimates");
+    }
+  };
+
+  const openClientQuotes = () => {
+    if (onNavigate) {
+      onNavigate("client-quotes");
+      setOpen(false);
+      setHasUnread(false);
+    } else {
+      submitMessage("My quotes");
+    }
+  };
+
   const getLocalGuruReply = (messageBody: string) => {
     const lower = messageBody.toLowerCase();
 
@@ -352,7 +375,9 @@ export default function GuruChat({
     const messageBody = (body || input).trim();
     if (!messageBody) return;
 
-    if (messageBody.toLowerCase().includes("start estimate") && user?.role === "client") {
+    const lowerMessage = messageBody.toLowerCase();
+
+    if (lowerMessage.includes("start estimate") && user?.role === "client") {
       startEstimate();
       setInput("");
       return;
@@ -360,6 +385,18 @@ export default function GuruChat({
 
     if (messageBody === "Review Guru estimates" && user?.role === "admin" && onNavigate) {
       openGuruEstimatesReview();
+      setInput("");
+      return;
+    }
+
+    if (messageBody === "My estimates" && user?.role === "client" && onNavigate) {
+      openClientEstimates();
+      setInput("");
+      return;
+    }
+
+    if (messageBody === "My quotes" && user?.role === "client" && onNavigate) {
+      openClientQuotes();
       setInput("");
       return;
     }
@@ -512,6 +549,7 @@ export default function GuruChat({
       ]);
 
       setEstimateMode(false);
+      setClientEstimateSubmitted(true);
       setEstimateForm({
         ...emptyEstimateForm,
         clientName: user.displayName,
@@ -557,6 +595,8 @@ export default function GuruChat({
           createdAt: new Date().toISOString()
         }
       ]);
+
+      setClientEstimateSubmitted(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not clear Guru history");
     }
@@ -724,6 +764,22 @@ export default function GuruChat({
                     onClick={openGuruEstimatesReview}
                   >
                     Review Estimates
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {user?.role === "client" && clientEstimateSubmitted && (
+              <div className="listCard" style={{ marginTop: 10 }}>
+                Your Guru estimate was submitted for NMD review.
+
+                <div className="buttonRow" style={{ marginTop: 10 }}>
+                  <button className="primaryButton" type="button" onClick={openClientEstimates}>
+                    View My Estimates
+                  </button>
+
+                  <button className="secondaryButton" type="button" onClick={openClientQuotes}>
+                    View My Quotes
                   </button>
                 </div>
               </div>
@@ -1004,6 +1060,10 @@ export default function GuruChat({
                       if (prompt === "Start estimate") startEstimate();
                       else if (prompt === "Review Guru estimates" && user?.role === "admin") {
                         openGuruEstimatesReview();
+                      } else if (prompt === "My estimates" && user?.role === "client") {
+                        openClientEstimates();
+                      } else if (prompt === "My quotes" && user?.role === "client") {
+                        openClientQuotes();
                       } else submitMessage(prompt);
                     }}
                   >
