@@ -44,7 +44,7 @@ type EstimateForm = {
   photoNote: string;
 };
 
-const GURU_ICON_SRC = "/icons/NMD-Guru-Icon.png?v=2026051420";
+const GURU_ICON_SRC = "/icons/NMD-Guru-Icon.png?v=2026051421";
 
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -73,7 +73,7 @@ function getGreeting(user: AuthUser | null) {
   }
 
   if (user.role === "employee") {
-    return "Hi, I’m Guru. I can help with job notes, treatment guidance, safety reminders, surface questions, and field workflow.";
+    return "Hi, I’m Guru. I can help with job notes, treatment guidance, safety reminders, surface questions, payment collection, and field workflow.";
   }
 
   return "Hi, I’m Guru. I can help with quotes, invoices, scheduling, payments, treatments, pricing, job planning, and business operations.";
@@ -81,29 +81,14 @@ function getGreeting(user: AuthUser | null) {
 
 function getQuickPrompts(user: AuthUser | null) {
   if (!user || user.role === "client") {
-    return [
-      "Start estimate",
-      "My estimates",
-      "My quotes",
-      "What services do you offer?"
-    ];
+    return ["Start estimate", "My estimates", "My quotes", "What services do you offer?"];
   }
 
   if (user.role === "employee") {
-    return [
-      "Help with a treatment",
-      "What should I check on this job?",
-      "Open field tips",
-      "Help collect payment"
-    ];
+    return ["Open treatments", "Open tips", "Collect payment", "My schedule"];
   }
 
-  return [
-    "Review Guru estimates",
-    "Create quote draft",
-    "Check payments",
-    "Help price a job"
-  ];
+  return ["Review Guru estimates", "Create quote draft", "Check payments", "Help price a job"];
 }
 
 function mapBackendMessage(message: BackendGuruMessage): GuruMessage {
@@ -360,11 +345,17 @@ export default function GuruChat({
     setOpen(false);
   };
 
-  const openGuruEstimatesReview = () => {
+  const navigateFromGuru = (page: PageKey) => {
     if (onNavigate) {
-      onNavigate("guru-estimates");
+      onNavigate(page);
       setOpen(false);
       setHasUnread(false);
+    }
+  };
+
+  const openGuruEstimatesReview = () => {
+    if (onNavigate) {
+      navigateFromGuru("guru-estimates");
     } else {
       submitMessage("Review Guru estimates");
     }
@@ -372,9 +363,7 @@ export default function GuruChat({
 
   const openClientEstimates = () => {
     if (onNavigate) {
-      onNavigate("client-estimates");
-      setOpen(false);
-      setHasUnread(false);
+      navigateFromGuru("client-estimates");
       setClientEstimateSubmitted(false);
     } else {
       submitMessage("My estimates");
@@ -383,12 +372,30 @@ export default function GuruChat({
 
   const openClientQuotes = () => {
     if (onNavigate) {
-      onNavigate("client-quotes");
-      setOpen(false);
-      setHasUnread(false);
+      navigateFromGuru("client-quotes");
     } else {
       submitMessage("My quotes");
     }
+  };
+
+  const openEmployeeTreatments = () => {
+    if (onNavigate) navigateFromGuru("treatments");
+    else submitMessage("Open treatments");
+  };
+
+  const openEmployeeTips = () => {
+    if (onNavigate) navigateFromGuru("tips");
+    else submitMessage("Open tips");
+  };
+
+  const openEmployeePayment = () => {
+    if (onNavigate) navigateFromGuru("pos");
+    else submitMessage("Collect payment");
+  };
+
+  const openEmployeeSchedule = () => {
+    if (onNavigate) navigateFromGuru("schedule");
+    else submitMessage("My schedule");
   };
 
   const getLocalGuruReply = (messageBody: string) => {
@@ -452,6 +459,30 @@ export default function GuruChat({
 
     if (messageBody === "My quotes" && user?.role === "client" && onNavigate) {
       openClientQuotes();
+      setInput("");
+      return;
+    }
+
+    if (messageBody === "Open treatments" && user?.role === "employee" && onNavigate) {
+      openEmployeeTreatments();
+      setInput("");
+      return;
+    }
+
+    if (messageBody === "Open tips" && user?.role === "employee" && onNavigate) {
+      openEmployeeTips();
+      setInput("");
+      return;
+    }
+
+    if (messageBody === "Collect payment" && user?.role === "employee" && onNavigate) {
+      openEmployeePayment();
+      setInput("");
+      return;
+    }
+
+    if (messageBody === "My schedule" && user?.role === "employee" && onNavigate) {
+      openEmployeeSchedule();
       setInput("");
       return;
     }
@@ -871,6 +902,30 @@ export default function GuruChat({
               </div>
             )}
 
+            {user?.role === "employee" && (
+              <div className="listCard" style={{ marginTop: 10 }}>
+                Quick field tools for treatments, tips, payment collection, and schedule access.
+
+                <div className="buttonRow" style={{ marginTop: 10 }}>
+                  <button className="primaryButton" type="button" onClick={openEmployeeTreatments}>
+                    Treatments
+                  </button>
+
+                  <button className="secondaryButton" type="button" onClick={openEmployeeTips}>
+                    Tips
+                  </button>
+
+                  <button className="secondaryButton" type="button" onClick={openEmployeePayment}>
+                    Collect Payment
+                  </button>
+
+                  <button className="secondaryButton" type="button" onClick={openEmployeeSchedule}>
+                    My Schedule
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="buttonRow" style={{ marginTop: 10 }}>
               {user?.role === "client" && (
                 <button className="primaryButton" type="button" onClick={startEstimate}>
@@ -1150,6 +1205,14 @@ export default function GuruChat({
                         openClientEstimates();
                       } else if (prompt === "My quotes" && user?.role === "client") {
                         openClientQuotes();
+                      } else if (prompt === "Open treatments" && user?.role === "employee") {
+                        openEmployeeTreatments();
+                      } else if (prompt === "Open tips" && user?.role === "employee") {
+                        openEmployeeTips();
+                      } else if (prompt === "Collect payment" && user?.role === "employee") {
+                        openEmployeePayment();
+                      } else if (prompt === "My schedule" && user?.role === "employee") {
+                        openEmployeeSchedule();
                       } else submitMessage(prompt);
                     }}
                   >
