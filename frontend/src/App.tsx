@@ -34,6 +34,7 @@ import EmailTestPage from "./pages/EmailTestPage";
 import POSPage from "./pages/POSPage";
 import GuruEstimatesPage from "./pages/GuruEstimatesPage";
 import ClientEstimatesPage from "./pages/ClientEstimatesPage";
+import ClientQuotesPage from "./pages/ClientQuotesPage";
 import { apiFetch } from "./api";
 
 const demoClients: Client[] = [];
@@ -271,26 +272,49 @@ export default function App() {
             {page === "guru-estimates" && user.role === "admin" && (
               <GuruEstimatesPage onNavigate={safeNavigate} />
             )}
-            
-            {page === "client-estimates" && user.role === "client" && <ClientEstimatesPage />}
+
+            {page === "client-estimates" && user.role === "client" && (
+              <ClientEstimatesPage />
+            )}
+
+            {page === "client-quotes" && user.role === "client" && (
+              <ClientQuotesPage />
+            )}
+
             {page === "clients" && user.role === "admin" && <ClientsPage />}
             {page === "quotes" && user.role === "admin" && <QuotesPage />}
             {page === "invoices" && user.role === "admin" && <InvoicesPage />}
-            {page === "schedule" && user.role !== "client" && <SchedulePage role={user.role} />}
+
+            {page === "schedule" && user.role !== "client" && (
+              <SchedulePage role={user.role} />
+            )}
+
             {page === "employees" && user.role === "admin" && <EmployeesPage />}
             {page === "requests" && user.role === "admin" && <RequestsPage />}
             {page === "expenses" && user.role === "admin" && <ExpensesPage />}
             {page === "mileage" && user.role === "admin" && <MileagePage />}
             {page === "recurring" && user.role === "admin" && <RecurringPage />}
             {page === "equipment" && user.role === "admin" && <EquipmentPage />}
-            {page === "treatments" && user.role !== "client" && <TreatmentsPage role={user.role} />}
+
+            {page === "treatments" && user.role !== "client" && (
+              <TreatmentsPage role={user.role} />
+            )}
+
             {page === "pricing" && user.role === "admin" && <PricingPage />}
-            {page === "timeclock" && user.role !== "client" && <TimeClockPage role={user.role} />}
+
+            {page === "timeclock" && user.role !== "client" && (
+              <TimeClockPage role={user.role} />
+            )}
+
             {page === "email" && user.role === "admin" && <EmailTestPage />}
             {page === "pos" && user.role !== "client" && <POSPage role={user.role} />}
             {page === "availability" && user.role !== "client" && <AvailabilityPage />}
             {page === "chat" && <ChatPage currentUser={user} />}
-            {page === "tips" && user.role !== "client" && <TipsPage role={user.role} />}
+
+            {page === "tips" && user.role !== "client" && (
+              <TipsPage role={user.role} />
+            )}
+
             {page === "payroll" && user.role === "admin" && <PayrollPage />}
             {page === "my-ledger" && user.role === "employee" && <MyLedgerPage />}
           </main>
