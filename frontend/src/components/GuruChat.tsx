@@ -23,6 +23,11 @@ type GuruEstimateSummary = {
   status: string;
 };
 
+type ClientQuoteSummary = {
+  id: string;
+  status: string;
+};
+
 type EstimateForm = {
   clientName: string;
   phone: string;
@@ -39,7 +44,7 @@ type EstimateForm = {
   photoNote: string;
 };
 
-const GURU_ICON_SRC = "/icons/NMD-Guru-Icon.png?v=2026051419";
+const GURU_ICON_SRC = "/icons/NMD-Guru-Icon.png?v=2026051420";
 
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -140,6 +145,7 @@ export default function GuruChat({
   const [open, setOpen] = React.useState(false);
   const [hasUnread, setHasUnread] = React.useState(true);
   const [adminReviewCount, setAdminReviewCount] = React.useState(0);
+  const [clientUpdateCount, setClientUpdateCount] = React.useState(0);
   const [clientEstimateSubmitted, setClientEstimateSubmitted] = React.useState(false);
   const [typing, setTyping] = React.useState(false);
   const [input, setInput] = React.useState("");
@@ -235,6 +241,55 @@ export default function GuruChat({
     loadAdminReviewCount();
 
     const interval = window.setInterval(loadAdminReviewCount, 60000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [user?.id, user?.role, open]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    const loadClientUpdates = async () => {
+      if (!user || user.role !== "client") {
+        setClientUpdateCount(0);
+        return;
+      }
+
+      try {
+        const [estimateData, quoteData] = await Promise.all([
+          apiFetch<{ estimates: GuruEstimateSummary[] }>("/api/guru/my-estimates"),
+          apiFetch<{ quotes: ClientQuoteSummary[] }>("/api/client-quotes/my-quotes")
+        ]);
+
+        if (cancelled) return;
+
+        const estimateUpdates = estimateData.estimates.filter((estimate) =>
+          ["reviewed", "converted_to_quote"].includes(estimate.status)
+        ).length;
+
+        const quoteUpdates = quoteData.quotes.filter((quote) =>
+          ["draft", "sent"].includes(quote.status)
+        ).length;
+
+        const totalUpdates = estimateUpdates + quoteUpdates;
+
+        setClientUpdateCount(totalUpdates);
+
+        if (totalUpdates > 0 && !open) {
+          setHasUnread(true);
+        }
+      } catch {
+        if (!cancelled) {
+          setClientUpdateCount(0);
+        }
+      }
+    };
+
+    loadClientUpdates();
+
+    const interval = window.setInterval(loadClientUpdates, 60000);
 
     return () => {
       cancelled = true;
@@ -557,6 +612,7 @@ export default function GuruChat({
       });
 
       setHasUnread(true);
+      setClientUpdateCount((prev) => prev + 1);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not submit estimate");
     } finally {
@@ -611,7 +667,20 @@ export default function GuruChat({
 
   const roleLabel = getRoleLabel(user);
   const quickPrompts = getQuickPrompts(user);
-  const shouldShowNotification = user?.role === "admin" ? adminReviewCount > 0 : hasUnread;
+
+  const notificationCount =
+    user?.role === "admin"
+      ? adminReviewCount
+      : user?.role === "client"
+        ? clientUpdateCount
+        : 0;
+
+  const shouldShowNotification =
+    user?.role === "admin"
+      ? adminReviewCount > 0
+      : user?.role === "client"
+        ? clientUpdateCount > 0 || hasUnread
+        : hasUnread;
 
   return (
     <>
@@ -674,9 +743,9 @@ export default function GuruChat({
               position: "absolute",
               top: notificationDotOffset,
               right: notificationDotOffset,
-              minWidth: adminReviewCount > 0 ? 24 : 16,
-              height: adminReviewCount > 0 ? 24 : 16,
-              padding: adminReviewCount > 0 ? "0 6px" : 0,
+              minWidth: notificationCount > 0 ? 24 : 16,
+              height: notificationCount > 0 ? 24 : 16,
+              padding: notificationCount > 0 ? "0 6px" : 0,
               borderRadius: "999px",
               background: "#ef4444",
               border: "2px solid #ffffff",
@@ -690,7 +759,7 @@ export default function GuruChat({
               lineHeight: 1
             }}
           >
-            {adminReviewCount > 0 ? adminReviewCount : ""}
+            {notificationCount > 0 ? notificationCount : ""}
           </span>
         )}
       </button>
@@ -769,7 +838,24 @@ export default function GuruChat({
               </div>
             )}
 
-            {user?.role === "client" && clientEstimateSubmitted && (
+            {user?.role === "client" && clientUpdateCount > 0 && (
+              <div className="listCard" style={{ marginTop: 10 }}>
+                You have {clientUpdateCount} Guru estimate or quote update
+                {clientUpdateCount === 1 ? "" : "s"}.
+
+                <div className="buttonRow" style={{ marginTop: 10 }}>
+                  <button className="primaryButton" type="button" onClick={openClientEstimates}>
+                    View My Estimates
+                  </button>
+
+                  <button className="secondaryButton" type="button" onClick={openClientQuotes}>
+                    View My Quotes
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {user?.role === "client" && clientEstimateSubmitted && clientUpdateCount === 0 && (
               <div className="listCard" style={{ marginTop: 10 }}>
                 Your Guru estimate was submitted for NMD review.
 
