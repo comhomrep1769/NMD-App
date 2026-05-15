@@ -1,6 +1,6 @@
 import React from "react";
 import { apiFetch } from "../api";
-import type { AuthUser } from "../types";
+import type { AuthUser, PageKey } from "../types";
 
 type GuruMessage = {
   id: string;
@@ -39,7 +39,7 @@ type EstimateForm = {
   photoNote: string;
 };
 
-const GURU_ICON_SRC = "/icons/NMD-Guru-Icon.png?v=2026051417";
+const GURU_ICON_SRC = "/icons/NMD-Guru-Icon.png?v=2026051418";
 
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -130,7 +130,13 @@ const emptyEstimateForm: EstimateForm = {
   photoNote: ""
 };
 
-export default function GuruChat({ user }: { user: AuthUser | null }) {
+export default function GuruChat({
+  user,
+  onNavigate
+}: {
+  user: AuthUser | null;
+  onNavigate?: (page: PageKey) => void;
+}) {
   const [open, setOpen] = React.useState(false);
   const [hasUnread, setHasUnread] = React.useState(true);
   const [adminReviewCount, setAdminReviewCount] = React.useState(0);
@@ -297,6 +303,16 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
     setOpen(false);
   };
 
+  const openGuruEstimatesReview = () => {
+    if (onNavigate) {
+      onNavigate("guru-estimates");
+      setOpen(false);
+      setHasUnread(false);
+    } else {
+      submitMessage("Review Guru estimates");
+    }
+  };
+
   const getLocalGuruReply = (messageBody: string) => {
     const lower = messageBody.toLowerCase();
 
@@ -318,6 +334,11 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
     }
 
     if (user.role !== "client") {
+      if (user.role === "admin") {
+        openGuruEstimatesReview();
+        return;
+      }
+
       submitMessage("Review Guru estimates");
       return;
     }
@@ -333,6 +354,12 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
 
     if (messageBody.toLowerCase().includes("start estimate") && user?.role === "client") {
       startEstimate();
+      setInput("");
+      return;
+    }
+
+    if (messageBody === "Review Guru estimates" && user?.role === "admin" && onNavigate) {
+      openGuruEstimatesReview();
       setInput("");
       return;
     }
@@ -689,6 +716,16 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
             {user?.role === "admin" && adminReviewCount > 0 && (
               <div className="errorBox" style={{ marginTop: 10 }}>
                 {adminReviewCount} Guru estimate{adminReviewCount === 1 ? "" : "s"} need admin review.
+
+                <div className="buttonRow" style={{ marginTop: 10 }}>
+                  <button
+                    className="primaryButton"
+                    type="button"
+                    onClick={openGuruEstimatesReview}
+                  >
+                    Review Estimates
+                  </button>
+                </div>
               </div>
             )}
 
@@ -696,6 +733,12 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
               {user?.role === "client" && (
                 <button className="primaryButton" type="button" onClick={startEstimate}>
                   Start Estimate
+                </button>
+              )}
+
+              {user?.role === "admin" && (
+                <button className="primaryButton" type="button" onClick={openGuruEstimatesReview}>
+                  Estimate Review
                 </button>
               )}
 
@@ -959,7 +1002,9 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
                     }}
                     onClick={() => {
                       if (prompt === "Start estimate") startEstimate();
-                      else submitMessage(prompt);
+                      else if (prompt === "Review Guru estimates" && user?.role === "admin") {
+                        openGuruEstimatesReview();
+                      } else submitMessage(prompt);
                     }}
                   >
                     {prompt}
