@@ -18,6 +18,11 @@ type BackendGuruMessage = {
   createdAt: string;
 };
 
+type GuruEstimateSummary = {
+  id: string;
+  status: string;
+};
+
 type EstimateForm = {
   clientName: string;
   phone: string;
@@ -34,7 +39,7 @@ type EstimateForm = {
   photoNote: string;
 };
 
-const GURU_ICON_SRC = "/icons/NMD-Guru-Icon.png?v=2026051416";
+const GURU_ICON_SRC = "/icons/NMD-Guru-Icon.png?v=2026051417";
 
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -128,6 +133,7 @@ const emptyEstimateForm: EstimateForm = {
 export default function GuruChat({ user }: { user: AuthUser | null }) {
   const [open, setOpen] = React.useState(false);
   const [hasUnread, setHasUnread] = React.useState(true);
+  const [adminReviewCount, setAdminReviewCount] = React.useState(0);
   const [typing, setTyping] = React.useState(false);
   const [input, setInput] = React.useState("");
   const [loadingHistory, setLoadingHistory] = React.useState(false);
@@ -189,6 +195,45 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
   React.useEffect(() => {
     localStorage.setItem(localStorageKey(user), String(open));
   }, [open, user?.id]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    const loadAdminReviewCount = async () => {
+      if (!user || user.role !== "admin") {
+        setAdminReviewCount(0);
+        return;
+      }
+
+      try {
+        const data = await apiFetch<{ estimates: GuruEstimateSummary[] }>("/api/guru/estimates");
+        if (cancelled) return;
+
+        const needsReview = data.estimates.filter(
+          (estimate) => estimate.status === "needs_review"
+        ).length;
+
+        setAdminReviewCount(needsReview);
+
+        if (needsReview > 0 && !open) {
+          setHasUnread(true);
+        }
+      } catch {
+        if (!cancelled) {
+          setAdminReviewCount(0);
+        }
+      }
+    };
+
+    loadAdminReviewCount();
+
+    const interval = window.setInterval(loadAdminReviewCount, 60000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [user?.id, user?.role, open]);
 
   React.useEffect(() => {
     setError("");
@@ -445,6 +490,8 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
         clientName: user.displayName,
         email: user.email
       });
+
+      setHasUnread(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not submit estimate");
     } finally {
@@ -497,6 +544,7 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
 
   const roleLabel = getRoleLabel(user);
   const quickPrompts = getQuickPrompts(user);
+  const shouldShowNotification = user?.role === "admin" ? adminReviewCount > 0 : hasUnread;
 
   return (
     <>
@@ -553,21 +601,30 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
           </span>
         )}
 
-        {hasUnread && (
+        {shouldShowNotification && (
           <span
             style={{
               position: "absolute",
               top: notificationDotOffset,
               right: notificationDotOffset,
-              width: 16,
-              height: 16,
+              minWidth: adminReviewCount > 0 ? 24 : 16,
+              height: adminReviewCount > 0 ? 24 : 16,
+              padding: adminReviewCount > 0 ? "0 6px" : 0,
               borderRadius: "999px",
               background: "#ef4444",
               border: "2px solid #ffffff",
               boxShadow: "0 0 0 3px rgba(239,68,68,0.25)",
-              zIndex: 2
+              zIndex: 2,
+              display: "grid",
+              placeItems: "center",
+              color: "#ffffff",
+              fontSize: 12,
+              fontWeight: 900,
+              lineHeight: 1
             }}
-          />
+          >
+            {adminReviewCount > 0 ? adminReviewCount : ""}
+          </span>
         )}
       </button>
 
@@ -628,6 +685,12 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
                 Close
               </button>
             </div>
+
+            {user?.role === "admin" && adminReviewCount > 0 && (
+              <div className="errorBox" style={{ marginTop: 10 }}>
+                {adminReviewCount} Guru estimate{adminReviewCount === 1 ? "" : "s"} need admin review.
+              </div>
+            )}
 
             <div className="buttonRow" style={{ marginTop: 10 }}>
               {user?.role === "client" && (
