@@ -129,6 +129,10 @@ const clientGroups: NavGroup[] = [
     children: [{ key: "client-estimates", label: "My Estimates" }]
   },
   {
+    label: "Quotes",
+    children: [{ key: "client-quotes", label: "My Quotes" }]
+  },
+  {
     label: "Chat",
     children: [{ key: "chat", label: "Chat" }]
   }
@@ -162,8 +166,7 @@ export default function MobileNav({
   };
 
   const activeGroup =
-    groups.find((group) => groupContainsPage(group, currentPage))?.label ||
-    "Menu";
+    groups.find((group) => groupContainsPage(group, currentPage))?.label || "Menu";
 
   return (
     <>
@@ -254,9 +257,7 @@ export default function MobileNav({
                           key={`${group.label}-${child.key}-${child.label}`}
                           type="button"
                           className={
-                            currentPage === child.key
-                              ? "primaryButton"
-                              : "secondaryButton"
+                            currentPage === child.key ? "primaryButton" : "secondaryButton"
                           }
                           onClick={() => navigate(child.key)}
                         >
