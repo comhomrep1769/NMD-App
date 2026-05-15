@@ -34,7 +34,7 @@ type EstimateForm = {
   photoNote: string;
 };
 
-const GURU_ICON_SRC = "/icons/NMD-Guru-Icon.jpeg";
+const GURU_ICON_SRC = "/icons/NMD-Guru-Icon.png";
 
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
