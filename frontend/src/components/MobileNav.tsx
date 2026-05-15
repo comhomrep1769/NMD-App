@@ -6,10 +6,14 @@ type MobileNavItem = {
   label: string;
 };
 
+function isAdminRole(role: AuthUserRole) {
+  return role === "admin" || role === "superadmin";
+}
+
 function getMobileItems(role: AuthUserRole): MobileNavItem[] {
-  if (role === "admin") {
+  if (isAdminRole(role)) {
     return [
-      { key: "dashboard", label: "Home" },
+      { key: "dashboard", label: role === "superadmin" ? "Owner" : "Home" },
       { key: "guru-estimates", label: "Guru" },
       { key: "schedule", label: "Schedule" },
       { key: "quotes", label: "Quotes" },
