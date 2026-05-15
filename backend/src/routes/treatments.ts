@@ -1,188 +1,506 @@
-import { Router } from "express";
-import { pool } from "../db.js";
-import { requireAuth } from "../middleware/auth.js";
+import express from "express";
+import { Pool } from "pg";
 
-const router = Router();
+const router = express.Router();
 
-function mapTreatment(row: any) {
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl:
+    process.env.NODE_ENV === "production"
+      ? {
+          rejectUnauthorized: false
+        }
+      : undefined
+});
+
+type TreatmentRow = {
+  id: string;
+  name: string;
+  category: string;
+  surface_types: string[];
+  chemical: string | null;
+  dilution_ratio: string | null;
+  use_case: string | null;
+  safety_notes: string | null;
+  instructions: string | null;
+  purchase_link: string | null;
+  cost_reference: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+function mapTreatment(row: TreatmentRow) {
   return {
     id: row.id,
-    title: row.title,
+    name: row.name,
     category: row.category,
-    surfaceType: row.surface_type,
-    stainType: row.stain_type,
-    severity: row.severity,
-    chemicalName: row.chemical_name,
+    surfaceTypes: row.surface_types || [],
+    chemical: row.chemical,
     dilutionRatio: row.dilution_ratio,
-    applicationMethod: row.application_method,
-    dwellTime: row.dwell_time,
-    rinseMethod: row.rinse_method,
+    useCase: row.use_case,
     safetyNotes: row.safety_notes,
-    damageWarnings: row.damage_warnings,
-    estimatedMaterialCost: Number(
-      row.estimated_material_cost || 0
-    ),
+    instructions: row.instructions,
     purchaseLink: row.purchase_link,
-    notes: row.notes,
-    createdBy: row.created_by,
+    costReference: row.cost_reference,
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };
 }
 
-/*
-=======================================
-GET ALL TREATMENTS
-=======================================
-*/
-router.get("/", requireAuth, async (req, res) => {
-  try {
-    const { search } = req.query as {
-      search?: string;
-    };
+async function ensureTreatmentsTable() {
+  await pool.query(`
+    CREATE EXTENSION IF NOT EXISTS pgcrypto;
+  `);
 
-    let result;
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS treatments (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      name TEXT NOT NULL,
+      category TEXT NOT NULL DEFAULT 'General',
+      surface_types TEXT[] NOT NULL DEFAULT '{}',
+      chemical TEXT NULL,
+      dilution_ratio TEXT NULL,
+      use_case TEXT NULL,
+      safety_notes TEXT NULL,
+      instructions TEXT NULL,
+      purchase_link TEXT NULL,
+      cost_reference TEXT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS treatments_category_idx
+    ON treatments (LOWER(category));
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS treatments_name_idx
+    ON treatments (LOWER(name));
+  `);
+}
+
+async function seedDefaultTreatments() {
+  await ensureTreatmentsTable();
+
+  const defaults = [
+    {
+      name: "Standard House Wash",
+      category: "Soft Washing",
+      surfaceTypes: ["Vinyl siding", "Painted siding", "Exterior walls"],
+      chemical: "SH mix with surfactant",
+      dilutionRatio: "Typically 0.5%–1.5% on surface depending on organic growth",
+      useCase:
+        "General exterior house washing for algae, mildew, light organic growth, and routine maintenance.",
+      safetyNotes:
+        "Pre-wet plants, protect outlets, avoid forcing water behind siding, rinse plants/windows thoroughly, and watch for oxidation.",
+      instructions:
+        "Apply low-pressure soft wash mix from bottom-up or controlled sections, allow dwell time without drying, rinse thoroughly, and inspect oxidation-sensitive areas.",
+      purchaseLink: "",
+      costReference:
+        "Use NMD Job Pricing for house washing minimums, square footage, condition, height, access, and add-ons."
+    },
+    {
+      name: "Roof Cleaning Soft Wash",
+      category: "Roof Cleaning",
+      surfaceTypes: ["Asphalt shingles", "Tile roof", "Metal roof"],
+      chemical: "SH roof mix",
+      dilutionRatio: "Often 3%–6% on surface depending on staining and roof material",
+      useCase:
+        "Organic roof stains, algae, black streaks, moss, and roof discoloration where pressure should not be used.",
+      safetyNotes:
+        "Use fall protection, protect plants, control runoff, avoid high pressure, watch overspray, and verify roof access/pitch.",
+      instructions:
+        "Apply roof-safe soft wash mix, let dwell, reapply where needed, rinse only when appropriate for the roof/job scope, and protect landscaping before/during/after.",
+      purchaseLink: "",
+      costReference:
+        "Price separately from house wash. Account for roof pitch, size, access, moss load, plant protection, and chemical cost."
+    },
+    {
+      name: "Concrete Surface Cleaning",
+      category: "Flatwork",
+      surfaceTypes: ["Concrete", "Driveways", "Sidewalks", "Patios"],
+      chemical: "Pre/post treatment with SH or degreaser when needed",
+      dilutionRatio: "Post-treat commonly 1%–3% depending on organic staining",
+      useCase:
+        "Driveway, sidewalk, patio, and flatwork cleaning for organic growth and general dirt.",
+      safetyNotes:
+        "Avoid damaging new concrete, verify GPM/surface cleaner size, prevent stripes, watch drainage/runoff, and test questionable surfaces.",
+      instructions:
+        "Pre-treat if needed, surface clean at proper pace, rinse thoroughly, post-treat organic staining, and avoid excessive pressure on weak/new concrete.",
+      purchaseLink: "",
+      costReference:
+        "Price by square foot with minimum service charge. Increase for heavy staining, poor drainage, oil, rust, or restoration work."
+    },
+    {
+      name: "Rust Stain Removal",
+      category: "Specialty Restoration",
+      surfaceTypes: ["Concrete", "Pavers", "Stucco", "Stone", "Exterior walls"],
+      chemical: "F9 BARC, oxalic acid, or compatible rust remover",
+      dilutionRatio: "Oxalic often 6–8 oz per gallon depending on use case; follow product label",
+      useCase:
+        "Rust stains from irrigation, metal furniture, battery stains, fertilizer stains, or orange staining.",
+      safetyNotes:
+        "Test spot first, protect surrounding surfaces, wear PPE, avoid glass/metal damage, and do not promise full removal without testing.",
+      instructions:
+        "Identify stain source, test small area, apply rust remover carefully, dwell as directed, agitate if safe, rinse thoroughly, and repeat if needed.",
+      purchaseLink: "",
+      costReference:
+        "Price as specialty restoration. Small spots $50–$100, entry pads $125–$300, heavy irrigation stains $300–$800+."
+    },
+    {
+      name: "Wood Fence / Deck Cleaning",
+      category: "Wood Restoration",
+      surfaceTypes: ["Wood fence", "Deck", "Wood siding"],
+      chemical: "Sodium percarbonate, sodium hydroxide, oxalic acid brightener",
+      dilutionRatio: "Depends on wood condition and product. Oxalic brightener commonly used after cleaning/stripping.",
+      useCase:
+        "Wood cleaning, gray wood restoration, fence/deck prep, and brightening after alkaline cleaners.",
+      safetyNotes:
+        "Avoid excessive pressure, test first, manage fuzzing, protect plants, and set expectations about existing damage and final color.",
+      instructions:
+        "Apply appropriate wood cleaner, dwell, gently rinse with low pressure, apply oxalic brightener if needed, rinse, and allow proper drying.",
+      purchaseLink: "",
+      costReference:
+        "Wood is specialty work. Price based on linear feet/square footage, condition, prep needs, and whether staining/sealing is included."
+    },
+    {
+      name: "Oil / Grease Spot Treatment",
+      category: "Stain Removal",
+      surfaceTypes: ["Concrete", "Pavers", "Garage floors", "Dumpster pads"],
+      chemical: "Butyl degreaser, sodium hydroxide degreaser, hot water if available",
+      dilutionRatio: "Varies by product and stain severity",
+      useCase:
+        "Oil, grease, tire marks, restaurant grease, dumpster pad buildup, and automotive stains.",
+      safetyNotes:
+        "May not fully remove deep oil stains. Watch runoff, protect nearby surfaces, wear PPE, and use heat where available.",
+      instructions:
+        "Apply degreaser, dwell, agitate, hot water rinse if available, repeat if needed, and explain that deep stains may lighten but not disappear.",
+      purchaseLink: "",
+      costReference:
+        "Charge as add-on or specialty stain treatment. Increase price for commercial grease, repeat applications, and hot water needs."
+    },
+    {
+      name: "Oxidation Caution / Siding Test",
+      category: "Risk / Liability",
+      surfaceTypes: ["Vinyl siding", "Aluminum siding", "Painted siding", "Gutters"],
+      chemical: "Test before applying stronger mixes",
+      dilutionRatio: "Use mild test spot first",
+      useCase:
+        "Identify oxidation risk before washing siding, gutters, painted metals, and older exterior surfaces.",
+      safetyNotes:
+        "Oxidation can streak or change appearance. Do not scrub or pressure oxidized surfaces without approval.",
+      instructions:
+        "Perform a test spot, document existing oxidation, explain risk to client, and avoid promising restoration during a standard wash.",
+      purchaseLink: "",
+      costReference:
+        "Oxidation removal is separate from standard washing and should be priced as restoration."
+    },
+    {
+      name: "Plant Protection Workflow",
+      category: "Safety / Protection",
+      surfaceTypes: ["Landscaping", "Grass", "Plants", "Flower beds"],
+      chemical: "Water, neutralizer when appropriate",
+      dilutionRatio: "N/A",
+      useCase:
+        "Protect landscaping during soft washing, roof cleaning, and chemical-based exterior cleaning.",
+      safetyNotes:
+        "Plant damage can happen from SH overspray or runoff. Protect before, during, and after chemical application.",
+      instructions:
+        "Pre-wet plants, cover sensitive plants if needed, control runoff, rinse repeatedly during and after, and use neutralizer where appropriate.",
+      purchaseLink: "",
+      costReference:
+        "Include plant protection time/materials in roof cleaning, heavy soft washing, and chemical restoration pricing."
+    }
+  ];
+
+  for (const item of defaults) {
+    await pool.query(
+      `
+        INSERT INTO treatments (
+          name,
+          category,
+          surface_types,
+          chemical,
+          dilution_ratio,
+          use_case,
+          safety_notes,
+          instructions,
+          purchase_link,
+          cost_reference,
+          updated_at
+        )
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW())
+        ON CONFLICT DO NOTHING;
+      `,
+      [
+        item.name,
+        item.category,
+        item.surfaceTypes,
+        item.chemical,
+        item.dilutionRatio,
+        item.useCase,
+        item.safetyNotes,
+        item.instructions,
+        item.purchaseLink,
+        item.costReference
+      ]
+    );
+  }
+}
+
+router.get("/", async (req, res) => {
+  try {
+    await ensureTreatmentsTable();
+
+    const search = String(req.query.search || "").trim();
+    const category = String(req.query.category || "").trim();
+
+    const params: string[] = [];
+    const where: string[] = [];
 
     if (search) {
-      result = await pool.query(
-        `
-        SELECT *
-        FROM treatment_cases
-        WHERE
-          title ILIKE $1
-          OR category ILIKE $1
-          OR surface_type ILIKE $1
-          OR stain_type ILIKE $1
-          OR chemical_name ILIKE $1
-        ORDER BY created_at DESC
-        `,
-        [`%${search}%`]
-      );
-    } else {
-      result = await pool.query(`
-        SELECT *
-        FROM treatment_cases
-        ORDER BY created_at DESC
+      params.push(`%${search.toLowerCase()}%`);
+      where.push(`
+        (
+          LOWER(name) LIKE $${params.length}
+          OR LOWER(category) LIKE $${params.length}
+          OR LOWER(COALESCE(chemical, '')) LIKE $${params.length}
+          OR LOWER(COALESCE(use_case, '')) LIKE $${params.length}
+          OR LOWER(COALESCE(safety_notes, '')) LIKE $${params.length}
+          OR LOWER(COALESCE(instructions, '')) LIKE $${params.length}
+        )
       `);
     }
+
+    if (category && category !== "all") {
+      params.push(category.toLowerCase());
+      where.push(`LOWER(category) = $${params.length}`);
+    }
+
+    const result = await pool.query<TreatmentRow>(
+      `
+        SELECT *
+        FROM treatments
+        ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
+        ORDER BY category ASC, name ASC;
+      `,
+      params
+    );
 
     return res.json({
       treatments: result.rows.map(mapTreatment)
     });
-  } catch (error) {
-    console.error(error);
+  } catch (err) {
+    console.error("Get treatments error:", err);
+
     return res.status(500).json({
-      error: "Server error"
+      message: err instanceof Error ? err.message : "Failed to load treatments."
     });
   }
 });
 
-/*
-=======================================
-CREATE TREATMENT
-(Admin only creation handled in frontend role logic)
-=======================================
-*/
-router.post("/", requireAuth, async (req, res) => {
+router.post("/seed", async (_req, res) => {
   try {
-    const {
-      title,
-      category,
-      surfaceType,
-      stainType,
-      severity,
-      chemicalName,
-      dilutionRatio,
-      applicationMethod,
-      dwellTime,
-      rinseMethod,
-      safetyNotes,
-      damageWarnings,
-      estimatedMaterialCost,
-      purchaseLink,
-      notes
-    } = req.body;
+    await seedDefaultTreatments();
 
-    const result = await pool.query(
+    const result = await pool.query<TreatmentRow>(
       `
-      INSERT INTO treatment_cases (
-        title,
-        category,
-        surface_type,
-        stain_type,
-        severity,
-        chemical_name,
-        dilution_ratio,
-        application_method,
-        dwell_time,
-        rinse_method,
-        safety_notes,
-        damage_warnings,
-        estimated_material_cost,
-        purchase_link,
-        notes,
-        created_by
-      )
-      VALUES (
-        $1,$2,$3,$4,$5,
-        $6,$7,$8,$9,$10,
-        $11,$12,$13,$14,$15,$16
-      )
-      RETURNING *
+        SELECT *
+        FROM treatments
+        ORDER BY category ASC, name ASC;
+      `
+    );
+
+    return res.json({
+      message: "Treatment database seeded successfully.",
+      treatments: result.rows.map(mapTreatment)
+    });
+  } catch (err) {
+    console.error("Seed treatments error:", err);
+
+    return res.status(500).json({
+      message: err instanceof Error ? err.message : "Failed to seed treatments."
+    });
+  }
+});
+
+router.post("/", async (req, res) => {
+  try {
+    await ensureTreatmentsTable();
+
+    const name = String(req.body?.name || "").trim();
+    const category = String(req.body?.category || "General").trim();
+    const surfaceTypes = Array.isArray(req.body?.surfaceTypes)
+      ? req.body.surfaceTypes.map((item: unknown) => String(item).trim()).filter(Boolean)
+      : String(req.body?.surfaceTypes || "")
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean);
+
+    if (!name) {
+      return res.status(400).json({
+        message: "Treatment name is required."
+      });
+    }
+
+    const result = await pool.query<TreatmentRow>(
+      `
+        INSERT INTO treatments (
+          name,
+          category,
+          surface_types,
+          chemical,
+          dilution_ratio,
+          use_case,
+          safety_notes,
+          instructions,
+          purchase_link,
+          cost_reference,
+          updated_at
+        )
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW())
+        RETURNING *;
       `,
       [
-        title,
-        category,
-        surfaceType,
-        stainType,
-        severity,
-        chemicalName,
-        dilutionRatio,
-        applicationMethod,
-        dwellTime,
-        rinseMethod,
-        safetyNotes,
-        damageWarnings,
-        estimatedMaterialCost || null,
-        purchaseLink || null,
-        notes || null,
-        req.user!.id
+        name,
+        category || "General",
+        surfaceTypes,
+        String(req.body?.chemical || "").trim() || null,
+        String(req.body?.dilutionRatio || "").trim() || null,
+        String(req.body?.useCase || "").trim() || null,
+        String(req.body?.safetyNotes || "").trim() || null,
+        String(req.body?.instructions || "").trim() || null,
+        String(req.body?.purchaseLink || "").trim() || null,
+        String(req.body?.costReference || "").trim() || null
       ]
     );
 
     return res.status(201).json({
       treatment: mapTreatment(result.rows[0])
     });
-  } catch (error) {
-    console.error(error);
+  } catch (err) {
+    console.error("Create treatment error:", err);
+
     return res.status(500).json({
-      error: "Server error"
+      message: err instanceof Error ? err.message : "Failed to create treatment."
     });
   }
 });
 
-/*
-=======================================
-DELETE TREATMENT
-=======================================
-*/
-router.delete("/:id", requireAuth, async (req, res) => {
+router.patch("/:id", async (req, res) => {
   try {
-    await pool.query(
+    await ensureTreatmentsTable();
+
+    const id = String(req.params.id || "").trim();
+    const name = String(req.body?.name || "").trim();
+    const category = String(req.body?.category || "General").trim();
+    const surfaceTypes = Array.isArray(req.body?.surfaceTypes)
+      ? req.body.surfaceTypes.map((item: unknown) => String(item).trim()).filter(Boolean)
+      : String(req.body?.surfaceTypes || "")
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean);
+
+    if (!id) {
+      return res.status(400).json({
+        message: "Treatment ID is required."
+      });
+    }
+
+    if (!name) {
+      return res.status(400).json({
+        message: "Treatment name is required."
+      });
+    }
+
+    const result = await pool.query<TreatmentRow>(
       `
-      DELETE FROM treatment_cases
-      WHERE id = $1
+        UPDATE treatments
+        SET
+          name = $2,
+          category = $3,
+          surface_types = $4,
+          chemical = $5,
+          dilution_ratio = $6,
+          use_case = $7,
+          safety_notes = $8,
+          instructions = $9,
+          purchase_link = $10,
+          cost_reference = $11,
+          updated_at = NOW()
+        WHERE id = $1
+        RETURNING *;
       `,
-      [req.params.id]
+      [
+        id,
+        name,
+        category || "General",
+        surfaceTypes,
+        String(req.body?.chemical || "").trim() || null,
+        String(req.body?.dilutionRatio || "").trim() || null,
+        String(req.body?.useCase || "").trim() || null,
+        String(req.body?.safetyNotes || "").trim() || null,
+        String(req.body?.instructions || "").trim() || null,
+        String(req.body?.purchaseLink || "").trim() || null,
+        String(req.body?.costReference || "").trim() || null
+      ]
     );
 
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        message: "Treatment not found."
+      });
+    }
+
     return res.json({
-      message: "Treatment deleted"
+      treatment: mapTreatment(result.rows[0])
     });
-  } catch (error) {
-    console.error(error);
+  } catch (err) {
+    console.error("Update treatment error:", err);
+
     return res.status(500).json({
-      error: "Server error"
+      message: err instanceof Error ? err.message : "Failed to update treatment."
+    });
+  }
+});
+
+router.delete("/:id", async (req, res) => {
+  try {
+    await ensureTreatmentsTable();
+
+    const id = String(req.params.id || "").trim();
+
+    if (!id) {
+      return res.status(400).json({
+        message: "Treatment ID is required."
+      });
+    }
+
+    const result = await pool.query(
+      `
+        DELETE FROM treatments
+        WHERE id = $1
+        RETURNING id;
+      `,
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        message: "Treatment not found."
+      });
+    }
+
+    return res.json({
+      message: "Treatment deleted."
+    });
+  } catch (err) {
+    console.error("Delete treatment error:", err);
+
+    return res.status(500).json({
+      message: err instanceof Error ? err.message : "Failed to delete treatment."
     });
   }
 });
