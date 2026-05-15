@@ -11,9 +11,46 @@ export default function ClientDashboardPage({
       <section className="panel">
         <div className="panelHeader">
           <div>
-            <h2 className="panelTitle">Client Portal</h2>
+            <h2 className="panelTitle">Client Dashboard</h2>
             <p className="brandSubtitle">
-              Request service, track estimates, view quotes, communicate with NMD, and manage your account.
+              Manage your NMD estimates, quotes, communication, and service requests.
+            </p>
+          </div>
+        </div>
+
+        <div className="listCard">
+          Use Guru in the corner to start a preliminary estimate. NMD will review your details before confirming official pricing.
+        </div>
+
+        <div className="statsGrid" style={{ marginTop: 16 }}>
+          <div className="statCard">
+            <div className="statLabel">Guru</div>
+            <div className="statValue">Live</div>
+          </div>
+
+          <div className="statCard">
+            <div className="statLabel">Estimates</div>
+            <div className="statValue">View</div>
+          </div>
+
+          <div className="statCard">
+            <div className="statLabel">Quotes</div>
+            <div className="statValue">View</div>
+          </div>
+
+          <div className="statCard">
+            <div className="statLabel">Chat</div>
+            <div className="statValue">Open</div>
+          </div>
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="panelHeader">
+          <div>
+            <h2 className="panelTitle">Guru Client Center</h2>
+            <p className="brandSubtitle">
+              Track preliminary Guru estimates and official NMD quote records.
             </p>
           </div>
         </div>
@@ -23,11 +60,14 @@ export default function ClientDashboardPage({
             className="quoteCard"
             type="button"
             onClick={() => onNavigate("client-estimates")}
-            style={{ textAlign: "left" }}
+            style={{ textAlign: "left", cursor: "pointer" }}
           >
-            <div className="quoteNumber">My Estimates</div>
+            <div className="quoteTopRow">
+              <div className="quoteNumber">My Estimates</div>
+              <span className="statusBadge status-pending_admin_approval">Preliminary</span>
+            </div>
             <div className="cardLine">
-              View Guru estimate requests, review status, uploaded photos, and preliminary pricing ranges.
+              View your Guru estimate requests, uploaded photos, preliminary ranges, review status, and Guru explanations.
             </div>
           </button>
 
@@ -35,11 +75,14 @@ export default function ClientDashboardPage({
             className="quoteCard"
             type="button"
             onClick={() => onNavigate("client-quotes")}
-            style={{ textAlign: "left" }}
+            style={{ textAlign: "left", cursor: "pointer" }}
           >
-            <div className="quoteNumber">My Quotes</div>
+            <div className="quoteTopRow">
+              <div className="quoteNumber">My Quotes</div>
+              <span className="statusBadge status-approved">Official</span>
+            </div>
             <div className="cardLine">
-              View official NMD quote records that are being prepared, sent, accepted, or declined.
+              View official quote records NMD is preparing, sending, or tracking through acceptance.
             </div>
           </button>
 
@@ -47,34 +90,41 @@ export default function ClientDashboardPage({
             className="quoteCard"
             type="button"
             onClick={() => onNavigate("chat")}
-            style={{ textAlign: "left" }}
+            style={{ textAlign: "left", cursor: "pointer" }}
           >
-            <div className="quoteNumber">Chat</div>
+            <div className="quoteTopRow">
+              <div className="quoteNumber">Message NMD</div>
+              <span className="statusBadge status-paid">Chat</span>
+            </div>
             <div className="cardLine">
-              Message NMD about your service request, quote, invoice, or scheduling.
+              Open your communication thread for questions, updates, photos, and service follow-up.
             </div>
           </button>
+        </div>
+      </section>
 
-          <div className="quoteCard">
-            <div className="quoteNumber">Start A New Estimate</div>
-            <div className="cardLine">
-              Tap the floating Guru button in the corner and choose “Start Estimate.”
-            </div>
+      <section className="panel">
+        <div className="panelHeader">
+          <div>
+            <h2 className="panelTitle">Client Quick Actions</h2>
+            <p className="brandSubtitle">
+              Fast access to your estimate and quote records.
+            </p>
           </div>
+        </div>
 
-          <div className="quoteCard">
-            <div className="quoteNumber">Invoices & Payments</div>
-            <div className="cardLine">
-              Client invoice/payment visibility will be connected in a future phase.
-            </div>
-          </div>
+        <div className="buttonRow">
+          <button className="primaryButton" type="button" onClick={() => onNavigate("client-estimates")}>
+            My Estimates
+          </button>
 
-          <div className="quoteCard">
-            <div className="quoteNumber">Recurring Service</div>
-            <div className="cardLine">
-              Recurring service request and subscription options will be added after the core Guru workflow is live.
-            </div>
-          </div>
+          <button className="secondaryButton" type="button" onClick={() => onNavigate("client-quotes")}>
+            My Quotes
+          </button>
+
+          <button className="secondaryButton" type="button" onClick={() => onNavigate("chat")}>
+            Chat
+          </button>
         </div>
       </section>
     </div>
