@@ -33,13 +33,13 @@ function getDefaultTestCredentials(portalRole: LoginPortalRole) {
     return [
       {
         role: "Super Admin",
-        email: "superadmin@nmd.test",
-        password: "Test123!"
+        email: "testsuperadmin@nmd.local",
+        password: "TestSuperAdmin123!"
       },
       {
         role: "Admin",
-        email: "admin@nmd.test",
-        password: "Test123!"
+        email: "testadmin@nmd.local",
+        password: "TestAdmin123!"
       }
     ];
   }
@@ -48,8 +48,8 @@ function getDefaultTestCredentials(portalRole: LoginPortalRole) {
     return [
       {
         role: "Employee",
-        email: "employee@nmd.test",
-        password: "Test123!"
+        email: "testemployee@nmd.local",
+        password: "TestEmployee123!"
       }
     ];
   }
@@ -57,10 +57,20 @@ function getDefaultTestCredentials(portalRole: LoginPortalRole) {
   return [
     {
       role: "Client",
-      email: "client@nmd.test",
-      password: "Test123!"
+      email: "testclient@nmd.local",
+      password: "TestClient123!"
     }
   ];
+}
+
+function getSeedKeyFromEnv() {
+  const value = import.meta.env.VITE_TEST_SEED_KEY;
+
+  if (typeof value === "string" && value.trim()) {
+    return value.trim();
+  }
+
+  return "";
 }
 
 export default function LoginPage({
@@ -82,6 +92,7 @@ export default function LoginPage({
   const [error, setError] = React.useState("");
   const [seedMessage, setSeedMessage] = React.useState("");
   const [seedUsers, setSeedUsers] = React.useState<SeedUser[]>([]);
+  const [seedKey, setSeedKey] = React.useState(getSeedKeyFromEnv);
 
   const defaultTestCredentials = getDefaultTestCredentials(portalRole);
 
@@ -142,7 +153,15 @@ export default function LoginPage({
 
     try {
       const data = await apiFetch<SeedResponse>("/api/auth/seed-test-users", {
-        method: "POST"
+        method: "POST",
+        headers: seedKey
+          ? {
+              "x-test-seed-key": seedKey
+            }
+          : undefined,
+        body: JSON.stringify({
+          seedKey
+        })
       });
 
       setSeedMessage(data.message || "Test users checked/created.");
@@ -175,10 +194,10 @@ export default function LoginPage({
   const filteredSeedUsers =
     seedUsers.length > 0
       ? seedUsers.filter((seedUser) => {
-          const role = seedUser.role.toLowerCase();
+          const role = seedUser.role.toLowerCase().replace(/\s+/g, "");
 
           if (portalRole === "admin") {
-            return role === "admin" || role === "superadmin" || role === "super admin";
+            return role === "admin" || role === "superadmin";
           }
 
           if (portalRole === "employee") {
@@ -268,6 +287,17 @@ export default function LoginPage({
             This is only for testing the app while building. Admin, Super Admin, and Employee
             accounts should still be manually controlled before production.
           </div>
+
+          <label className="fieldLabel" style={{ marginTop: 12 }}>
+            Test Seed Key
+            <input
+              className="textInput"
+              type="password"
+              placeholder="Enter TEST_SEED_KEY if backend requires it"
+              value={seedKey}
+              onChange={(e) => setSeedKey(e.target.value)}
+            />
+          </label>
 
           <div className="buttonRow" style={{ marginTop: 12 }}>
             <button
