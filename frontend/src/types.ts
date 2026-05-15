@@ -142,6 +142,8 @@ export type GuruEstimate = {
   preliminaryNotes?: string | null;
   preliminaryEstimateLow: number;
   preliminaryEstimateHigh: number;
+  photoDataUrl?: string | null;
+  photoNote?: string | null;
   createdAt: string;
   reviewedAt?: string | null;
   reviewedBy?: string | null;
