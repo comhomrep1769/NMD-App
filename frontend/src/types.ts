@@ -22,6 +22,7 @@ export type PageKey =
   | "email"
   | "pos"
   | "guru-estimates"
+  | "client-estimates"
   | "service-request"
   | "my-ledger";
 
