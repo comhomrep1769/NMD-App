@@ -1,14 +1,11 @@
 import React from "react";
 import type { AuthUserRole, PageKey } from "../types";
+import { isAdminRole } from "../utils/roles";
 
 type MobileNavItem = {
   key: PageKey;
   label: string;
 };
-
-function isAdminRole(role: AuthUserRole) {
-  return role === "admin" || role === "superadmin";
-}
 
 function getMobileItems(role: AuthUserRole): MobileNavItem[] {
   if (isAdminRole(role)) {
