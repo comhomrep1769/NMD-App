@@ -16,6 +16,7 @@ import {
 import DilutionCalculator from "../components/treatments/DilutionCalculator";
 import TreatmentCard from "../components/treatments/TreatmentCard";
 import TreatmentDetailPanel from "../components/treatments/TreatmentDetailPanel";
+import TreatmentCasesPanel from "../components/treatments/TreatmentCasesPanel";
 
 export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
   const adminAccess = isAdminRole(role);
@@ -28,6 +29,7 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
   const [form, setForm] = React.useState<TreatmentForm>(emptyTreatmentForm);
   const [showForm, setShowForm] = React.useState(false);
   const [showCalculator, setShowCalculator] = React.useState(true);
+  const [showCases, setShowCases] = React.useState(true);
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [seeding, setSeeding] = React.useState(false);
@@ -266,6 +268,14 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
               onClick={() => setShowCalculator((prev) => !prev)}
             >
               {showCalculator ? "Hide Calculator" : "Show Calculator"}
+            </button>
+
+            <button
+              className="secondaryButton"
+              type="button"
+              onClick={() => setShowCases((prev) => !prev)}
+            >
+              {showCases ? "Hide Cases" : "Show Cases"}
             </button>
 
             <button
@@ -522,6 +532,14 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
           adminAccess={adminAccess}
           onEdit={() => startEdit(selectedTreatment)}
           onDelete={() => deleteTreatment(selectedTreatment)}
+        />
+      )}
+
+      {showCases && (
+        <TreatmentCasesPanel
+          treatments={treatments}
+          selectedTreatmentId={selectedTreatment?.id || null}
+          adminAccess={adminAccess}
         />
       )}
     </div>
