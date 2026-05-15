@@ -5,6 +5,7 @@ import authRoutes from "./routes/auth";
 import guruRoutes from "./routes/guru";
 import paymentsRoutes from "./routes/payments";
 import posRoutes from "./routes/pos";
+import treatmentsRoutes from "./routes/treatments";
 
 dotenv.config();
 
@@ -67,6 +68,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/guru", guruRoutes);
 app.use("/api/payments", paymentsRoutes);
 app.use("/api/pos", posRoutes);
+app.use("/api/treatments", treatmentsRoutes);
 
 app.use((req, res) => {
   res.status(404).json({
