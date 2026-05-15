@@ -149,6 +149,11 @@ const clientGroups: NavGroup[] = [
     children: [{ key: "client-estimates", label: "My Estimates" }]
   },
   {
+    label: "Quotes",
+    defaultKey: "client-quotes",
+    children: [{ key: "client-quotes", label: "My Quotes" }]
+  },
+  {
     label: "Chat",
     defaultKey: "chat",
     children: [{ key: "chat", label: "Chat" }]
@@ -238,9 +243,7 @@ export default function Sidebar({
                 type="button"
               >
                 <span>{group.label}</span>
-                <span style={{ marginLeft: "auto" }}>
-                  {isOpen ? "−" : "+"}
-                </span>
+                <span style={{ marginLeft: "auto" }}>{isOpen ? "−" : "+"}</span>
               </button>
 
               {isOpen && (
