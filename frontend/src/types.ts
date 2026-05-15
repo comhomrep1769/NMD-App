@@ -23,8 +23,10 @@ export type PageKey =
   | "pos"
   | "guru-estimates"
   | "client-estimates"
+  | "client-quotes"
   | "service-request"
   | "my-ledger";
+  
 
 export type Role = "admin" | "employee" | "client";
 
