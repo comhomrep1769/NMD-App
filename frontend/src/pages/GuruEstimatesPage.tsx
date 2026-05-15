@@ -51,6 +51,141 @@ function pricingExplanation(estimate: GuruEstimate) {
   return pieces;
 }
 
+function buildAdminGuruReview(estimate: GuruEstimate) {
+  const low = Number(estimate.preliminaryEstimateLow || 0);
+  const high = Number(estimate.preliminaryEstimateHigh || 0);
+
+  const reviewLines: string[] = [];
+
+  reviewLines.push(
+    `Guru’s preliminary range is $${low.toFixed(2)} - $${high.toFixed(2)}. This should be treated as a draft estimate only, not final pricing.`
+  );
+
+  if (estimate.serviceType) {
+    reviewLines.push(`Service requested: ${estimate.serviceType}.`);
+  }
+
+  if (estimate.propertyArea) {
+    reviewLines.push(`Property area/client wording: ${estimate.propertyArea}.`);
+  }
+
+  if (estimate.surfaceType) {
+    reviewLines.push(`Surface/material: ${estimate.surfaceType}. Confirm this visually before approving price.`);
+  } else {
+    reviewLines.push("Surface/material was not clearly provided. Admin should confirm before converting.");
+  }
+
+  if (estimate.conditionLevel) {
+    reviewLines.push(`Condition level provided: ${estimate.conditionLevel}.`);
+  } else {
+    reviewLines.push("Condition level was not provided. Admin should verify severity before pricing.");
+  }
+
+  if (estimate.squareFootage) {
+    reviewLines.push(`Size/dimensions provided: ${estimate.squareFootage}. Confirm measurements when possible.`);
+  } else {
+    reviewLines.push("No square footage or dimensions were provided, so pricing may need a wider margin or follow-up.");
+  }
+
+  if (estimate.specialConcerns) {
+    reviewLines.push(`Special concerns listed: ${estimate.specialConcerns}. Review these for risk, chemical needs, plant protection, oxidation, runoff, access, or specialty restoration.`);
+  }
+
+  if (estimate.photoDataUrl) {
+    reviewLines.push("Client uploaded a photo. Review the photo before marking reviewed or converting to quote.");
+  } else {
+    reviewLines.push("No photo was uploaded. Consider requesting photos before final quote approval.");
+  }
+
+  if (estimate.status === "needs_review") {
+    reviewLines.push("Recommended next step: review details/photos, confirm missing info, then either mark reviewed, decline, archive, or convert to a quote draft.");
+  }
+
+  if (estimate.status === "reviewed") {
+    reviewLines.push("This estimate has already been reviewed. Recommended next step: convert to a quote draft when pricing is ready.");
+  }
+
+  if (estimate.status === "converted_to_quote") {
+    if (estimate.quoteNumber) {
+      reviewLines.push(`This estimate is connected to Quote #${estimate.quoteNumber}. Review the connected quote before sending to the client.`);
+    } else {
+      reviewLines.push("This estimate is marked converted, but no quote number is visible. Confirm the quote connection.");
+    }
+  }
+
+  if (estimate.status === "declined") {
+    reviewLines.push("This estimate was declined. Keep it for recordkeeping or archive it if no longer needed.");
+  }
+
+  if (estimate.status === "archived") {
+    reviewLines.push("This estimate is archived and should not be treated as active unless reopened manually later.");
+  }
+
+  return reviewLines;
+}
+
+function buildAdminRiskChecklist(estimate: GuruEstimate) {
+  const combined = [
+    estimate.serviceType,
+    estimate.propertyArea,
+    estimate.surfaceType,
+    estimate.conditionLevel,
+    estimate.specialConcerns,
+    estimate.preliminaryNotes
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  const risks: string[] = [];
+
+  if (combined.includes("roof")) {
+    risks.push("Roof cleaning: verify roof type, pitch, access, runoff, plant protection, and whether treatment should be soft wash only.");
+  }
+
+  if (combined.includes("stucco")) {
+    risks.push("Stucco: confirm cracks, paint condition, oxidation, water intrusion risks, and use low pressure.");
+  }
+
+  if (combined.includes("vinyl") || combined.includes("siding")) {
+    risks.push("Siding: check oxidation, loose siding, electrical fixtures, vents, windows, and plant protection.");
+  }
+
+  if (combined.includes("concrete") || combined.includes("driveway") || combined.includes("sidewalk")) {
+    risks.push("Concrete/flatwork: verify age of concrete, staining type, drainage, stripes/risk of etching, and surface cleaner suitability.");
+  }
+
+  if (combined.includes("paver")) {
+    risks.push("Pavers: check polymeric sand, loose joints, sealing status, drainage, and whether resanding/sealing is needed.");
+  }
+
+  if (combined.includes("wood") || combined.includes("deck") || combined.includes("fence")) {
+    risks.push("Wood: avoid excessive pressure, check age/condition, oxidation/brightening needs, and manage customer expectations.");
+  }
+
+  if (combined.includes("rust") || combined.includes("orange stain") || combined.includes("irrigation")) {
+    risks.push("Rust/stain restoration: price as specialty work, test spot first, confirm chemical compatibility, and protect surrounding surfaces.");
+  }
+
+  if (combined.includes("oil") || combined.includes("grease")) {
+    risks.push("Oil/grease: may require degreaser, heat/hot water, agitation, multiple applications, and no guaranteed full removal.");
+  }
+
+  if (combined.includes("oxidation")) {
+    risks.push("Oxidation: do not promise standard washing will fix it. Explain oxidation may require specialty restoration.");
+  }
+
+  if (combined.includes("plant") || combined.includes("landscape")) {
+    risks.push("Plant/landscape protection: pre-wet, control runoff, rinse thoroughly, and use proper neutralization/protection steps.");
+  }
+
+  if (risks.length === 0) {
+    risks.push("General review: verify access, water source, photos, surface condition, measurements, liability risks, customer expectations, and minimum service charge.");
+  }
+
+  return risks;
+}
+
 export default function GuruEstimatesPage({
   onNavigate
 }: {
@@ -72,6 +207,7 @@ export default function GuruEstimatesPage({
 
   const [expandedPhotoId, setExpandedPhotoId] = React.useState<string | null>(null);
   const [expandedPricingId, setExpandedPricingId] = React.useState<string | null>(null);
+  const [expandedReviewId, setExpandedReviewId] = React.useState<string | null>(null);
 
   const loadEstimates = React.useCallback(async () => {
     setError("");
@@ -195,6 +331,7 @@ export default function GuruEstimatesPage({
   const selectedConvertEstimate = estimates.find((estimate) => estimate.id === convertEstimateId);
   const expandedPhotoEstimate = estimates.find((estimate) => estimate.id === expandedPhotoId);
   const expandedPricingEstimate = estimates.find((estimate) => estimate.id === expandedPricingId);
+  const expandedReviewEstimate = estimates.find((estimate) => estimate.id === expandedReviewId);
 
   if (loading) {
     return (
@@ -243,6 +380,147 @@ export default function GuruEstimatesPage({
           <div className="listCard" style={{ marginTop: 12 }}>
             <strong>Photo Note:</strong>{" "}
             {expandedPhotoEstimate.photoNote || "No photo note provided."}
+          </div>
+        </section>
+      )}
+
+      {expandedReviewEstimate && (
+        <section className="panel">
+          <div className="panelHeader">
+            <div>
+              <h2 className="panelTitle">Guru Admin Review</h2>
+              <p className="brandSubtitle">
+                {expandedReviewEstimate.clientName || "Client"} •{" "}
+                {expandedReviewEstimate.serviceType || "Service"}
+              </p>
+            </div>
+
+            <button
+              className="secondaryButton"
+              type="button"
+              onClick={() => setExpandedReviewId(null)}
+            >
+              Close Review
+            </button>
+          </div>
+
+          <div className="statsGrid">
+            <div className="statCard">
+              <div className="statLabel">Low Range</div>
+              <div className="statValue">
+                ${expandedReviewEstimate.preliminaryEstimateLow.toFixed(2)}
+              </div>
+            </div>
+
+            <div className="statCard">
+              <div className="statLabel">High Range</div>
+              <div className="statValue">
+                ${expandedReviewEstimate.preliminaryEstimateHigh.toFixed(2)}
+              </div>
+            </div>
+
+            <div className="statCard">
+              <div className="statLabel">Status</div>
+              <div className="statValue" style={{ fontSize: 18 }}>
+                {statusLabel(expandedReviewEstimate.status)}
+              </div>
+            </div>
+
+            {expandedReviewEstimate.quoteNumber && (
+              <div className="statCard">
+                <div className="statLabel">Connected Quote</div>
+                <div className="statValue">#{expandedReviewEstimate.quoteNumber}</div>
+              </div>
+            )}
+          </div>
+
+          <div className="assignBox" style={{ marginTop: 16 }}>
+            <div className="assignTitle">Guru Review Summary</div>
+            {buildAdminGuruReview(expandedReviewEstimate).map((line) => (
+              <div className="cardLine" key={line}>
+                • {line}
+              </div>
+            ))}
+          </div>
+
+          <div className="assignBox">
+            <div className="assignTitle">Risk / Pricing Checklist</div>
+            {buildAdminRiskChecklist(expandedReviewEstimate).map((line) => (
+              <div className="cardLine" key={line}>
+                • {line}
+              </div>
+            ))}
+          </div>
+
+          <div className="assignBox">
+            <div className="assignTitle">Recommended Admin Action</div>
+
+            {expandedReviewEstimate.status === "needs_review" && (
+              <>
+                <div className="cardLine">
+                  Review the client details, confirm missing information, inspect the uploaded photo if available, then mark reviewed or convert to a quote draft.
+                </div>
+
+                <div className="buttonRow" style={{ marginTop: 10 }}>
+                  <button
+                    className="primaryButton"
+                    type="button"
+                    disabled={savingId === expandedReviewEstimate.id}
+                    onClick={() => updateEstimateStatus(expandedReviewEstimate.id, "reviewed")}
+                  >
+                    Mark Reviewed
+                  </button>
+
+                  <button
+                    className="secondaryButton"
+                    type="button"
+                    onClick={() => startConvert(expandedReviewEstimate)}
+                  >
+                    Convert To Quote Draft
+                  </button>
+                </div>
+              </>
+            )}
+
+            {expandedReviewEstimate.status === "reviewed" && (
+              <>
+                <div className="cardLine">
+                  This estimate is reviewed. Next step is usually converting it to a quote draft if the job is worth pursuing.
+                </div>
+
+                <button
+                  className="primaryButton"
+                  type="button"
+                  style={{ marginTop: 10 }}
+                  onClick={() => startConvert(expandedReviewEstimate)}
+                >
+                  Convert To Quote Draft
+                </button>
+              </>
+            )}
+
+            {expandedReviewEstimate.status === "converted_to_quote" && (
+              <>
+                <div className="cardLine">
+                  This estimate is already connected to the quote workflow. Review the quote before sending it officially.
+                </div>
+
+                <button
+                  className="primaryButton"
+                  type="button"
+                  style={{ marginTop: 10 }}
+                  onClick={() => onNavigate("quotes")}
+                >
+                  Open Quotes
+                </button>
+              </>
+            )}
+
+            {["declined", "archived"].includes(expandedReviewEstimate.status) && (
+              <div className="cardLine">
+                This estimate is not active. Keep it for records or create a new estimate/quote if the client follows up.
+              </div>
+            )}
           </div>
         </section>
       )}
@@ -524,6 +802,14 @@ export default function GuruEstimatesPage({
                   View Pricing Explanation
                 </button>
 
+                <button
+                  className="secondaryButton"
+                  type="button"
+                  onClick={() => setExpandedReviewId(selectedConvertEstimate.id)}
+                >
+                  Ask Guru To Review
+                </button>
+
                 {selectedConvertEstimate.photoDataUrl && (
                   <button
                     className="secondaryButton"
@@ -689,14 +975,23 @@ export default function GuruEstimatesPage({
                   <strong>Basis:</strong> {cleanText(estimate.preliminaryNotes)}
                 </div>
 
-                <button
-                  className="secondaryButton"
-                  type="button"
-                  onClick={() => setExpandedPricingId(estimate.id)}
-                  style={{ marginTop: 10 }}
-                >
-                  View Pricing Explanation
-                </button>
+                <div className="buttonRow" style={{ marginTop: 10 }}>
+                  <button
+                    className="secondaryButton"
+                    type="button"
+                    onClick={() => setExpandedPricingId(estimate.id)}
+                  >
+                    View Pricing Explanation
+                  </button>
+
+                  <button
+                    className="secondaryButton"
+                    type="button"
+                    onClick={() => setExpandedReviewId(estimate.id)}
+                  >
+                    Ask Guru To Review
+                  </button>
+                </div>
               </div>
 
               <div className="cardLine">
