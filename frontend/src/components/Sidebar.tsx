@@ -1,5 +1,6 @@
 import React from "react";
 import type { AuthUserRole, PageKey } from "../types";
+import { getPortalLabel, isAdminRole } from "../utils/roles";
 
 type NavItem = {
   key: PageKey;
@@ -12,10 +13,6 @@ type NavGroup = {
   title: string;
   items: NavItem[];
 };
-
-function isAdminRole(role: AuthUserRole) {
-  return role === "admin" || role === "superadmin";
-}
 
 function getAdminGroups(role: AuthUserRole): NavGroup[] {
   return [
@@ -120,13 +117,6 @@ function getGroups(role: AuthUserRole): NavGroup[] {
   if (isAdminRole(role)) return getAdminGroups(role);
   if (role === "employee") return getEmployeeGroups();
   return getClientGroups();
-}
-
-function getPortalLabel(role: AuthUserRole) {
-  if (role === "superadmin") return "Super Admin Portal";
-  if (role === "admin") return "Admin Portal";
-  if (role === "employee") return "Employee Portal";
-  return "Client Portal";
 }
 
 export default function Sidebar({
