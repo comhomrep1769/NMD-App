@@ -36,6 +36,7 @@ import GuruEstimatesPage from "./pages/GuruEstimatesPage";
 import ClientEstimatesPage from "./pages/ClientEstimatesPage";
 import ClientQuotesPage from "./pages/ClientQuotesPage";
 import { apiFetch } from "./api";
+import { getPortalPathForRole, isAdminRole } from "./utils/roles";
 
 const demoClients: Client[] = [];
 const demoQuotes: Quote[] = [];
@@ -54,38 +55,18 @@ function getInitialPortal(): PortalView {
   return "public";
 }
 
-function isAdminRole(user: AuthUser | null) {
-  return user?.role === "admin" || user?.role === "superadmin";
+function portalViewFromUser(user: AuthUser): PortalView {
+  if (user.role === "admin" || user.role === "superadmin") return "admin";
+  if (user.role === "employee") return "employee";
+  return "public";
 }
 
-function routeUserToPortal(user: AuthUser) {
-  if (user.role === "admin" || user.role === "superadmin") {
-    window.history.replaceState({}, "", "/admin");
-    return "admin" as PortalView;
-  }
-
-  if (user.role === "employee") {
-    window.history.replaceState({}, "", "/employee");
-    return "employee" as PortalView;
-  }
-
-  window.history.replaceState({}, "", "/");
-  return "public" as PortalView;
+function replacePathForUser(user: AuthUser) {
+  window.history.replaceState({}, "", getPortalPathForRole(user.role));
 }
 
-function pushUserToPortal(user: AuthUser) {
-  if (user.role === "admin" || user.role === "superadmin") {
-    window.history.pushState({}, "", "/admin");
-    return "admin" as PortalView;
-  }
-
-  if (user.role === "employee") {
-    window.history.pushState({}, "", "/employee");
-    return "employee" as PortalView;
-  }
-
-  window.history.pushState({}, "", "/");
-  return "public" as PortalView;
+function pushPathForUser(user: AuthUser) {
+  window.history.pushState({}, "", getPortalPathForRole(user.role));
 }
 
 export default function App() {
@@ -110,9 +91,7 @@ export default function App() {
   }, [theme]);
 
   React.useEffect(() => {
-    const token =
-      localStorage.getItem("nmd-token") ||
-      sessionStorage.getItem("nmd-token");
+    const token = localStorage.getItem("nmd-token") || sessionStorage.getItem("nmd-token");
 
     if (!token) {
       setAuthChecked(true);
@@ -123,7 +102,8 @@ export default function App() {
       .then((data) => {
         setUser(data.user);
         setPage("dashboard");
-        setPortalView(routeUserToPortal(data.user));
+        setPortalView(portalViewFromUser(data.user));
+        replacePathForUser(data.user);
       })
       .catch(() => {
         localStorage.removeItem("nmd-token");
@@ -147,7 +127,8 @@ export default function App() {
 
     setUser(loggedInUser);
     setPage("dashboard");
-    setPortalView(pushUserToPortal(loggedInUser));
+    setPortalView(portalViewFromUser(loggedInUser));
+    pushPathForUser(loggedInUser);
   };
 
   const handleLogout = () => {
@@ -204,10 +185,7 @@ export default function App() {
     return (
       <>
         <AppUpdateBanner />
-        <ClientRegisterPage
-          onRegistered={handleLogin}
-          onBackToLogin={goPublic}
-        />
+        <ClientRegisterPage onRegistered={handleLogin} onBackToLogin={goPublic} />
         <GuruChat user={null} />
       </>
     );
@@ -267,9 +245,7 @@ export default function App() {
         <div className="mainShell">
           <Header
             theme={theme}
-            onToggleTheme={() =>
-              setTheme((prev) => (prev === "dark" ? "light" : "dark"))
-            }
+            onToggleTheme={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}
             user={user}
             onLogout={handleLogout}
           />
@@ -296,21 +272,15 @@ export default function App() {
               <GuruEstimatesPage onNavigate={safeNavigate} />
             )}
 
-            {page === "client-estimates" && user.role === "client" && (
-              <ClientEstimatesPage />
-            )}
+            {page === "client-estimates" && user.role === "client" && <ClientEstimatesPage />}
 
-            {page === "client-quotes" && user.role === "client" && (
-              <ClientQuotesPage />
-            )}
+            {page === "client-quotes" && user.role === "client" && <ClientQuotesPage />}
 
             {page === "clients" && adminAccess && <ClientsPage />}
             {page === "quotes" && adminAccess && <QuotesPage />}
             {page === "invoices" && adminAccess && <InvoicesPage />}
 
-            {page === "schedule" && user.role !== "client" && (
-              <SchedulePage role={user.role} />
-            )}
+            {page === "schedule" && user.role !== "client" && <SchedulePage role={user.role} />}
 
             {page === "employees" && adminAccess && <EmployeesPage />}
             {page === "requests" && adminAccess && <RequestsPage />}
@@ -319,24 +289,18 @@ export default function App() {
             {page === "recurring" && adminAccess && <RecurringPage />}
             {page === "equipment" && adminAccess && <EquipmentPage />}
 
-            {page === "treatments" && user.role !== "client" && (
-              <TreatmentsPage role={user.role} />
-            )}
+            {page === "treatments" && user.role !== "client" && <TreatmentsPage role={user.role} />}
 
             {page === "pricing" && adminAccess && <PricingPage />}
 
-            {page === "timeclock" && user.role !== "client" && (
-              <TimeClockPage role={user.role} />
-            )}
+            {page === "timeclock" && user.role !== "client" && <TimeClockPage role={user.role} />}
 
             {page === "email" && adminAccess && <EmailTestPage />}
             {page === "pos" && user.role !== "client" && <POSPage role={user.role} />}
             {page === "availability" && user.role !== "client" && <AvailabilityPage />}
             {page === "chat" && <ChatPage currentUser={user} />}
 
-            {page === "tips" && user.role !== "client" && (
-              <TipsPage role={user.role} />
-            )}
+            {page === "tips" && user.role !== "client" && <TipsPage role={user.role} />}
 
             {page === "payroll" && adminAccess && <PayrollPage />}
             {page === "my-ledger" && user.role === "employee" && <MyLedgerPage />}
