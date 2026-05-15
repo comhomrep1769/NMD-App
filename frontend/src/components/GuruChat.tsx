@@ -56,7 +56,7 @@ type ClientUpdateSnapshot = {
   quoteKeys: string[];
 };
 
-const GURU_ICON_SRC = "/icons/NMD-Guru-Icon.png?v=2026051423";
+const GURU_ICON_SRC = "/icons/NMD-Guru-Icon.png?v=2026051526";
 
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -88,7 +88,7 @@ function getGreeting(user: AuthUser | null) {
     return "Hi, I’m Guru. I can help with job notes, treatment guidance, safety reminders, surface questions, payment collection, and field workflow.";
   }
 
-  return "Hi, I’m Guru. I can help with quotes, invoices, scheduling, payments, treatments, pricing, job planning, and business operations.";
+  return "Hi, I’m Guru. I can help with estimates, quotes, invoices, scheduling, clients, payments, treatments, pricing, expenses, mileage, recurring services, and business operations.";
 }
 
 function getQuickPrompts(user: AuthUser | null) {
@@ -473,6 +473,16 @@ export default function GuruChat({
     else submitMessage("Create quote draft");
   };
 
+  const openAdminInvoices = () => {
+    if (onNavigate) navigateFromGuru("invoices");
+    else submitMessage("Open invoices");
+  };
+
+  const openAdminClients = () => {
+    if (onNavigate) navigateFromGuru("clients");
+    else submitMessage("Open clients");
+  };
+
   const openAdminPayments = () => {
     if (onNavigate) navigateFromGuru("pos");
     else submitMessage("Check payments");
@@ -483,9 +493,29 @@ export default function GuruChat({
     else submitMessage("Help price a job");
   };
 
+  const openAdminTreatments = () => {
+    if (onNavigate) navigateFromGuru("treatments");
+    else submitMessage("Open treatments");
+  };
+
   const openAdminSchedule = () => {
     if (onNavigate) navigateFromGuru("schedule");
     else submitMessage("Open schedule");
+  };
+
+  const openAdminExpenses = () => {
+    if (onNavigate) navigateFromGuru("expenses");
+    else submitMessage("Open expenses");
+  };
+
+  const openAdminMileage = () => {
+    if (onNavigate) navigateFromGuru("mileage");
+    else submitMessage("Open mileage");
+  };
+
+  const openAdminRecurring = () => {
+    if (onNavigate) navigateFromGuru("recurring");
+    else submitMessage("Open recurring");
   };
 
   const openClientEstimates = () => {
@@ -585,6 +615,18 @@ export default function GuruChat({
       return;
     }
 
+    if (messageBody === "Open invoices" && user?.role === "admin" && onNavigate) {
+      openAdminInvoices();
+      setInput("");
+      return;
+    }
+
+    if (messageBody === "Open clients" && user?.role === "admin" && onNavigate) {
+      openAdminClients();
+      setInput("");
+      return;
+    }
+
     if (messageBody === "Check payments" && user?.role === "admin" && onNavigate) {
       openAdminPayments();
       setInput("");
@@ -597,8 +639,32 @@ export default function GuruChat({
       return;
     }
 
+    if (messageBody === "Open treatments" && user?.role === "admin" && onNavigate) {
+      openAdminTreatments();
+      setInput("");
+      return;
+    }
+
     if (messageBody === "Open schedule" && user?.role === "admin" && onNavigate) {
       openAdminSchedule();
+      setInput("");
+      return;
+    }
+
+    if (messageBody === "Open expenses" && user?.role === "admin" && onNavigate) {
+      openAdminExpenses();
+      setInput("");
+      return;
+    }
+
+    if (messageBody === "Open mileage" && user?.role === "admin" && onNavigate) {
+      openAdminMileage();
+      setInput("");
+      return;
+    }
+
+    if (messageBody === "Open recurring" && user?.role === "admin" && onNavigate) {
+      openAdminRecurring();
       setInput("");
       return;
     }
@@ -1023,7 +1089,7 @@ export default function GuruChat({
 
             {user?.role === "admin" && (
               <div className="listCard" style={{ marginTop: 10 }}>
-                Admin shortcuts for estimates, quotes, pricing, scheduling, and payments.
+                Admin shortcuts for estimates, quotes, invoices, clients, pricing, scheduling, treatments, payments, expenses, mileage, and recurring services.
 
                 <div className="buttonRow" style={{ marginTop: 10 }}>
                   <button className="primaryButton" type="button" onClick={openGuruEstimatesReview}>
@@ -1034,8 +1100,20 @@ export default function GuruChat({
                     Quotes
                   </button>
 
+                  <button className="secondaryButton" type="button" onClick={openAdminInvoices}>
+                    Invoices
+                  </button>
+
+                  <button className="secondaryButton" type="button" onClick={openAdminClients}>
+                    Clients
+                  </button>
+
                   <button className="secondaryButton" type="button" onClick={openAdminPricing}>
                     Pricing
+                  </button>
+
+                  <button className="secondaryButton" type="button" onClick={openAdminTreatments}>
+                    Treatments
                   </button>
 
                   <button className="secondaryButton" type="button" onClick={openAdminSchedule}>
@@ -1044,6 +1122,18 @@ export default function GuruChat({
 
                   <button className="secondaryButton" type="button" onClick={openAdminPayments}>
                     Payments
+                  </button>
+
+                  <button className="secondaryButton" type="button" onClick={openAdminExpenses}>
+                    Expenses
+                  </button>
+
+                  <button className="secondaryButton" type="button" onClick={openAdminMileage}>
+                    Mileage
+                  </button>
+
+                  <button className="secondaryButton" type="button" onClick={openAdminRecurring}>
+                    Recurring
                   </button>
                 </div>
               </div>
