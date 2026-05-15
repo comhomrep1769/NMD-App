@@ -58,6 +58,36 @@ function isAdminRole(user: AuthUser | null) {
   return user?.role === "admin" || user?.role === "superadmin";
 }
 
+function routeUserToPortal(user: AuthUser) {
+  if (user.role === "admin" || user.role === "superadmin") {
+    window.history.replaceState({}, "", "/admin");
+    return "admin" as PortalView;
+  }
+
+  if (user.role === "employee") {
+    window.history.replaceState({}, "", "/employee");
+    return "employee" as PortalView;
+  }
+
+  window.history.replaceState({}, "", "/");
+  return "public" as PortalView;
+}
+
+function pushUserToPortal(user: AuthUser) {
+  if (user.role === "admin" || user.role === "superadmin") {
+    window.history.pushState({}, "", "/admin");
+    return "admin" as PortalView;
+  }
+
+  if (user.role === "employee") {
+    window.history.pushState({}, "", "/employee");
+    return "employee" as PortalView;
+  }
+
+  window.history.pushState({}, "", "/");
+  return "public" as PortalView;
+}
+
 export default function App() {
   const [portalView, setPortalView] = React.useState<PortalView>(getInitialPortal);
   const [page, setPage] = React.useState<PageKey>("dashboard");
@@ -93,17 +123,7 @@ export default function App() {
       .then((data) => {
         setUser(data.user);
         setPage("dashboard");
-
-        if (data.user.role === "admin" || data.user.role === "superadmin") {
-          setPortalView("admin");
-          window.history.replaceState({}, "", "/admin");
-        } else if (data.user.role === "employee") {
-          setPortalView("employee");
-          window.history.replaceState({}, "", "/employee");
-        } else {
-          setPortalView("public");
-          window.history.replaceState({}, "", "/");
-        }
+        setPortalView(routeUserToPortal(data.user));
       })
       .catch(() => {
         localStorage.removeItem("nmd-token");
@@ -118,20 +138,16 @@ export default function App() {
   };
 
   const handleLogin = (token: string, loggedInUser: AuthUser) => {
-    localStorage.setItem("nmd-token", token);
+    const rememberedToken = localStorage.getItem("nmd-token");
+    const sessionToken = sessionStorage.getItem("nmd-token");
+
+    if (!rememberedToken && !sessionToken) {
+      localStorage.setItem("nmd-token", token);
+    }
+
     setUser(loggedInUser);
     setPage("dashboard");
-
-    if (loggedInUser.role === "admin" || loggedInUser.role === "superadmin") {
-      setPortalView("admin");
-      window.history.pushState({}, "", "/admin");
-    } else if (loggedInUser.role === "employee") {
-      setPortalView("employee");
-      window.history.pushState({}, "", "/employee");
-    } else {
-      setPortalView("public");
-      window.history.pushState({}, "", "/");
-    }
+    setPortalView(pushUserToPortal(loggedInUser));
   };
 
   const handleLogout = () => {
