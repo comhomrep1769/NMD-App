@@ -81,6 +81,51 @@ async function ensureTreatmentsTable() {
   `);
 }
 
+async function upsertDefaultTreatment(item: {
+  name: string;
+  category: string;
+  surfaceTypes: string[];
+  chemical: string;
+  dilutionRatio: string;
+  useCase: string;
+  safetyNotes: string;
+  instructions: string;
+  purchaseLink: string;
+  costReference: string;
+}) {
+  await pool.query(
+    `
+      INSERT INTO treatments (
+        name,
+        category,
+        surface_types,
+        chemical,
+        dilution_ratio,
+        use_case,
+        safety_notes,
+        instructions,
+        purchase_link,
+        cost_reference,
+        updated_at
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW())
+      ON CONFLICT DO NOTHING;
+    `,
+    [
+      item.name,
+      item.category,
+      item.surfaceTypes,
+      item.chemical,
+      item.dilutionRatio,
+      item.useCase,
+      item.safetyNotes,
+      item.instructions,
+      item.purchaseLink,
+      item.costReference
+    ]
+  );
+}
+
 async function seedDefaultTreatments() {
   await ensureTreatmentsTable();
 
@@ -96,7 +141,7 @@ async function seedDefaultTreatments() {
       safetyNotes:
         "Pre-wet plants, protect outlets, avoid forcing water behind siding, rinse plants/windows thoroughly, and watch for oxidation.",
       instructions:
-        "Apply low-pressure soft wash mix from bottom-up or controlled sections, allow dwell time without drying, rinse thoroughly, and inspect oxidation-sensitive areas.",
+        "Apply low-pressure soft wash mix in controlled sections, allow dwell time without drying, rinse thoroughly, and inspect oxidation-sensitive areas.",
       purchaseLink: "",
       costReference:
         "Use NMD Job Pricing for house washing minimums, square footage, condition, height, access, and add-ons."
@@ -212,41 +257,107 @@ async function seedDefaultTreatments() {
       purchaseLink: "",
       costReference:
         "Include plant protection time/materials in roof cleaning, heavy soft washing, and chemical restoration pricing."
+    },
+    {
+      name: "Painted Concrete Warning",
+      category: "Risk / Liability",
+      surfaceTypes: ["Painted concrete", "Decorative concrete", "Coated surfaces"],
+      chemical: "Mild cleaner / soft wash only after test spot",
+      dilutionRatio: "Start mild. Avoid aggressive pressure.",
+      useCase:
+        "Driveways, patios, walkways, or pool decks that appear painted, coated, or sealed.",
+      safetyNotes:
+        "Surface cleaner pressure can leave stripes, remove paint, or expose uneven coating. Confirm with client before cleaning.",
+      instructions:
+        "Test first. If painted or coated, avoid surface cleaner unless stripping/repainting is the agreed scope. Soft wash and rinse carefully.",
+      purchaseLink: "",
+      costReference:
+        "If damage already exists, quote repainting/stripping separately. Do not include coating correction in standard wash."
+    },
+    {
+      name: "Stucco Soft Wash",
+      category: "Soft Washing",
+      surfaceTypes: ["Stucco", "EIFS", "Painted stucco"],
+      chemical: "Low-pressure SH mix with surfactant",
+      dilutionRatio: "Typically 0.5%–1.5% on surface depending on organic growth and paint condition",
+      useCase:
+        "Algae, mildew, and organic staining on stucco walls where high pressure can cause damage.",
+      safetyNotes:
+        "Check cracks, failed paint, oxidation, window seals, water intrusion risks, and delicate landscaping.",
+      instructions:
+        "Apply low pressure, keep controlled dwell, avoid forcing water into cracks or weep points, rinse gently, and document pre-existing cracks.",
+      purchaseLink: "",
+      costReference:
+        "Increase pricing for height, heavy staining, delicate access, oxidation, or water intrusion risk."
+    },
+    {
+      name: "Paver Cleaning Caution",
+      category: "Flatwork",
+      surfaceTypes: ["Pavers", "Brick pavers", "Travertine", "Pool deck pavers"],
+      chemical: "SH for organics, degreaser for grease, specialty removers as needed",
+      dilutionRatio: "Varies by stain and paver condition",
+      useCase:
+        "Cleaning pavers while protecting joints, sand, sealer, and surrounding pool/landscaping areas.",
+      safetyNotes:
+        "Watch polymeric sand, loose joints, old sealer, efflorescence, drainage, and pool water contamination.",
+      instructions:
+        "Test first, use appropriate pressure, rinse well, avoid blowing out joints unnecessarily, and recommend resanding/sealing when needed.",
+      purchaseLink: "",
+      costReference:
+        "Pavers may require add-on pricing for resanding, sealing, efflorescence, heavy algae, or specialty stain removal."
+    },
+    {
+      name: "Gutter Brightening",
+      category: "Specialty Restoration",
+      surfaceTypes: ["Gutters", "Fascia", "Painted metal"],
+      chemical: "Gutter brightener / oxidation-safe cleaner",
+      dilutionRatio: "Follow label. Test first.",
+      useCase:
+        "Tiger stripes and oxidation staining on gutters that standard house washing does not remove.",
+      safetyNotes:
+        "Can affect paint or oxidized surfaces. Test spot required. Avoid glass and sensitive metals.",
+      instructions:
+        "Apply to small sections, agitate gently if safe, rinse thoroughly, and separate from standard wash pricing.",
+      purchaseLink: "",
+      costReference:
+        "Price as specialty add-on, not included in a normal house wash unless specifically sold."
+    },
+    {
+      name: "New Concrete Cleaning Caution",
+      category: "Risk / Liability",
+      surfaceTypes: ["New concrete", "Young concrete", "Driveways", "Sidewalks"],
+      chemical: "Mild SH treatment for organics if needed",
+      dilutionRatio: "Avoid aggressive pressure. Use chemical-first approach when safe.",
+      useCase:
+        "Concrete less than 2–3 years old or weak/green concrete that can etch easily.",
+      safetyNotes:
+        "High pressure can permanently scar or expose cream layer. Customer expectations must be documented.",
+      instructions:
+        "Avoid surface cleaner pressure on questionable new concrete. Use soft treatment, rinse, and test before proceeding.",
+      purchaseLink: "",
+      costReference:
+        "If client wants full restoration, price carefully and document risk before work."
+    },
+    {
+      name: "Restaurant Degreasing",
+      category: "Commercial",
+      surfaceTypes: ["Dumpster pads", "Restaurant concrete", "Drive-thru lanes", "Grease areas"],
+      chemical: "Butyl degreaser, sodium hydroxide degreaser, hot water recommended",
+      dilutionRatio: "Varies by grease load and product label",
+      useCase:
+        "Commercial grease, food waste, dumpster pad buildup, drive-thru stains, and high-traffic commercial grime.",
+      safetyNotes:
+        "Manage runoff, slip hazards, PPE, hot water burns, chemical strength, and local disposal requirements.",
+      instructions:
+        "Pre-scrape heavy debris, apply degreaser, dwell, agitate, hot water wash if available, rinse, repeat, and document remaining deep stains.",
+      purchaseLink: "",
+      costReference:
+        "Commercial degreasing should be premium priced. Consider hourly + chemical cost + disposal/runoff complexity."
     }
   ];
 
   for (const item of defaults) {
-    await pool.query(
-      `
-        INSERT INTO treatments (
-          name,
-          category,
-          surface_types,
-          chemical,
-          dilution_ratio,
-          use_case,
-          safety_notes,
-          instructions,
-          purchase_link,
-          cost_reference,
-          updated_at
-        )
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW())
-        ON CONFLICT DO NOTHING;
-      `,
-      [
-        item.name,
-        item.category,
-        item.surfaceTypes,
-        item.chemical,
-        item.dilutionRatio,
-        item.useCase,
-        item.safetyNotes,
-        item.instructions,
-        item.purchaseLink,
-        item.costReference
-      ]
-    );
+    await upsertDefaultTreatment(item);
   }
 }
 
@@ -267,9 +378,11 @@ router.get("/", async (req, res) => {
           LOWER(name) LIKE $${params.length}
           OR LOWER(category) LIKE $${params.length}
           OR LOWER(COALESCE(chemical, '')) LIKE $${params.length}
+          OR LOWER(COALESCE(dilution_ratio, '')) LIKE $${params.length}
           OR LOWER(COALESCE(use_case, '')) LIKE $${params.length}
           OR LOWER(COALESCE(safety_notes, '')) LIKE $${params.length}
           OR LOWER(COALESCE(instructions, '')) LIKE $${params.length}
+          OR LOWER(COALESCE(cost_reference, '')) LIKE $${params.length}
         )
       `);
     }
@@ -332,6 +445,7 @@ router.post("/", async (req, res) => {
 
     const name = String(req.body?.name || "").trim();
     const category = String(req.body?.category || "General").trim();
+
     const surfaceTypes = Array.isArray(req.body?.surfaceTypes)
       ? req.body.surfaceTypes.map((item: unknown) => String(item).trim()).filter(Boolean)
       : String(req.body?.surfaceTypes || "")
@@ -396,6 +510,7 @@ router.patch("/:id", async (req, res) => {
     const id = String(req.params.id || "").trim();
     const name = String(req.body?.name || "").trim();
     const category = String(req.body?.category || "General").trim();
+
     const surfaceTypes = Array.isArray(req.body?.surfaceTypes)
       ? req.body.surfaceTypes.map((item: unknown) => String(item).trim()).filter(Boolean)
       : String(req.body?.surfaceTypes || "")
