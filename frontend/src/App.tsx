@@ -268,7 +268,10 @@ export default function App() {
               <ClientDashboardPage onNavigate={safeNavigate} />
             )}
 
-            {page === "guru-estimates" && user.role === "admin" && <GuruEstimatesPage />}
+            {page === "guru-estimates" && user.role === "admin" && (
+              <GuruEstimatesPage onNavigate={safeNavigate} />
+            )}
+            
             {page === "client-estimates" && user.role === "client" && <ClientEstimatesPage />}
             {page === "clients" && user.role === "admin" && <ClientsPage />}
             {page === "quotes" && user.role === "admin" && <QuotesPage />}
