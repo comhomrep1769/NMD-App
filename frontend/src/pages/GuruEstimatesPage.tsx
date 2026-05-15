@@ -4,8 +4,12 @@ import type { GuruEstimate, GuruEstimateStatus, PageKey } from "../types";
 
 function statusLabel(status: GuruEstimateStatus) {
   if (status === "needs_review") return "Needs Review";
+  if (status === "reviewed") return "Reviewed";
   if (status === "converted_to_quote") return "Converted To Quote";
-  return status.replace(/_/g, " ");
+  if (status === "declined") return "Declined";
+  if (status === "archived") return "Archived";
+
+  return String(status).replace(/_/g, " ");
 }
 
 function statusClass(status: GuruEstimateStatus) {
@@ -13,7 +17,20 @@ function statusClass(status: GuruEstimateStatus) {
   if (status === "reviewed") return "status-approved";
   if (status === "converted_to_quote") return "status-paid";
   if (status === "declined") return "status-rejected";
-  return `status-${status}`;
+  if (status === "archived") return "status-archived";
+
+  return "status-pending_admin_approval";
+}
+
+function quoteStatusLabel(status?: string | null) {
+  if (!status) return "—";
+  if (status === "draft") return "Draft";
+  if (status === "sent") return "Sent";
+  if (status === "accepted") return "Accepted";
+  if (status === "declined") return "Declined";
+  if (status === "expired") return "Expired";
+
+  return String(status).replace(/_/g, " ");
 }
 
 function cleanText(value?: string | null) {
@@ -163,6 +180,7 @@ export default function GuruEstimatesPage({
   const reviewed = estimates.filter((estimate) => estimate.status === "reviewed");
   const converted = estimates.filter((estimate) => estimate.status === "converted_to_quote");
   const declined = estimates.filter((estimate) => estimate.status === "declined");
+  const connectedQuotes = estimates.filter((estimate) => Boolean(estimate.quoteNumber));
 
   const totalPotentialLow = needsReview.reduce(
     (sum, estimate) => sum + Number(estimate.preliminaryEstimateLow || 0),
@@ -211,7 +229,7 @@ export default function GuruEstimatesPage({
 
           <img
             src={expandedPhotoEstimate.photoDataUrl}
-            alt="Guru estimate uploaded photo"
+            alt="Guru estimate uploaded"
             style={{
               width: "100%",
               maxHeight: "72vh",
@@ -223,7 +241,8 @@ export default function GuruEstimatesPage({
           />
 
           <div className="listCard" style={{ marginTop: 12 }}>
-            <strong>Photo Note:</strong> {expandedPhotoEstimate.photoNote || "No photo note provided."}
+            <strong>Photo Note:</strong>{" "}
+            {expandedPhotoEstimate.photoNote || "No photo note provided."}
           </div>
         </section>
       )}
@@ -262,7 +281,53 @@ export default function GuruEstimatesPage({
                 ${expandedPricingEstimate.preliminaryEstimateHigh.toFixed(2)}
               </div>
             </div>
+
+            {expandedPricingEstimate.quoteNumber && (
+              <div className="statCard">
+                <div className="statLabel">Connected Quote</div>
+                <div className="statValue">#{expandedPricingEstimate.quoteNumber}</div>
+              </div>
+            )}
+
+            {expandedPricingEstimate.quoteTotal !== null &&
+              expandedPricingEstimate.quoteTotal !== undefined && (
+                <div className="statCard">
+                  <div className="statLabel">Quote Total</div>
+                  <div className="statValue">
+                    ${Number(expandedPricingEstimate.quoteTotal).toFixed(2)}
+                  </div>
+                </div>
+              )}
           </div>
+
+          {expandedPricingEstimate.quoteNumber && (
+            <div className="assignBox" style={{ marginTop: 16 }}>
+              <div className="assignTitle">Connected Quote</div>
+              <div className="cardLine">
+                <strong>Quote #:</strong> {expandedPricingEstimate.quoteNumber}
+              </div>
+              <div className="cardLine">
+                <strong>Quote Total:</strong>{" "}
+                {expandedPricingEstimate.quoteTotal !== null &&
+                expandedPricingEstimate.quoteTotal !== undefined
+                  ? `$${Number(expandedPricingEstimate.quoteTotal).toFixed(2)}`
+                  : "—"}
+              </div>
+              <div className="cardLine">
+                <strong>Quote Status:</strong>{" "}
+                {quoteStatusLabel(expandedPricingEstimate.quoteStatus)}
+              </div>
+
+              <button
+                className="primaryButton"
+                type="button"
+                style={{ marginTop: 10 }}
+                onClick={() => onNavigate("quotes")}
+              >
+                Open Quotes
+              </button>
+            </div>
+          )}
 
           <div className="assignBox" style={{ marginTop: 16 }}>
             <div className="assignTitle">Pricing Basis</div>
@@ -302,7 +367,7 @@ export default function GuruEstimatesPage({
           <div>
             <h2 className="panelTitle">Guru Estimates Review</h2>
             <p className="brandSubtitle">
-              Review preliminary client estimates, uploaded photos, pricing logic, and details before converting them into official quotes.
+              Review preliminary client estimates, uploaded photos, pricing logic, connected quotes, and details before finalizing.
             </p>
           </div>
         </div>
@@ -359,6 +424,11 @@ export default function GuruEstimatesPage({
           <div className="statCard">
             <div className="statLabel">Converted</div>
             <div className="statValue">{converted.length}</div>
+          </div>
+
+          <div className="statCard">
+            <div className="statLabel">Connected Quotes</div>
+            <div className="statValue">{connectedQuotes.length}</div>
           </div>
 
           <div className="statCard">
@@ -488,7 +558,7 @@ export default function GuruEstimatesPage({
           <div>
             <h2 className="panelTitle">Estimate Queue</h2>
             <p className="brandSubtitle">
-              Guru estimates are preliminary and must be manually confirmed before becoming quotes.
+              Guru estimates are preliminary and must be manually confirmed before becoming official quotes.
             </p>
           </div>
         </div>
@@ -555,6 +625,33 @@ export default function GuruEstimatesPage({
                   {statusLabel(estimate.status)}
                 </span>
               </div>
+
+              {estimate.quoteNumber && (
+                <div className="assignBox" style={{ marginBottom: 12 }}>
+                  <div className="assignTitle">Connected Quote</div>
+                  <div className="cardLine">
+                    <strong>Quote #:</strong> {estimate.quoteNumber}
+                  </div>
+                  <div className="cardLine">
+                    <strong>Quote Total:</strong>{" "}
+                    {estimate.quoteTotal !== null && estimate.quoteTotal !== undefined
+                      ? `$${Number(estimate.quoteTotal).toFixed(2)}`
+                      : "—"}
+                  </div>
+                  <div className="cardLine">
+                    <strong>Quote Status:</strong> {quoteStatusLabel(estimate.quoteStatus)}
+                  </div>
+
+                  <button
+                    className="primaryButton"
+                    type="button"
+                    style={{ marginTop: 10 }}
+                    onClick={() => onNavigate("quotes")}
+                  >
+                    Open Quotes
+                  </button>
+                </div>
+              )}
 
               {estimate.photoDataUrl && (
                 <div style={{ marginBottom: 12 }}>
