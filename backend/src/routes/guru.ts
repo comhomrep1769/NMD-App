@@ -122,67 +122,203 @@ function getGuruReply(role: string, message: string) {
   return "I can help with NMD operations, quotes, invoices, scheduling, payments, treatments, pricing, job planning, and business workflow. What would you like to work on?";
 }
 
+function extractNumber(value?: string) {
+  if (!value) return 0;
+
+  const clean = value.replace(/,/g, "");
+  const matches = clean.match(/\d+(\.\d+)?/g);
+
+  if (!matches || matches.length === 0) return 0;
+
+  return Number(matches[0]) || 0;
+}
+
+function textIncludesAny(text: string, terms: string[]) {
+  return terms.some((term) => text.includes(term));
+}
+
 function estimateRange(input: {
   serviceType?: string;
+  propertyArea?: string;
+  surfaceType?: string;
   conditionLevel?: string;
   squareFootage?: string;
+  specialConcerns?: string;
 }) {
-  const rawSqft = input.squareFootage || "";
-  const sqftMatch = rawSqft.match(/\d+/);
-  const sqft = sqftMatch ? Number(sqftMatch[0]) : 0;
-
   const service = (input.serviceType || "").toLowerCase();
+  const area = (input.propertyArea || "").toLowerCase();
+  const surface = (input.surfaceType || "").toLowerCase();
   const condition = (input.conditionLevel || "").toLowerCase();
+  const concerns = (input.specialConcerns || "").toLowerCase();
+  const combined = `${service} ${area} ${surface} ${condition} ${concerns}`;
 
-  let baseLow = 125;
-  let baseHigh = 250;
+  const sqft = extractNumber(input.squareFootage);
 
-  if (service.includes("roof")) {
-    baseLow = 350;
-    baseHigh = 900;
-  } else if (service.includes("house") || service.includes("siding")) {
-    baseLow = 200;
-    baseHigh = 600;
-  } else if (service.includes("driveway") || service.includes("concrete")) {
-    baseLow = 125;
-    baseHigh = 450;
-  } else if (service.includes("fence")) {
-    baseLow = 200;
-    baseHigh = 700;
-  } else if (service.includes("trash")) {
-    baseLow = 10;
-    baseHigh = 40;
-  } else if (service.includes("commercial")) {
-    baseLow = 300;
-    baseHigh = 1500;
+  let low = 125;
+  let high = 250;
+  let pricingBasis = "General NMD minimum service estimate";
+
+  const isRoof = textIncludesAny(combined, ["roof", "shingle", "tile roof", "moss", "black streak"]);
+  const isHouse = textIncludesAny(combined, ["house", "siding", "vinyl", "stucco", "soft wash", "exterior"]);
+  const isConcrete = textIncludesAny(combined, ["driveway", "concrete", "sidewalk", "walkway", "flatwork", "pool deck", "patio"]);
+  const isFence = textIncludesAny(combined, ["fence", "wood fence", "vinyl fence"]);
+  const isTrashCan = textIncludesAny(combined, ["trash", "garbage", "can cleaning", "bin"]);
+  const isCommercial = textIncludesAny(combined, ["commercial", "storefront", "restaurant", "parking", "business"]);
+  const isRestroom = textIncludesAny(combined, ["restroom", "bathroom", "public restroom"]);
+  const isPortableRestroom = textIncludesAny(combined, ["portable restroom", "porta", "porta potty", "portable toilet"]);
+  const isLuxuryRestroomTrailer = textIncludesAny(combined, ["luxury restroom", "restroom trailer", "trailer"]);
+  const isRust = textIncludesAny(combined, ["rust", "irrigation stain", "orange stain", "f9", "barc", "oxalic"]);
+  const isOil = textIncludesAny(combined, ["oil", "grease", "degrease", "restaurant grease", "dumpster pad"]);
+  const isPaintPrep = textIncludesAny(combined, ["paint prep", "surface prep", "strip", "stain removal", "sealer removal"]);
+
+  if (isTrashCan) {
+    low = 10;
+    high = 40;
+    pricingBasis = "Trash can cleaning preliminary range";
   }
 
-  if (sqft > 0) {
-    if (service.includes("roof")) {
-      baseLow = Math.max(baseLow, sqft * 0.25);
-      baseHigh = Math.max(baseHigh, sqft * 0.55);
-    } else if (service.includes("driveway") || service.includes("concrete")) {
-      baseLow = Math.max(baseLow, sqft * 0.15);
-      baseHigh = Math.max(baseHigh, sqft * 0.45);
-    } else if (service.includes("house") || service.includes("siding")) {
-      baseLow = Math.max(baseLow, sqft * 0.12);
-      baseHigh = Math.max(baseHigh, sqft * 0.35);
+  if (isHouse) {
+    low = 200;
+    high = 600;
+    pricingBasis = "House wash / siding preliminary range";
+
+    if (sqft > 0) {
+      low = Math.max(low, sqft * 0.12);
+      high = Math.max(high, sqft * 0.35);
     }
   }
 
-  if (condition.includes("heavy") || condition.includes("bad") || condition.includes("severe")) {
-    baseLow *= 1.25;
-    baseHigh *= 1.5;
+  if (isRoof) {
+    low = 350;
+    high = 900;
+    pricingBasis = "Roof cleaning preliminary range";
+
+    if (sqft > 0) {
+      low = Math.max(low, sqft * 0.25);
+      high = Math.max(high, sqft * 0.55);
+    }
+  }
+
+  if (isConcrete) {
+    low = 125;
+    high = 450;
+    pricingBasis = "Driveway/concrete/flatwork preliminary range";
+
+    if (sqft > 0) {
+      low = Math.max(low, sqft * 0.15);
+      high = Math.max(high, sqft * 0.45);
+    }
+  }
+
+  if (isFence) {
+    low = 200;
+    high = 700;
+    pricingBasis = "Fence cleaning preliminary range";
+
+    if (sqft > 0) {
+      low = Math.max(low, sqft * 0.20);
+      high = Math.max(high, sqft * 0.60);
+    }
+  }
+
+  if (isCommercial) {
+    low = 300;
+    high = 1500;
+    pricingBasis = "Commercial cleaning preliminary range";
+
+    if (sqft > 0) {
+      low = Math.max(low, sqft * 0.15);
+      high = Math.max(high, sqft * 0.80);
+    }
+  }
+
+  if (isRestroom && !isPortableRestroom && !isLuxuryRestroomTrailer) {
+    low = 200;
+    high = 500;
+    pricingBasis = "Public restroom cleaning preliminary range";
+
+    if (sqft > 0) {
+      low = Math.max(150, sqft * 0.15);
+      high = Math.max(400, sqft * 0.80);
+    }
+  }
+
+  if (isPortableRestroom) {
+    const unitCount = Math.max(1, sqft || extractNumber(input.propertyArea) || 1);
+
+    low = unitCount * 50;
+    high = unitCount * 150;
+    pricingBasis = "Portable restroom cleaning preliminary range";
+  }
+
+  if (isLuxuryRestroomTrailer) {
+    low = 150;
+    high = 300;
+    pricingBasis = "Luxury restroom trailer cleaning preliminary range";
+  }
+
+  if (isRust) {
+    low = 125;
+    high = 800;
+    pricingBasis = "Rust removal / specialty restoration preliminary range";
+
+    if (sqft > 0) {
+      low = Math.max(low, sqft * 0.40);
+      high = Math.max(high, sqft * 1.25);
+    }
+  }
+
+  if (isOil) {
+    low = Math.max(low, 175);
+    high = Math.max(high, 850);
+    pricingBasis = `${pricingBasis} + oil/grease specialty concern`;
+  }
+
+  if (isPaintPrep) {
+    low = Math.max(low, 250);
+    high = Math.max(high, 1200);
+    pricingBasis = `${pricingBasis} + surface prep/stripping concern`;
+  }
+
+  if (condition.includes("moderate")) {
+    low *= 1.05;
+    high *= 1.15;
+  }
+
+  if (
+    condition.includes("heavy") ||
+    condition.includes("bad") ||
+    condition.includes("severe") ||
+    concerns.includes("heavy") ||
+    concerns.includes("severe")
+  ) {
+    low *= 1.25;
+    high *= 1.5;
   }
 
   if (condition.includes("light") || condition.includes("easy")) {
-    baseLow *= 0.85;
-    baseHigh *= 0.9;
+    low *= 0.85;
+    high *= 0.9;
   }
 
+  if (concerns.includes("oxidation")) {
+    low *= 1.15;
+    high *= 1.35;
+    pricingBasis = `${pricingBasis} + oxidation caution`;
+  }
+
+  if (concerns.includes("plant") || concerns.includes("landscape")) {
+    high *= 1.1;
+    pricingBasis = `${pricingBasis} + plant protection`;
+  }
+
+  low = Math.max(10, low);
+  high = Math.max(low, high);
+
   return {
-    low: Number(baseLow.toFixed(2)),
-    high: Number(baseHigh.toFixed(2))
+    low: Number(low.toFixed(2)),
+    high: Number(high.toFixed(2)),
+    pricingBasis
   };
 }
 
@@ -484,8 +620,11 @@ router.post("/estimate-intake", requireAuth, async (req, res) => {
 
     const range = estimateRange({
       serviceType,
+      propertyArea,
+      surfaceType,
       conditionLevel,
-      squareFootage
+      squareFootage,
+      specialConcerns
     });
 
     const profileResult = await client.query(
@@ -547,7 +686,7 @@ router.post("/estimate-intake", requireAuth, async (req, res) => {
         squareFootage?.trim() || "",
         preferredSchedule?.trim() || "",
         specialConcerns?.trim() || "",
-        "Preliminary Guru estimate only. Final pricing requires admin review, photos when available, and/or in-person verification.",
+        `Preliminary Guru estimate only. Final pricing requires admin review, photos when available, and/or in-person verification. Pricing basis: ${range.pricingBasis}.`,
         range.low,
         range.high,
         photoDataUrl || null,
