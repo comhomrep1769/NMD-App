@@ -1,167 +1,111 @@
 import React from "react";
-import type { PageKey, Role } from "../types";
+import type { AuthUserRole, PageKey } from "../types";
 
-type NavChild = {
+type NavItem = {
   key: PageKey;
   label: string;
+  description?: string;
+  badge?: string;
 };
 
 type NavGroup = {
-  label: string;
-  defaultKey: PageKey;
-  children: NavChild[];
+  title: string;
+  items: NavItem[];
 };
 
-const adminGroups: NavGroup[] = [
-  {
-    label: "Dashboard",
-    defaultKey: "dashboard",
-    children: [{ key: "dashboard", label: "Main Dashboard" }]
-  },
-  {
-    label: "Guru",
-    defaultKey: "guru-estimates",
-    children: [{ key: "guru-estimates", label: "Estimate Review" }]
-  },
-  {
-    label: "Jobs & Schedule",
-    defaultKey: "schedule",
-    children: [
-      { key: "schedule", label: "Schedule" },
-      { key: "recurring", label: "Recurring Services" }
-    ]
-  },
-  {
-    label: "Clients & Requests",
-    defaultKey: "clients",
-    children: [
-      { key: "clients", label: "Clients" },
-      { key: "requests", label: "Service Requests" }
-    ]
-  },
-  {
-    label: "Quotes & Invoices",
-    defaultKey: "quotes",
-    children: [
-      { key: "quotes", label: "Quotes" },
-      { key: "invoices", label: "Invoices" },
-      { key: "pricing", label: "Pricing Reference" }
-    ]
-  },
-  {
-    label: "Bookkeeping",
-    defaultKey: "expenses",
-    children: [
-      { key: "expenses", label: "Expenses" },
-      { key: "mileage", label: "Mileage" },
-      { key: "payroll", label: "Payroll Prep" }
-    ]
-  },
-  {
-    label: "Team",
-    defaultKey: "employees",
-    children: [
-      { key: "employees", label: "Employees" },
-      { key: "schedule", label: "Employee Schedule" },
-      { key: "timeclock", label: "Time Clock" },
-      { key: "availability", label: "Availability" },
-      { key: "equipment", label: "Equipment" }
-    ]
-  },
-  {
-    label: "Knowledge Base",
-    defaultKey: "treatments",
-    children: [
-      { key: "treatments", label: "Treatments" },
-      { key: "tips", label: "Tips & Notes" }
-    ]
-  },
-  {
-    label: "Payments / POS",
-    defaultKey: "pos",
-    children: [
-      { key: "pos", label: "POS Payments" },
-      { key: "invoices", label: "Invoices & Payment Links" },
-      { key: "recurring", label: "Recurring Billing" }
-    ]
-  },
-  {
-    label: "Chat",
-    defaultKey: "chat",
-    children: [{ key: "chat", label: "Chat" }]
-  },
-  {
-    label: "Settings",
-    defaultKey: "email",
-    children: [{ key: "email", label: "Email Test" }]
-  }
-];
+function getAdminGroups(): NavGroup[] {
+  return [
+    {
+      title: "Main",
+      items: [
+        { key: "dashboard", label: "Dashboard", description: "Admin overview" },
+        { key: "guru-estimates", label: "Guru Review", description: "Review Guru estimates", badge: "AI" },
+        { key: "schedule", label: "Schedule", description: "Live team schedule" },
+        { key: "chat", label: "Chat", description: "Team and client messages" }
+      ]
+    },
+    {
+      title: "Sales",
+      items: [
+        { key: "clients", label: "Clients", description: "Client records" },
+        { key: "requests", label: "Requests", description: "Service requests" },
+        { key: "quotes", label: "Quotes", description: "Create and send quotes" },
+        { key: "invoices", label: "Invoices", description: "Invoice workflow" },
+        { key: "pos", label: "POS", description: "Payments and collection" }
+      ]
+    },
+    {
+      title: "Operations",
+      items: [
+        { key: "employees", label: "Employees", description: "Team management" },
+        { key: "timeclock", label: "Time Clock", description: "Clock and break tracking" },
+        { key: "payroll", label: "Payroll", description: "Wages and balances" },
+        { key: "availability", label: "Availability", description: "Employee availability" },
+        { key: "equipment", label: "Equipment", description: "Tools and assets" }
+      ]
+    },
+    {
+      title: "Knowledge",
+      items: [
+        { key: "pricing", label: "Pricing", description: "NMD Job Pricing" },
+        { key: "treatments", label: "Treatments", description: "Treatment options and cases" },
+        { key: "tips", label: "Tips", description: "Notes and best practices" }
+      ]
+    },
+    {
+      title: "Bookkeeping",
+      items: [
+        { key: "expenses", label: "Expenses", description: "Expense tracking" },
+        { key: "mileage", label: "Mileage", description: "Mileage reimbursement" },
+        { key: "recurring", label: "Recurring", description: "Recurring services" },
+        { key: "email", label: "Email Test", description: "Transactional email test" }
+      ]
+    }
+  ];
+}
 
-const employeeGroups: NavGroup[] = [
-  {
-    label: "Dashboard",
-    defaultKey: "dashboard",
-    children: [{ key: "dashboard", label: "My Dashboard" }]
-  },
-  {
-    label: "Jobs & Schedule",
-    defaultKey: "schedule",
-    children: [
-      { key: "schedule", label: "My Schedule" },
-      { key: "timeclock", label: "Time Clock" },
-      { key: "availability", label: "Availability" }
-    ]
-  },
-  {
-    label: "Payments",
-    defaultKey: "pos",
-    children: [{ key: "pos", label: "Collect Payment" }]
-  },
-  {
-    label: "My Work",
-    defaultKey: "my-ledger",
-    children: [{ key: "my-ledger", label: "My Ledger" }]
-  },
-  {
-    label: "Knowledge Base",
-    defaultKey: "treatments",
-    children: [
-      { key: "treatments", label: "Treatments" },
-      { key: "tips", label: "Tips & Notes" }
-    ]
-  },
-  {
-    label: "Chat",
-    defaultKey: "chat",
-    children: [{ key: "chat", label: "Chat" }]
-  }
-];
+function getEmployeeGroups(): NavGroup[] {
+  return [
+    {
+      title: "Employee",
+      items: [
+        { key: "dashboard", label: "Dashboard", description: "Employee overview" },
+        { key: "schedule", label: "My Schedule", description: "Assigned jobs" },
+        { key: "timeclock", label: "Time Clock", description: "Clock in/out and breaks" },
+        { key: "chat", label: "Chat", description: "Team messages" }
+      ]
+    },
+    {
+      title: "Field Tools",
+      items: [
+        { key: "treatments", label: "Treatments", description: "Treatment guidance", badge: "Guru" },
+        { key: "tips", label: "Tips", description: "Field notes and best practices" },
+        { key: "pos", label: "Collect Payment", description: "Payment collection" },
+        { key: "availability", label: "Availability", description: "Availability settings" },
+        { key: "my-ledger", label: "My Ledger", description: "Personal pay ledger" }
+      ]
+    }
+  ];
+}
 
-const clientGroups: NavGroup[] = [
-  {
-    label: "Client Portal",
-    defaultKey: "dashboard",
-    children: [{ key: "dashboard", label: "Portal Home" }]
-  },
-  {
-    label: "Estimates",
-    defaultKey: "client-estimates",
-    children: [{ key: "client-estimates", label: "My Estimates" }]
-  },
-  {
-    label: "Quotes",
-    defaultKey: "client-quotes",
-    children: [{ key: "client-quotes", label: "My Quotes" }]
-  },
-  {
-    label: "Chat",
-    defaultKey: "chat",
-    children: [{ key: "chat", label: "Chat" }]
-  }
-];
+function getClientGroups(): NavGroup[] {
+  return [
+    {
+      title: "Client",
+      items: [
+        { key: "dashboard", label: "Dashboard", description: "Client overview" },
+        { key: "client-estimates", label: "My Estimates", description: "Guru estimate requests", badge: "Guru" },
+        { key: "client-quotes", label: "My Quotes", description: "NMD quote records" },
+        { key: "chat", label: "Chat", description: "Message NMD" }
+      ]
+    }
+  ];
+}
 
-function groupContainsPage(group: NavGroup, page: PageKey) {
-  return group.children.some((child) => child.key === page);
+function getGroups(role: AuthUserRole): NavGroup[] {
+  if (role === "admin") return getAdminGroups();
+  if (role === "employee") return getEmployeeGroups();
+  return getClientGroups();
 }
 
 export default function Sidebar({
@@ -171,111 +115,63 @@ export default function Sidebar({
 }: {
   currentPage: PageKey;
   onNavigate: (page: PageKey) => void;
-  role: Role;
+  role: AuthUserRole;
 }) {
-  const groups =
-    role === "admin"
-      ? adminGroups
-      : role === "employee"
-        ? employeeGroups
-        : clientGroups;
-
-  const [openGroups, setOpenGroups] = React.useState<Record<string, boolean>>(() => {
-    const initial: Record<string, boolean> = {};
-
-    for (const group of groups) {
-      initial[group.label] = groupContainsPage(group, currentPage);
-    }
-
-    return initial;
-  });
-
-  React.useEffect(() => {
-    setOpenGroups((prev) => {
-      const next = { ...prev };
-
-      for (const group of groups) {
-        if (groupContainsPage(group, currentPage)) {
-          next[group.label] = true;
-        }
-      }
-
-      return next;
-    });
-  }, [currentPage, groups]);
-
-  const toggleGroup = (label: string) => {
-    setOpenGroups((prev) => ({
-      ...prev,
-      [label]: !prev[label]
-    }));
-  };
+  const groups = getGroups(role);
 
   return (
     <aside className="sidebar">
-      <div className="sidebarLogo">NMD</div>
+      <div className="sidebarBrand">
+        <div className="sidebarLogo">NMD</div>
 
-      <nav className="sidebarNav">
-        {groups.map((group) => {
-          const isActiveGroup = groupContainsPage(group, currentPage);
-          const isOpen = openGroups[group.label] || isActiveGroup;
+        <div>
+          <div className="sidebarTitle">No More Dirt</div>
+          <div className="sidebarSubtitle">
+            {role === "admin" ? "Admin Portal" : role === "employee" ? "Employee Portal" : "Client Portal"}
+          </div>
+        </div>
+      </div>
 
-          if (group.children.length === 1) {
-            const only = group.children[0];
+      <nav className="sidebarNav" aria-label="Main navigation">
+        {groups.map((group) => (
+          <div key={group.title} className="sidebarGroup">
+            <div className="sidebarGroupTitle">{group.title}</div>
 
-            return (
-              <button
-                key={group.label}
-                className={`sidebarLink ${currentPage === only.key ? "sidebarLinkActive" : ""}`}
-                onClick={() => onNavigate(only.key)}
-                type="button"
-              >
-                {group.label}
-              </button>
-            );
-          }
+            <div className="sidebarGroupItems">
+              {group.items.map((item) => {
+                const active = currentPage === item.key;
 
-          return (
-            <div key={group.label} style={{ width: "100%" }}>
-              <button
-                className={`sidebarLink ${isActiveGroup ? "sidebarLinkActive" : ""}`}
-                onClick={() => toggleGroup(group.label)}
-                type="button"
-              >
-                <span>{group.label}</span>
-                <span style={{ marginLeft: "auto" }}>{isOpen ? "−" : "+"}</span>
-              </button>
+                return (
+                  <button
+                    key={item.key}
+                    type="button"
+                    className={`sidebarLink ${active ? "sidebarLinkActive" : ""}`}
+                    onClick={() => onNavigate(item.key)}
+                    title={item.description || item.label}
+                  >
+                    <span className="sidebarLinkText">
+                      <span className="sidebarLinkLabel">{item.label}</span>
 
-              {isOpen && (
-                <div
-                  style={{
-                    display: "grid",
-                    gap: 6,
-                    paddingLeft: 10,
-                    paddingTop: 6,
-                    paddingBottom: 8
-                  }}
-                >
-                  {group.children.map((child) => (
-                    <button
-                      key={`${group.label}-${child.key}-${child.label}`}
-                      className={`sidebarLink ${currentPage === child.key ? "sidebarLinkActive" : ""}`}
-                      onClick={() => onNavigate(child.key)}
-                      type="button"
-                      style={{
-                        fontSize: 13,
-                        opacity: currentPage === child.key ? 1 : 0.82
-                      }}
-                    >
-                      {child.label}
-                    </button>
-                  ))}
-                </div>
-              )}
+                      {item.description && (
+                        <span className="sidebarLinkDescription">{item.description}</span>
+                      )}
+                    </span>
+
+                    {item.badge && <span className="sidebarBadge">{item.badge}</span>}
+                  </button>
+                );
+              })}
             </div>
-          );
-        })}
+          </div>
+        ))}
       </nav>
+
+      <div className="sidebarFooter">
+        <div className="sidebarFooterTitle">Guru Assistant</div>
+        <div className="sidebarFooterText">
+          Use the floating Guru icon for estimates, field tools, pricing help, and workflow shortcuts.
+        </div>
+      </div>
     </aside>
   );
 }
