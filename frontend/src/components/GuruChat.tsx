@@ -56,7 +56,11 @@ type ClientUpdateSnapshot = {
   quoteKeys: string[];
 };
 
-const GURU_ICON_SRC = "/icons/NMD-Guru-Icon.png?v=2026051526";
+const GURU_ICON_SRC = "/icons/NMD-Guru-Icon.png?v=2026051532";
+
+function isAdminRole(user: AuthUser | null) {
+  return user?.role === "admin" || user?.role === "superadmin";
+}
 
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -74,6 +78,7 @@ function fileToDataUrl(file: File): Promise<string> {
 
 function getRoleLabel(user: AuthUser | null) {
   if (!user) return "Client";
+  if (user.role === "superadmin") return "Super Admin";
   if (user.role === "admin") return "Admin";
   if (user.role === "employee") return "Employee";
   return "Client";
@@ -86,6 +91,10 @@ function getGreeting(user: AuthUser | null) {
 
   if (user.role === "employee") {
     return "Hi, I’m Guru. I can help with job notes, treatment guidance, safety reminders, surface questions, payment collection, and field workflow.";
+  }
+
+  if (user.role === "superadmin") {
+    return "Hi, I’m Guru. You’re in owner mode. I can help review estimates, pricing, quotes, invoices, scheduling, payments, employees, clients, expenses, mileage, recurring services, and business operations.";
   }
 
   return "Hi, I’m Guru. I can help with estimates, quotes, invoices, scheduling, clients, payments, treatments, pricing, expenses, mileage, recurring services, and business operations.";
@@ -240,6 +249,7 @@ export default function GuruChat({
   const floatingImageSize = isDesktop ? "108%" : "100%";
   const notificationDotOffset = isDesktop ? 8 : 4;
   const chatPanelBottom = isDesktop ? 128 : 106;
+  const adminAccess = isAdminRole(user);
 
   const [estimateForm, setEstimateForm] = React.useState<EstimateForm>(() => ({
     ...emptyEstimateForm,
@@ -290,7 +300,7 @@ export default function GuruChat({
     let cancelled = false;
 
     const loadAdminReviewCount = async () => {
-      if (!user || user.role !== "admin") {
+      if (!adminAccess) {
         setAdminReviewCount(0);
         return;
       }
@@ -323,7 +333,7 @@ export default function GuruChat({
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, [user?.id, user?.role, open]);
+  }, [user?.id, user?.role, open, adminAccess]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -577,7 +587,7 @@ export default function GuruChat({
     }
 
     if (user.role !== "client") {
-      if (user.role === "admin") {
+      if (adminAccess) {
         openGuruEstimatesReview();
         return;
       }
@@ -603,67 +613,67 @@ export default function GuruChat({
       return;
     }
 
-    if (messageBody === "Review Guru estimates" && user?.role === "admin" && onNavigate) {
+    if (messageBody === "Review Guru estimates" && adminAccess && onNavigate) {
       openGuruEstimatesReview();
       setInput("");
       return;
     }
 
-    if (messageBody === "Create quote draft" && user?.role === "admin" && onNavigate) {
+    if (messageBody === "Create quote draft" && adminAccess && onNavigate) {
       openAdminQuotes();
       setInput("");
       return;
     }
 
-    if (messageBody === "Open invoices" && user?.role === "admin" && onNavigate) {
+    if (messageBody === "Open invoices" && adminAccess && onNavigate) {
       openAdminInvoices();
       setInput("");
       return;
     }
 
-    if (messageBody === "Open clients" && user?.role === "admin" && onNavigate) {
+    if (messageBody === "Open clients" && adminAccess && onNavigate) {
       openAdminClients();
       setInput("");
       return;
     }
 
-    if (messageBody === "Check payments" && user?.role === "admin" && onNavigate) {
+    if (messageBody === "Check payments" && adminAccess && onNavigate) {
       openAdminPayments();
       setInput("");
       return;
     }
 
-    if (messageBody === "Help price a job" && user?.role === "admin" && onNavigate) {
+    if (messageBody === "Help price a job" && adminAccess && onNavigate) {
       openAdminPricing();
       setInput("");
       return;
     }
 
-    if (messageBody === "Open treatments" && user?.role === "admin" && onNavigate) {
+    if (messageBody === "Open treatments" && adminAccess && onNavigate) {
       openAdminTreatments();
       setInput("");
       return;
     }
 
-    if (messageBody === "Open schedule" && user?.role === "admin" && onNavigate) {
+    if (messageBody === "Open schedule" && adminAccess && onNavigate) {
       openAdminSchedule();
       setInput("");
       return;
     }
 
-    if (messageBody === "Open expenses" && user?.role === "admin" && onNavigate) {
+    if (messageBody === "Open expenses" && adminAccess && onNavigate) {
       openAdminExpenses();
       setInput("");
       return;
     }
 
-    if (messageBody === "Open mileage" && user?.role === "admin" && onNavigate) {
+    if (messageBody === "Open mileage" && adminAccess && onNavigate) {
       openAdminMileage();
       setInput("");
       return;
     }
 
-    if (messageBody === "Open recurring" && user?.role === "admin" && onNavigate) {
+    if (messageBody === "Open recurring" && adminAccess && onNavigate) {
       openAdminRecurring();
       setInput("");
       return;
@@ -918,14 +928,14 @@ export default function GuruChat({
   const quickPrompts = getQuickPrompts(user);
 
   const notificationCount =
-    user?.role === "admin"
+    adminAccess
       ? adminReviewCount
       : user?.role === "client"
         ? clientUpdateCount
         : 0;
 
   const shouldShowNotification =
-    user?.role === "admin"
+    adminAccess
       ? adminReviewCount > 0
       : user?.role === "client"
         ? clientUpdateCount > 0 || hasUnread
@@ -1036,7 +1046,9 @@ export default function GuruChat({
               padding: 16,
               borderBottom: "1px solid var(--border)",
               background:
-                "linear-gradient(135deg, rgba(16,185,129,0.18), rgba(37,99,235,0.16))"
+                user?.role === "superadmin"
+                  ? "linear-gradient(135deg, rgba(250,204,21,0.18), rgba(16,185,129,0.18), rgba(37,99,235,0.16))"
+                  : "linear-gradient(135deg, rgba(16,185,129,0.18), rgba(37,99,235,0.16))"
             }}
           >
             <div className="panelHeader">
@@ -1071,9 +1083,10 @@ export default function GuruChat({
               </button>
             </div>
 
-            {user?.role === "admin" && adminReviewCount > 0 && (
+            {adminAccess && adminReviewCount > 0 && (
               <div className="errorBox" style={{ marginTop: 10 }}>
-                {adminReviewCount} Guru estimate{adminReviewCount === 1 ? "" : "s"} need admin review.
+                {adminReviewCount} Guru estimate{adminReviewCount === 1 ? "" : "s"} need{" "}
+                {user?.role === "superadmin" ? "owner/admin" : "admin"} review.
 
                 <div className="buttonRow" style={{ marginTop: 10 }}>
                   <button
@@ -1087,9 +1100,11 @@ export default function GuruChat({
               </div>
             )}
 
-            {user?.role === "admin" && (
+            {adminAccess && (
               <div className="listCard" style={{ marginTop: 10 }}>
-                Admin shortcuts for estimates, quotes, invoices, clients, pricing, scheduling, treatments, payments, expenses, mileage, and recurring services.
+                {user?.role === "superadmin"
+                  ? "Owner shortcuts for estimates, quotes, invoices, clients, pricing, scheduling, treatments, payments, expenses, mileage, and recurring services."
+                  : "Admin shortcuts for estimates, quotes, invoices, clients, pricing, scheduling, treatments, payments, expenses, mileage, and recurring services."}
 
                 <div className="buttonRow" style={{ marginTop: 10 }}>
                   <button className="primaryButton" type="button" onClick={openGuruEstimatesReview}>
@@ -1463,13 +1478,13 @@ export default function GuruChat({
                     }}
                     onClick={() => {
                       if (prompt === "Start estimate") startEstimate();
-                      else if (prompt === "Review Guru estimates" && user?.role === "admin") {
+                      else if (prompt === "Review Guru estimates" && adminAccess) {
                         openGuruEstimatesReview();
-                      } else if (prompt === "Create quote draft" && user?.role === "admin") {
+                      } else if (prompt === "Create quote draft" && adminAccess) {
                         openAdminQuotes();
-                      } else if (prompt === "Check payments" && user?.role === "admin") {
+                      } else if (prompt === "Check payments" && adminAccess) {
                         openAdminPayments();
-                      } else if (prompt === "Help price a job" && user?.role === "admin") {
+                      } else if (prompt === "Help price a job" && adminAccess) {
                         openAdminPricing();
                       } else if (prompt === "My estimates" && user?.role === "client") {
                         openClientEstimates();
