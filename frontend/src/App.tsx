@@ -323,7 +323,7 @@ export default function App() {
         </div>
       </div>
 
-      <GuruChat user={user} />
+      <GuruChat user={user} onNavigate={safeNavigate} />
     </>
   );
 }
