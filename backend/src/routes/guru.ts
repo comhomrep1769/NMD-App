@@ -73,6 +73,10 @@ function getGuruReply(role: string, message: string) {
       return "Photos help NMD estimate more accurately. Please upload clear pictures showing the full area, stains, surface type, access points, and any problem spots. Photo upload for Guru is coming in a later phase.";
     }
 
+    if (lower.includes("status") || lower.includes("history")) {
+      return "You can check your Guru estimate history from your client portal estimate page. Estimates are preliminary until NMD reviews and confirms official pricing.";
+    }
+
     return "I can help you request service, describe the issue, prepare estimate details, and guide you toward the right NMD service. What part of the property needs cleaning?";
   }
 
@@ -434,6 +438,28 @@ router.post("/estimate-intake", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "Server error" });
   } finally {
     client.release();
+  }
+});
+
+router.get("/my-estimates", requireAuth, requireRole("client"), async (req, res) => {
+  try {
+    const result = await pool.query(
+      `
+      SELECT *
+      FROM guru_estimates
+      WHERE user_id = $1
+         OR LOWER(email) = LOWER($2)
+      ORDER BY created_at DESC
+      `,
+      [req.user!.id, req.user!.email]
+    );
+
+    return res.json({
+      estimates: result.rows.map(mapGuruEstimate)
+    });
+  } catch (error) {
+    console.error("guru my estimates list error", error);
+    return res.status(500).json({ error: "Server error" });
   }
 });
 
