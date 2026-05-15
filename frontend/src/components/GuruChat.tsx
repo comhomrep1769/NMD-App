@@ -488,18 +488,14 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
           zIndex: 120,
           width: 82,
           height: 82,
-          borderRadius: "999px",
-          border: "3px solid rgba(52, 211, 153, 0.85)",
-          background: "rgba(255,255,255,0.95)",
+          border: "none",
+          background: "transparent",
           color: "#ffffff",
-          fontWeight: 900,
-          fontSize: 14,
           cursor: "pointer",
-          boxShadow: "0 18px 45px rgba(0,0,0,0.45)",
           display: "grid",
           placeItems: "center",
           padding: 0,
-          overflow: "hidden"
+          overflow: "visible"
         }}
       >
         {iconLoaded ? (
@@ -510,23 +506,35 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
             style={{
               width: "100%",
               height: "100%",
-              objectFit: "cover",
-              borderRadius: "999px",
-              transform: "scale(1.9)",
-              transformOrigin: "center center",
-              filter: "drop-shadow(0 8px 14px rgba(0,0,0,0.25))"
+              objectFit: "contain",
+              borderRadius: 0,
+              filter: "drop-shadow(0 18px 28px rgba(0,0,0,0.45))"
             }}
           />
         ) : (
-          <span>Guru</span>
+          <span
+            style={{
+              width: 82,
+              height: 82,
+              borderRadius: "999px",
+              display: "grid",
+              placeItems: "center",
+              background:
+                "radial-gradient(circle at 30% 25%, rgba(59,130,246,0.96), rgba(16,185,129,0.92) 45%, rgba(2,6,23,0.98) 100%)",
+              border: "2px solid rgba(52, 211, 153, 0.75)",
+              fontWeight: 900
+            }}
+          >
+            Guru
+          </span>
         )}
 
         {hasUnread && (
           <span
             style={{
               position: "absolute",
-              top: 6,
-              right: 6,
+              top: 4,
+              right: 4,
               width: 16,
               height: 16,
               borderRadius: "999px",
@@ -568,31 +576,18 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
             <div className="panelHeader">
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 {iconLoaded && (
-                  <div
+                  <img
+                    src={GURU_ICON_SRC}
+                    alt="Guru"
+                    onError={() => setIconLoaded(false)}
                     style={{
                       width: 54,
                       height: 54,
-                      borderRadius: "999px",
-                      overflow: "hidden",
-                      border: "1px solid var(--border)",
-                      background: "rgba(255,255,255,0.95)",
-                      display: "grid",
-                      placeItems: "center"
+                      objectFit: "contain",
+                      borderRadius: 0,
+                      filter: "drop-shadow(0 8px 14px rgba(0,0,0,0.35))"
                     }}
-                  >
-                    <img
-                      src={GURU_ICON_SRC}
-                      alt="Guru"
-                      onError={() => setIconLoaded(false)}
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
-                        transform: "scale(1.75)",
-                        transformOrigin: "center center"
-                      }}
-                    />
-                  </div>
+                  />
                 )}
 
                 <div>
