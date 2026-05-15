@@ -17,6 +17,7 @@ import DilutionCalculator from "../components/treatments/DilutionCalculator";
 import TreatmentCard from "../components/treatments/TreatmentCard";
 import TreatmentDetailPanel from "../components/treatments/TreatmentDetailPanel";
 import TreatmentCasesPanel from "../components/treatments/TreatmentCasesPanel";
+import TreatmentPlanBuilder from "../components/treatments/TreatmentPlanBuilder";
 
 export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
   const adminAccess = isAdminRole(role);
@@ -30,6 +31,7 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
   const [showForm, setShowForm] = React.useState(false);
   const [showCalculator, setShowCalculator] = React.useState(true);
   const [showCases, setShowCases] = React.useState(true);
+  const [showPlanBuilder, setShowPlanBuilder] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [seeding, setSeeding] = React.useState(false);
@@ -265,6 +267,14 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
             <button
               className="secondaryButton"
               type="button"
+              onClick={() => setShowPlanBuilder((prev) => !prev)}
+            >
+              {showPlanBuilder ? "Hide Plan Builder" : "Plan Builder"}
+            </button>
+
+            <button
+              className="secondaryButton"
+              type="button"
               onClick={() => setShowCalculator((prev) => !prev)}
             >
               {showCalculator ? "Hide Calculator" : "Show Calculator"}
@@ -327,6 +337,14 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
           </div>
         </div>
       </section>
+
+      {showPlanBuilder && (
+        <TreatmentPlanBuilder
+          treatments={treatments}
+          selectedTreatmentId={selectedTreatment?.id || null}
+          onClose={() => setShowPlanBuilder(false)}
+        />
+      )}
 
       {showCalculator && (
         <DilutionCalculator onClose={() => setShowCalculator(false)} />
