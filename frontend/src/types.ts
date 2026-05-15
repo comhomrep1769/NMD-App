@@ -2,6 +2,8 @@ export type ThemeMode = "dark" | "light";
 
 export type AuthUserRole = "superadmin" | "admin" | "employee" | "client";
 
+export type Role = AuthUserRole;
+
 export type PageKey =
   | "dashboard"
   | "clients"
@@ -42,10 +44,15 @@ export type AuthUser = {
 
 export type Client = {
   id: string;
+
   name: string;
-  email?: string | null;
-  phone?: string | null;
-  address?: string | null;
+  firstName: string;
+  lastName: string;
+
+  email: string;
+  phone: string;
+  address: string;
+
   notes?: string | null;
   createdAt?: string;
   updatedAt?: string;
@@ -56,18 +63,27 @@ export type QuoteStatus = "draft" | "sent" | "accepted" | "declined" | "expired"
 export type Quote = {
   id: string;
   quoteNumber: number;
+
   clientId?: string | null;
   clientName?: string | null;
   clientEmail?: string | null;
   clientPhone?: string | null;
+
   serviceType?: string | null;
   serviceAddress?: string | null;
   description?: string | null;
+
+  jobName?: string | null;
+  convertedInvoiceId?: string | null;
+
   subtotal?: number;
   taxRate?: number;
   taxAmount?: number;
+  salesTaxAmount?: number;
+
   total: number;
   status: QuoteStatus;
+
   notes?: string | null;
   createdAt?: string;
   updatedAt?: string;
@@ -83,27 +99,40 @@ export type InvoiceStatus =
   | "partial"
   | "overdue"
   | "void"
-  | "cancelled";
+  | "cancelled"
+  | "unpaid";
 
 export type Invoice = {
   id: string;
   invoiceNumber: number;
+
   clientId?: string | null;
   clientName?: string | null;
   clientEmail?: string | null;
   clientPhone?: string | null;
+
   serviceType?: string | null;
   serviceAddress?: string | null;
   description?: string | null;
+
+  jobName?: string | null;
+
   subtotal?: number;
   taxRate?: number;
   taxAmount?: number;
+  salesTaxAmount?: number;
+
   total: number;
   amountPaid?: number;
   balanceDue?: number;
+
   status: InvoiceStatus;
+  paymentStatus?: "paid" | "unpaid" | "partial" | "overdue" | "void" | "cancelled";
+  paymentLinkUrl?: string | null;
+
   dueDate?: string | null;
   notes?: string | null;
+
   createdAt?: string;
   updatedAt?: string;
   sentAt?: string | null;
@@ -187,8 +216,40 @@ export type Employee = {
   phone?: string | null;
   role: "employee";
   payRate?: number | null;
-  dateJoined?: string | null;
+  dateJoined: string;
   isActive?: boolean;
+  createdAt: string;
+  updatedAt?: string;
+};
+
+export type JobStatus =
+  | "new"
+  | "scheduled"
+  | "assigned"
+  | "claimed"
+  | "in_progress"
+  | "completed"
+  | "cancelled"
+  | "archived";
+
+export type Job = {
+  id: string;
+  title: string;
+  clientId?: string | null;
+  clientName?: string | null;
+  employeeId?: string | null;
+  employeeName?: string | null;
+  status: JobStatus;
+  serviceType?: string | null;
+  location?: string | null;
+  address?: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
+  scheduledDate?: string | null;
+  estimatedHours?: number | null;
+  estimatedPayout?: number | null;
+  notes?: string | null;
+  color?: string | null;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -209,33 +270,83 @@ export type ScheduleEvent = {
   updatedAt?: string;
 };
 
+export type ChatUser = {
+  id: string;
+  displayName: string;
+  email?: string | null;
+  role: AuthUserRole;
+  avatarUrl?: string | null;
+  isOnline?: boolean;
+};
+
+export type Conversation = {
+  id: string;
+  title: string;
+  type?: "direct" | "group" | "client" | "company";
+  participantIds?: string[];
+  participants?: ChatUser[];
+  lastMessage?: string | null;
+  lastMessageAt?: string | null;
+  unreadCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 export type ChatMessage = {
   id: string;
+
   senderId: string;
   senderName: string;
   senderRole: AuthUserRole;
   body: string;
   roomId?: string | null;
+
   createdAt: string;
   deletedAt?: string | null;
+
+  sender_id?: string;
+  sender_display_name?: string;
+  created_at?: string;
+  conversation_id?: string;
 };
 
 export type ExpenseStatus = "pending" | "approved" | "rejected" | "paid";
 
+export type ExpenseReimbursementStatus =
+  | "not_reimbursable"
+  | "needs_reimbursement"
+  | "reimbursed"
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "paid";
+
 export type Expense = {
   id: string;
-  employeeId?: string | null;
-  employeeName?: string | null;
+
+  title: string;
   category: string;
   amount: number;
+
+  expenseDate: string;
+  vendor: string;
+
+  employeeId?: string | null;
+  employeeName?: string | null;
+
   notes?: string | null;
   receiptDataUrl?: string | null;
+
   status: ExpenseStatus;
+  reimbursementStatus: ExpenseReimbursementStatus;
+
   createdAt?: string;
   updatedAt?: string;
 };
 
 export type MileageEntryStatus = "pending" | "approved" | "rejected" | "paid";
+
+export type MileageStatus = MileageEntryStatus;
 
 export type MileageEntry = {
   id: string;
@@ -253,21 +364,41 @@ export type MileageEntry = {
   updatedAt?: string;
 };
 
+export type MileageLog = MileageEntry & {
+  date?: string;
+  tripDate?: string;
+  startLocation?: string;
+  endLocation?: string;
+  purpose?: string;
+  odometerStart?: number | null;
+  odometerEnd?: number | null;
+  amount?: number;
+};
+
+export type RecurringFrequency =
+  | "weekly"
+  | "biweekly"
+  | "monthly"
+  | "bimonthly"
+  | "quarterly"
+  | "biannual"
+  | "annual";
+
 export type RecurringServiceStatus = "active" | "paused" | "cancelled" | "completed";
+
+export type RecurringStatus = RecurringServiceStatus;
 
 export type RecurringService = {
   id: string;
   clientId?: string | null;
   clientName: string;
+
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+
   serviceType: string;
-  frequency:
-    | "weekly"
-    | "biweekly"
-    | "monthly"
-    | "bimonthly"
-    | "quarterly"
-    | "biannual"
-    | "annual";
+  frequency: RecurringFrequency;
   price: number;
   nextServiceDate?: string | null;
   status: RecurringServiceStatus;
@@ -276,7 +407,45 @@ export type RecurringService = {
   updatedAt?: string;
 };
 
+export type RecurringServiceWithStripe = RecurringService & {
+  stripeCustomerId?: string | null;
+  stripeSubscriptionId?: string | null;
+  stripePaymentLinkUrl?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+};
+
 export type TimeClockStatus = "clocked_out" | "clocked_in" | "on_break" | "on_lunch";
+
+export type BreakType = "break_15" | "lunch_30" | "break_60" | "paid_lunch" | "unpaid_break";
+
+export type BreakLog = {
+  id: string;
+  employeeId: string;
+  employeeName?: string | null;
+  type: BreakType;
+  startAt: string;
+  endAt?: string | null;
+  durationMinutes?: number;
+  paid?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type TimeSession = {
+  id: string;
+  employeeId: string;
+  employeeName?: string | null;
+  clockInAt?: string | null;
+  clockOutAt?: string | null;
+  status: TimeClockStatus;
+  breaks?: BreakLog[];
+  paidHours?: number;
+  notes?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+};
 
 export type TimeClockEntry = {
   id: string;
@@ -323,6 +492,17 @@ export type TreatmentItem = {
   updatedAt?: string;
 };
 
+export type TipNote = {
+  id: string;
+  title: string;
+  category: string;
+  body: string;
+  tags?: string[];
+  roleVisibility?: AuthUserRole[] | "all";
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 export type PricingReferenceItem = {
   id: string;
   serviceCategory: string;
@@ -337,4 +517,46 @@ export type PricingReferenceItem = {
   quoteGuidance?: string | null;
   createdAt?: string;
   updatedAt?: string;
+};
+
+export type POSPaymentMethod =
+  | "cash"
+  | "card"
+  | "stripe"
+  | "payment_link"
+  | "zelle"
+  | "check"
+  | "other";
+
+export type POSPaymentStatus =
+  | "draft"
+  | "pending"
+  | "collected"
+  | "approved"
+  | "rejected"
+  | "refunded"
+  | "failed";
+
+export type POSPayment = {
+  id: string;
+
+  invoiceId?: string | null;
+  quoteId?: string | null;
+  clientId?: string | null;
+
+  clientName?: string | null;
+  employeeId?: string | null;
+  employeeName?: string | null;
+
+  amount: number;
+  method: POSPaymentMethod;
+  status: POSPaymentStatus;
+
+  cashProofDataUrl?: string | null;
+  paymentLinkUrl?: string | null;
+  notes?: string | null;
+
+  createdAt?: string;
+  updatedAt?: string;
+  approvedAt?: string | null;
 };
