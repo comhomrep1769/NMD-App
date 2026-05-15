@@ -26,7 +26,6 @@ export type PageKey =
   | "client-quotes"
   | "service-request"
   | "my-ledger";
-  
 
 export type Role = "admin" | "employee" | "client";
 
@@ -128,6 +127,10 @@ export type GuruEstimate = {
   id: string;
   userId?: string | null;
   clientId?: string | null;
+  quoteId?: string | null;
+  quoteNumber?: number | null;
+  quoteTotal?: number | null;
+  quoteStatus?: QuoteStatus | string | null;
   source: "guru" | "manual";
   status: GuruEstimateStatus;
   clientName?: string | null;
