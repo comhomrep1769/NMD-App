@@ -34,6 +34,8 @@ type EstimateForm = {
   photoNote: string;
 };
 
+const GURU_ICON_SRC = "/icons/NMD-Guru-Icon.jpeg";
+
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -132,6 +134,7 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
   const [error, setError] = React.useState("");
   const [estimateMode, setEstimateMode] = React.useState(false);
   const [savingEstimate, setSavingEstimate] = React.useState(false);
+  const [iconLoaded, setIconLoaded] = React.useState(true);
 
   const [estimateForm, setEstimateForm] = React.useState<EstimateForm>(() => ({
     ...emptyEstimateForm,
@@ -477,39 +480,58 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
         type="button"
         onClick={openGuru}
         aria-label="Open Guru chat"
+        title="Open Guru"
         style={{
           position: "fixed",
           right: 18,
           bottom: open ? 18 : 86,
           zIndex: 120,
-          width: 68,
-          height: 68,
+          width: 76,
+          height: 76,
           borderRadius: "999px",
-          border: "1px solid rgba(52, 211, 153, 0.65)",
+          border: "2px solid rgba(52, 211, 153, 0.75)",
           background:
-            "radial-gradient(circle at 30% 25%, rgba(59,130,246,0.95), rgba(16,185,129,0.9) 45%, rgba(2,6,23,0.98) 100%)",
+            "radial-gradient(circle at 30% 25%, rgba(59,130,246,0.96), rgba(16,185,129,0.92) 45%, rgba(2,6,23,0.98) 100%)",
           color: "#ffffff",
           fontWeight: 900,
-          fontSize: 16,
+          fontSize: 14,
           cursor: "pointer",
           boxShadow: "0 18px 45px rgba(0,0,0,0.45)",
           display: "grid",
-          placeItems: "center"
+          placeItems: "center",
+          padding: 5,
+          overflow: "visible"
         }}
       >
-        <span>Guru</span>
+        {iconLoaded ? (
+          <img
+            src={GURU_ICON_SRC}
+            alt="Guru"
+            onError={() => setIconLoaded(false)}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "contain",
+              borderRadius: "999px",
+              filter: "drop-shadow(0 8px 14px rgba(0,0,0,0.35))"
+            }}
+          />
+        ) : (
+          <span>Guru</span>
+        )}
 
         {hasUnread && (
           <span
             style={{
               position: "absolute",
-              top: 6,
-              right: 6,
-              width: 15,
-              height: 15,
+              top: 4,
+              right: 4,
+              width: 16,
+              height: 16,
               borderRadius: "999px",
               background: "#ef4444",
-              border: "2px solid #ffffff"
+              border: "2px solid #ffffff",
+              boxShadow: "0 0 0 3px rgba(239,68,68,0.25)"
             }}
           />
         )}
@@ -520,7 +542,7 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
           style={{
             position: "fixed",
             right: 18,
-            bottom: 92,
+            bottom: 102,
             zIndex: 130,
             width: "min(92vw, 440px)",
             height: "min(82vh, 720px)",
@@ -542,13 +564,31 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
             }}
           >
             <div className="panelHeader">
-              <div>
-                <h2 className="panelTitle" style={{ margin: 0 }}>
-                  Guru
-                </h2>
-                <p className="brandSubtitle">
-                  {roleLabel} assistant • NMD Pressure Washing
-                </p>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                {iconLoaded && (
+                  <img
+                    src={GURU_ICON_SRC}
+                    alt="Guru"
+                    onError={() => setIconLoaded(false)}
+                    style={{
+                      width: 44,
+                      height: 44,
+                      objectFit: "contain",
+                      borderRadius: "999px",
+                      background: "rgba(255,255,255,0.08)",
+                      border: "1px solid var(--border)"
+                    }}
+                  />
+                )}
+
+                <div>
+                  <h2 className="panelTitle" style={{ margin: 0 }}>
+                    Guru
+                  </h2>
+                  <p className="brandSubtitle">
+                    {roleLabel} assistant • NMD Pressure Washing
+                  </p>
+                </div>
               </div>
 
               <button className="secondaryButton" type="button" onClick={closeGuru}>
@@ -628,6 +668,9 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
                   <option value="Pool Deck Cleaning">Pool Deck Cleaning</option>
                   <option value="Trash Can Cleaning">Trash Can Cleaning</option>
                   <option value="Commercial Cleaning">Commercial Cleaning</option>
+                  <option value="Rust Removal / Specialty Restoration">
+                    Rust Removal / Specialty Restoration
+                  </option>
                   <option value="Other">Other</option>
                 </select>
 
