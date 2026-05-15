@@ -186,7 +186,7 @@ function estimateRange(input: {
   };
 }
 
-async function sendGuruEstimateEmails(input: {
+async function sendGuruEstimateCreatedEmails(input: {
   estimate: any;
   low: number;
   high: number;
@@ -194,56 +194,130 @@ async function sendGuruEstimateEmails(input: {
   const adminEmail = process.env.NMD_ADMIN_EMAIL || "nmdpowash@gmail.com";
   const estimate = input.estimate;
 
-  const adminMessage = `
-    <p>A new Guru estimate was submitted and needs admin review.</p>
-    <p><strong>Client:</strong> ${estimate.client_name || "—"}</p>
-    <p><strong>Phone:</strong> ${estimate.phone || "—"}</p>
-    <p><strong>Email:</strong> ${estimate.email || "—"}</p>
-    <p><strong>Address:</strong> ${estimate.address || "—"}</p>
-    <p><strong>Service:</strong> ${estimate.service_type || "—"}</p>
-    <p><strong>Property Area:</strong> ${estimate.property_area || "—"}</p>
-    <p><strong>Surface:</strong> ${estimate.surface_type || "—"}</p>
-    <p><strong>Condition:</strong> ${estimate.condition_level || "—"}</p>
-    <p><strong>Size:</strong> ${estimate.square_footage || "—"}</p>
-    <p><strong>Preferred Schedule:</strong> ${estimate.preferred_schedule || "—"}</p>
-    <p><strong>Special Concerns:</strong> ${estimate.special_concerns || "—"}</p>
-    <p><strong>Photo Uploaded:</strong> ${estimate.photo_data_url ? "Yes" : "No"}</p>
-    <p><strong>Photo Note:</strong> ${estimate.photo_note || "—"}</p>
-    <p><strong>Preliminary Range:</strong> $${input.low.toFixed(2)} - $${input.high.toFixed(2)}</p>
-    <p>This is preliminary only. Review it inside the NMD admin portal before sending an official quote.</p>
-  `;
-
   await sendEmail({
     to: adminEmail,
     subject: `New Guru estimate needs review: ${estimate.client_name || "Client"}`,
     html: buildNmdEmailTemplate({
       title: "New Guru Estimate",
-      message: adminMessage
+      message: `
+        <p>A new Guru estimate was submitted and needs admin review.</p>
+        <p><strong>Client:</strong> ${estimate.client_name || "—"}</p>
+        <p><strong>Phone:</strong> ${estimate.phone || "—"}</p>
+        <p><strong>Email:</strong> ${estimate.email || "—"}</p>
+        <p><strong>Address:</strong> ${estimate.address || "—"}</p>
+        <p><strong>Service:</strong> ${estimate.service_type || "—"}</p>
+        <p><strong>Property Area:</strong> ${estimate.property_area || "—"}</p>
+        <p><strong>Surface:</strong> ${estimate.surface_type || "—"}</p>
+        <p><strong>Condition:</strong> ${estimate.condition_level || "—"}</p>
+        <p><strong>Size:</strong> ${estimate.square_footage || "—"}</p>
+        <p><strong>Preferred Schedule:</strong> ${estimate.preferred_schedule || "—"}</p>
+        <p><strong>Special Concerns:</strong> ${estimate.special_concerns || "—"}</p>
+        <p><strong>Photo Uploaded:</strong> ${estimate.photo_data_url ? "Yes" : "No"}</p>
+        <p><strong>Photo Note:</strong> ${estimate.photo_note || "—"}</p>
+        <p><strong>Preliminary Range:</strong> $${input.low.toFixed(2)} - $${input.high.toFixed(2)}</p>
+        <p>This is preliminary only. Review it inside the NMD admin portal before sending an official quote.</p>
+      `
     }),
     text: `New Guru estimate needs review for ${estimate.client_name || "Client"}. Preliminary range: $${input.low.toFixed(2)} - $${input.high.toFixed(2)}.`
   });
 
   if (estimate.email) {
-    const clientMessage = `
-      <p>Hi ${estimate.client_name || "there"},</p>
-      <p>Your Guru estimate request has been received by NMD Pressure Washing Services.</p>
-      <p><strong>Service:</strong> ${estimate.service_type || "—"}</p>
-      <p><strong>Address:</strong> ${estimate.address || "—"}</p>
-      <p><strong>Preliminary Range:</strong> $${input.low.toFixed(2)} - $${input.high.toFixed(2)}</p>
-      <p>This is not a final quote. NMD will review your request, photos if provided, surface condition, access, and service details before confirming official pricing.</p>
-      <p>You can log into your client portal to check your estimate status.</p>
-    `;
-
     await sendEmail({
       to: estimate.email,
       subject: "NMD received your Guru estimate request",
       html: buildNmdEmailTemplate({
         title: "Estimate Request Received",
-        message: clientMessage
+        message: `
+          <p>Hi ${estimate.client_name || "there"},</p>
+          <p>Your Guru estimate request has been received by NMD Pressure Washing Services.</p>
+          <p><strong>Service:</strong> ${estimate.service_type || "—"}</p>
+          <p><strong>Address:</strong> ${estimate.address || "—"}</p>
+          <p><strong>Preliminary Range:</strong> $${input.low.toFixed(2)} - $${input.high.toFixed(2)}</p>
+          <p>This is not a final quote. NMD will review your request, photos if provided, surface condition, access, and service details before confirming official pricing.</p>
+          <p>You can log into your client portal to check your estimate status.</p>
+        `
       }),
       text: `NMD received your Guru estimate request. Preliminary range: $${input.low.toFixed(2)} - $${input.high.toFixed(2)}. This is not a final quote.`
     });
   }
+}
+
+async function sendGuruEstimateStatusEmail(input: {
+  estimate: any;
+  status: "reviewed" | "converted_to_quote" | "declined" | "archived";
+  quote?: any;
+}) {
+  const estimate = input.estimate;
+  const clientEmail = estimate.email;
+
+  if (!clientEmail) return;
+
+  let subject = "NMD Guru estimate update";
+  let title = "Estimate Update";
+  let message = "";
+
+  if (input.status === "reviewed") {
+    subject = "NMD reviewed your Guru estimate";
+    title = "Estimate Reviewed";
+    message = `
+      <p>Hi ${estimate.client_name || "there"},</p>
+      <p>NMD has reviewed your Guru estimate request.</p>
+      <p><strong>Service:</strong> ${estimate.service_type || "—"}</p>
+      <p><strong>Address:</strong> ${estimate.address || "—"}</p>
+      <p>This is still not a final quote unless NMD sends you an official quote. We may follow up if more information, photos, or verification is needed.</p>
+    `;
+  }
+
+  if (input.status === "converted_to_quote") {
+    subject = "NMD is preparing your official quote";
+    title = "Estimate Moved To Quote Prep";
+    message = `
+      <p>Hi ${estimate.client_name || "there"},</p>
+      <p>Your Guru estimate has been moved into quote preparation.</p>
+      <p><strong>Service:</strong> ${estimate.service_type || "—"}</p>
+      <p><strong>Address:</strong> ${estimate.address || "—"}</p>
+      ${
+        input.quote
+          ? `<p><strong>Draft Quote:</strong> #${input.quote.quote_number}</p>`
+          : ""
+      }
+      <p>This still requires final admin review before it becomes an official quote sent to you.</p>
+    `;
+  }
+
+  if (input.status === "declined") {
+    subject = "NMD Guru estimate update";
+    title = "Estimate Request Update";
+    message = `
+      <p>Hi ${estimate.client_name || "there"},</p>
+      <p>NMD reviewed your Guru estimate request and could not approve it as submitted.</p>
+      <p><strong>Service:</strong> ${estimate.service_type || "—"}</p>
+      <p><strong>Address:</strong> ${estimate.address || "—"}</p>
+      <p>You can contact NMD or submit a new request with updated details/photos if needed.</p>
+    `;
+  }
+
+  if (input.status === "archived") {
+    subject = "NMD Guru estimate archived";
+    title = "Estimate Archived";
+    message = `
+      <p>Hi ${estimate.client_name || "there"},</p>
+      <p>Your Guru estimate request has been archived.</p>
+      <p><strong>Service:</strong> ${estimate.service_type || "—"}</p>
+      <p><strong>Address:</strong> ${estimate.address || "—"}</p>
+      <p>If this was unexpected, please contact NMD or submit a new request.</p>
+    `;
+  }
+
+  await sendEmail({
+    to: clientEmail,
+    subject,
+    html: buildNmdEmailTemplate({
+      title,
+      message
+    }),
+    text: `${title}: ${estimate.service_type || "NMD service"} at ${estimate.address || "your property"}.`
+  });
 }
 
 router.get("/messages", requireAuth, async (req, res) => {
@@ -508,7 +582,7 @@ router.post("/estimate-intake", requireAuth, async (req, res) => {
 
     const estimate = estimateResult.rows[0];
 
-    sendGuruEstimateEmails({
+    sendGuruEstimateCreatedEmails({
       estimate,
       low: range.low,
       high: range.high
@@ -591,6 +665,22 @@ router.patch(
         });
       }
 
+      const currentResult = await pool.query(
+        `
+        SELECT *
+        FROM guru_estimates
+        WHERE id = $1
+        LIMIT 1
+        `,
+        [estimateId]
+      );
+
+      if (currentResult.rows.length === 0) {
+        return res.status(404).json({
+          error: "Guru estimate not found"
+        });
+      }
+
       const result = await pool.query(
         `
         UPDATE guru_estimates
@@ -604,14 +694,41 @@ router.patch(
         [estimateId, status, req.user!.id]
       );
 
-      if (result.rows.length === 0) {
-        return res.status(404).json({
-          error: "Guru estimate not found"
-        });
+      const estimate = result.rows[0];
+
+      if (estimate.user_id) {
+        await pool.query(
+          `
+          INSERT INTO guru_messages (
+            user_id,
+            role_context,
+            sender,
+            body
+          )
+          VALUES ($1, 'client', 'guru', $2)
+          `,
+          [
+            estimate.user_id,
+            status === "reviewed"
+              ? "NMD has reviewed your Guru estimate request. Official pricing still requires final quote approval."
+              : status === "declined"
+                ? "NMD reviewed your Guru estimate request and could not approve it as submitted."
+                : status === "archived"
+                  ? "Your Guru estimate request has been archived."
+                  : "Your Guru estimate status has been updated."
+          ]
+        );
       }
 
+      sendGuruEstimateStatusEmail({
+        estimate,
+        status
+      }).catch((emailError) => {
+        console.error("guru estimate status email error", emailError);
+      });
+
       return res.json({
-        estimate: mapGuruEstimate(result.rows[0])
+        estimate: mapGuruEstimate(estimate)
       });
     } catch (error) {
       console.error("guru estimate review error", error);
@@ -714,6 +831,9 @@ router.post(
         [estimateId, req.user!.id]
       );
 
+      const updatedEstimate = updatedEstimateResult.rows[0];
+      const quote = quoteResult.rows[0];
+
       if (estimate.user_id) {
         await client.query(
           `
@@ -734,9 +854,17 @@ router.post(
 
       await client.query("COMMIT");
 
+      sendGuruEstimateStatusEmail({
+        estimate: updatedEstimate,
+        status: "converted_to_quote",
+        quote
+      }).catch((emailError) => {
+        console.error("guru estimate converted email error", emailError);
+      });
+
       return res.status(201).json({
-        estimate: mapGuruEstimate(updatedEstimateResult.rows[0]),
-        quote: mapQuote(quoteResult.rows[0])
+        estimate: mapGuruEstimate(updatedEstimate),
+        quote: mapQuote(quote)
       });
     } catch (error) {
       await client.query("ROLLBACK");
