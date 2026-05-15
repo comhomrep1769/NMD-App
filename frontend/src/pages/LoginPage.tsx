@@ -1,98 +1,72 @@
 import React from "react";
-import { apiFetch } from "../api";
-import type { AuthUser, Role } from "../types";
+import type { AuthUser, ThemeMode } from "../types";
 
-export default function LoginPage({
-  onLogin,
-  portalRole,
-  title,
-  subtitle
+function roleLabel(user: AuthUser | null) {
+  if (!user) return "Guest";
+  if (user.role === "superadmin") return "Super Admin";
+  if (user.role === "admin") return "Admin";
+  if (user.role === "employee") return "Employee";
+  return "Client";
+}
+
+function roleBadgeClass(user: AuthUser | null) {
+  if (!user) return "statusBadge status-archived";
+  if (user.role === "superadmin") return "statusBadge status-paid";
+  if (user.role === "admin") return "statusBadge status-approved";
+  if (user.role === "employee") return "statusBadge status-pending_admin_approval";
+  return "statusBadge status-approved";
+}
+
+export default function Header({
+  theme,
+  onToggleTheme,
+  user,
+  onLogout
 }: {
-  onLogin: (token: string, user: AuthUser) => void;
-  portalRole?: Role;
-  title?: string;
-  subtitle?: string;
+  theme: ThemeMode;
+  onToggleTheme: () => void;
+  user: AuthUser | null;
+  onLogout: () => void;
 }) {
-  const [email, setEmail] = React.useState("");
-  const [password, setPassword] = React.useState("");
-  const [rememberMe, setRememberMe] = React.useState(true);
-  const [error, setError] = React.useState("");
-  const [loading, setLoading] = React.useState(false);
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-
-    try {
-      setLoading(true);
-
-      const data = await apiFetch<{ token: string; user: AuthUser }>("/api/auth/login", {
-        method: "POST",
-        body: JSON.stringify({ email, password })
-      });
-
-      if (portalRole && data.user.role !== portalRole) {
-        localStorage.removeItem("nmd-token");
-        setError(`This login is for ${portalRole} accounts only.`);
-        return;
-      }
-
-      if (rememberMe) {
-        localStorage.setItem("nmd-token", data.token);
-      } else {
-        sessionStorage.setItem("nmd-token", data.token);
-      }
-
-      onLogin(data.token, data.user);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
-    <div className="loginShell">
-      <section className="loginCard">
-        <h1 className="panelTitle">{title || "NMD Portal Login"}</h1>
+    <header className="topHeader">
+      <div>
+        <div className="headerKicker">NMD Pressure Washing Services</div>
+        <h1 className="headerTitle">
+          {user?.role === "superadmin"
+            ? "Owner Command Center"
+            : user?.role === "admin"
+              ? "Admin Command Center"
+              : user?.role === "employee"
+                ? "Employee Portal"
+                : user?.role === "client"
+                  ? "Client Portal"
+                  : "No More Dirt"}
+        </h1>
+      </div>
 
-        <p className="brandSubtitle">
-          {subtitle || "Sign in to continue."}
-        </p>
+      <div className="headerActions">
+        {user && (
+          <div className="userPill">
+            <div>
+              <div className="userName">{user.displayName || user.email}</div>
+              <div className="userEmail">{user.email}</div>
+            </div>
 
-        {error && <div className="errorBox">{error}</div>}
+            <span className={roleBadgeClass(user)}>{roleLabel(user)}</span>
+          </div>
+        )}
 
-        <form className="formGrid" onSubmit={submit}>
-          <input
-            className="textInput"
-            placeholder="Email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
+        <button className="secondaryButton" type="button" onClick={onToggleTheme}>
+          {theme === "dark" ? "Light Mode" : "Dark Mode"}
+        </button>
 
-          <input
-            className="textInput"
-            placeholder="Password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-
-          <label className="assignItem">
-            <input
-              type="checkbox"
-              checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
-            />
-            <span>Keep me logged in</span>
-          </label>
-
-          <button className="primaryButton" type="submit" disabled={loading}>
-            {loading ? "Logging in..." : "Login"}
+        {user && (
+          <button className="secondaryButton" type="button" onClick={onLogout}>
+            Logout
           </button>
-        </form>
-      </section>
-    </div>
+        )}
+      </div>
+    </header>
   );
 }
