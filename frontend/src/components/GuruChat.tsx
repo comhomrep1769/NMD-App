@@ -486,8 +486,8 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
           right: 18,
           bottom: open ? 18 : 86,
           zIndex: 120,
-          width: 76,
-          height: 76,
+          width: 88,
+          height: 88,
           borderRadius: "999px",
           border: "2px solid rgba(52, 211, 153, 0.75)",
           background:
@@ -499,7 +499,7 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
           boxShadow: "0 18px 45px rgba(0,0,0,0.45)",
           display: "grid",
           placeItems: "center",
-          padding: 5,
+          padding: 0,
           overflow: "visible"
         }}
       >
@@ -509,9 +509,9 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
             alt="Guru"
             onError={() => setIconLoaded(false)}
             style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "contain",
+              width: "118%",
+              height: "118%",
+              objectFit: "cover",
               borderRadius: "999px",
               filter: "drop-shadow(0 8px 14px rgba(0,0,0,0.35))"
             }}
@@ -524,8 +524,8 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
           <span
             style={{
               position: "absolute",
-              top: 4,
-              right: 4,
+              top: 6,
+              right: 6,
               width: 16,
               height: 16,
               borderRadius: "999px",
@@ -542,7 +542,7 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
           style={{
             position: "fixed",
             right: 18,
-            bottom: 102,
+            bottom: 112,
             zIndex: 130,
             width: "min(92vw, 440px)",
             height: "min(82vh, 720px)",
@@ -571,9 +571,9 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
                     alt="Guru"
                     onError={() => setIconLoaded(false)}
                     style={{
-                      width: 44,
-                      height: 44,
-                      objectFit: "contain",
+                      width: 52,
+                      height: 52,
+                      objectFit: "cover",
                       borderRadius: "999px",
                       background: "rgba(255,255,255,0.08)",
                       border: "1px solid var(--border)"
