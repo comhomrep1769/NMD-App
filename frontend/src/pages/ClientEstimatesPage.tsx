@@ -8,7 +8,8 @@ function statusLabel(status: GuruEstimateStatus) {
   if (status === "converted_to_quote") return "Quote Being Prepared";
   if (status === "declined") return "Declined";
   if (status === "archived") return "Archived";
-  return status.replace(/_/g, " ");
+
+  return String(status).replace(/_/g, " ");
 }
 
 function statusClass(status: GuruEstimateStatus) {
@@ -16,7 +17,9 @@ function statusClass(status: GuruEstimateStatus) {
   if (status === "reviewed") return "status-approved";
   if (status === "converted_to_quote") return "status-paid";
   if (status === "declined") return "status-rejected";
-  return `status-${status}`;
+  if (status === "archived") return "status-archived";
+
+  return "status-pending_admin_approval";
 }
 
 function statusMessage(status: GuruEstimateStatus) {
@@ -36,7 +39,11 @@ function statusMessage(status: GuruEstimateStatus) {
     return "This request was declined or could not be quoted as submitted.";
   }
 
-  return "This estimate is archived.";
+  if (status === "archived") {
+    return "This estimate is archived.";
+  }
+
+  return "This estimate is being processed.";
 }
 
 export default function ClientEstimatesPage() {
@@ -110,7 +117,7 @@ export default function ClientEstimatesPage() {
 
           <img
             src={expandedPhotoEstimate.photoDataUrl}
-            alt="Submitted estimate photo"
+            alt="Submitted estimate"
             style={{
               width: "100%",
               maxHeight: "72vh",
@@ -122,7 +129,8 @@ export default function ClientEstimatesPage() {
           />
 
           <div className="listCard" style={{ marginTop: 12 }}>
-            <strong>Photo Note:</strong> {expandedPhotoEstimate.photoNote || "No photo note provided."}
+            <strong>Photo Note:</strong>{" "}
+            {expandedPhotoEstimate.photoNote || "No photo note provided."}
           </div>
         </section>
       )}
@@ -245,6 +253,24 @@ export default function ClientEstimatesPage() {
                 {statusMessage(estimate.status)}
               </div>
 
+              {estimate.quoteNumber && (
+                <div className="assignBox" style={{ marginBottom: 12 }}>
+                  <div className="assignTitle">Connected Quote</div>
+                  <div className="cardLine">
+                    <strong>Quote #:</strong> {estimate.quoteNumber}
+                  </div>
+                  <div className="cardLine">
+                    <strong>Quote Total:</strong>{" "}
+                    {estimate.quoteTotal !== null && estimate.quoteTotal !== undefined
+                      ? `$${Number(estimate.quoteTotal).toFixed(2)}`
+                      : "—"}
+                  </div>
+                  <div className="cardLine">
+                    <strong>Quote Status:</strong> {estimate.quoteStatus || "—"}
+                  </div>
+                </div>
+              )}
+
               {estimate.photoDataUrl && (
                 <div style={{ marginBottom: 12 }}>
                   <img
@@ -272,7 +298,8 @@ export default function ClientEstimatesPage() {
               )}
 
               <div className="cardLine">
-                <strong>Preliminary Range:</strong> ${estimate.preliminaryEstimateLow.toFixed(2)} - $
+                <strong>Preliminary Range:</strong> $
+                {estimate.preliminaryEstimateLow.toFixed(2)} - $
                 {estimate.preliminaryEstimateHigh.toFixed(2)}
               </div>
 
