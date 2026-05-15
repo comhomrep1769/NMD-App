@@ -46,6 +46,7 @@ export default function ClientEstimatesPage() {
   >("all");
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
+  const [expandedPhotoId, setExpandedPhotoId] = React.useState<string | null>(null);
 
   const loadEstimates = React.useCallback(async () => {
     setError("");
@@ -72,6 +73,9 @@ export default function ClientEstimatesPage() {
   const waiting = estimates.filter((estimate) => estimate.status === "needs_review");
   const reviewed = estimates.filter((estimate) => estimate.status === "reviewed");
   const quotePrep = estimates.filter((estimate) => estimate.status === "converted_to_quote");
+  const withPhotos = estimates.filter((estimate) => Boolean(estimate.photoDataUrl));
+
+  const expandedPhotoEstimate = estimates.find((estimate) => estimate.id === expandedPhotoId);
 
   if (loading) {
     return (
@@ -84,12 +88,51 @@ export default function ClientEstimatesPage() {
 
   return (
     <div className="pageGrid">
+      {expandedPhotoEstimate?.photoDataUrl && (
+        <section className="panel">
+          <div className="panelHeader">
+            <div>
+              <h2 className="panelTitle">Submitted Estimate Photo</h2>
+              <p className="brandSubtitle">
+                {expandedPhotoEstimate.serviceType || "Estimate"} •{" "}
+                {expandedPhotoEstimate.address || "NMD"}
+              </p>
+            </div>
+
+            <button
+              className="secondaryButton"
+              type="button"
+              onClick={() => setExpandedPhotoId(null)}
+            >
+              Close Photo
+            </button>
+          </div>
+
+          <img
+            src={expandedPhotoEstimate.photoDataUrl}
+            alt="Submitted estimate photo"
+            style={{
+              width: "100%",
+              maxHeight: "72vh",
+              objectFit: "contain",
+              borderRadius: 18,
+              border: "1px solid var(--border)",
+              background: "rgba(0,0,0,0.2)"
+            }}
+          />
+
+          <div className="listCard" style={{ marginTop: 12 }}>
+            <strong>Photo Note:</strong> {expandedPhotoEstimate.photoNote || "No photo note provided."}
+          </div>
+        </section>
+      )}
+
       <section className="panel">
         <div className="panelHeader">
           <div>
             <h2 className="panelTitle">My Estimates</h2>
             <p className="brandSubtitle">
-              View your Guru estimate requests and current review status.
+              View your Guru estimate requests, uploaded photos, and current review status.
             </p>
           </div>
         </div>
@@ -119,6 +162,11 @@ export default function ClientEstimatesPage() {
           <div className="statCard">
             <div className="statLabel">Quote Prep</div>
             <div className="statValue">{quotePrep.length}</div>
+          </div>
+
+          <div className="statCard">
+            <div className="statLabel">With Photos</div>
+            <div className="statValue">{withPhotos.length}</div>
           </div>
         </div>
       </section>
@@ -197,6 +245,32 @@ export default function ClientEstimatesPage() {
                 {statusMessage(estimate.status)}
               </div>
 
+              {estimate.photoDataUrl && (
+                <div style={{ marginBottom: 12 }}>
+                  <img
+                    src={estimate.photoDataUrl}
+                    alt="Submitted estimate preview"
+                    style={{
+                      width: "100%",
+                      height: 190,
+                      objectFit: "cover",
+                      borderRadius: 14,
+                      border: "1px solid var(--border)"
+                    }}
+                  />
+
+                  <div className="buttonRow" style={{ marginTop: 8 }}>
+                    <button
+                      className="secondaryButton"
+                      type="button"
+                      onClick={() => setExpandedPhotoId(estimate.id)}
+                    >
+                      View Photo
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="cardLine">
                 <strong>Preliminary Range:</strong> ${estimate.preliminaryEstimateLow.toFixed(2)} - $
                 {estimate.preliminaryEstimateHigh.toFixed(2)}
@@ -228,6 +302,10 @@ export default function ClientEstimatesPage() {
 
               <div className="cardLine">
                 <strong>Special Concerns:</strong> {estimate.specialConcerns || "—"}
+              </div>
+
+              <div className="cardLine">
+                <strong>Photo Note:</strong> {estimate.photoNote || "—"}
               </div>
 
               <div className="cardLine">
