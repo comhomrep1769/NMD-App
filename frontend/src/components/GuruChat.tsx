@@ -34,7 +34,7 @@ type EstimateForm = {
   photoNote: string;
 };
 
-const GURU_ICON_SRC = "/icons/NMD-Guru-Icon.png?v=2026051414";
+const GURU_ICON_SRC = "/icons/NMD-Guru-Icon.png?v=2026051416";
 
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -135,6 +135,15 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
   const [estimateMode, setEstimateMode] = React.useState(false);
   const [savingEstimate, setSavingEstimate] = React.useState(false);
   const [iconLoaded, setIconLoaded] = React.useState(true);
+  const [isDesktop, setIsDesktop] = React.useState(() => {
+    if (typeof window === "undefined") return true;
+    return window.matchMedia("(min-width: 821px)").matches;
+  });
+
+  const floatingIconSize = isDesktop ? 104 : 82;
+  const floatingImageSize = isDesktop ? "108%" : "100%";
+  const notificationDotOffset = isDesktop ? 8 : 4;
+  const chatPanelBottom = isDesktop ? 128 : 106;
 
   const [estimateForm, setEstimateForm] = React.useState<EstimateForm>(() => ({
     ...emptyEstimateForm,
@@ -150,6 +159,21 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
       createdAt: new Date().toISOString()
     }
   ]);
+
+  React.useEffect(() => {
+    const query = window.matchMedia("(min-width: 821px)");
+
+    const updateDesktopState = () => {
+      setIsDesktop(query.matches);
+    };
+
+    updateDesktopState();
+    query.addEventListener("change", updateDesktopState);
+
+    return () => {
+      query.removeEventListener("change", updateDesktopState);
+    };
+  }, []);
 
   React.useEffect(() => {
     const savedOpen = localStorage.getItem(localStorageKey(user));
@@ -486,8 +510,8 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
           right: 18,
           bottom: open ? 18 : 86,
           zIndex: 120,
-          width: 82,
-          height: 82,
+          width: floatingIconSize,
+          height: floatingIconSize,
           border: "none",
           background: "transparent",
           color: "#ffffff",
@@ -504,8 +528,8 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
             alt="Guru"
             onError={() => setIconLoaded(false)}
             style={{
-              width: "100%",
-              height: "100%",
+              width: floatingImageSize,
+              height: floatingImageSize,
               objectFit: "contain",
               borderRadius: 0,
               filter: "drop-shadow(0 18px 28px rgba(0,0,0,0.45))"
@@ -514,8 +538,8 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
         ) : (
           <span
             style={{
-              width: 82,
-              height: 82,
+              width: floatingIconSize,
+              height: floatingIconSize,
               borderRadius: "999px",
               display: "grid",
               placeItems: "center",
@@ -533,8 +557,8 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
           <span
             style={{
               position: "absolute",
-              top: 4,
-              right: 4,
+              top: notificationDotOffset,
+              right: notificationDotOffset,
               width: 16,
               height: 16,
               borderRadius: "999px",
@@ -552,7 +576,7 @@ export default function GuruChat({ user }: { user: AuthUser | null }) {
           style={{
             position: "fixed",
             right: 18,
-            bottom: 106,
+            bottom: chatPanelBottom,
             zIndex: 130,
             width: "min(92vw, 440px)",
             height: "min(82vh, 720px)",
