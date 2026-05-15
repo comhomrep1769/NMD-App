@@ -46,6 +46,52 @@ function statusMessage(status: GuruEstimateStatus) {
   return "This estimate is being processed.";
 }
 
+function buildGuruEstimateExplanation(estimate: GuruEstimate) {
+  const low = Number(estimate.preliminaryEstimateLow || 0).toFixed(2);
+  const high = Number(estimate.preliminaryEstimateHigh || 0).toFixed(2);
+
+  const details: string[] = [];
+
+  if (estimate.serviceType) details.push(`service type is ${estimate.serviceType}`);
+  if (estimate.propertyArea) details.push(`area is ${estimate.propertyArea}`);
+  if (estimate.surfaceType) details.push(`surface is ${estimate.surfaceType}`);
+  if (estimate.conditionLevel) details.push(`condition is ${estimate.conditionLevel}`);
+  if (estimate.squareFootage) details.push(`size/dimensions listed as ${estimate.squareFootage}`);
+  if (estimate.specialConcerns) details.push(`special concerns include ${estimate.specialConcerns}`);
+  if (estimate.photoDataUrl) details.push("a photo was uploaded for NMD to review");
+
+  const detailSentence =
+    details.length > 0
+      ? `Guru considered that the ${details.join(", ")}.`
+      : "Guru did not receive many details, so the estimate is based on a broad preliminary range.";
+
+  if (estimate.status === "needs_review") {
+    return `${detailSentence} The preliminary estimate range is $${low} - $${high}. This is not a final quote yet. NMD still needs to review the request, photos, property access, surface condition, safety concerns, and any treatment needs before confirming official pricing.`;
+  }
+
+  if (estimate.status === "reviewed") {
+    return `${detailSentence} NMD has reviewed this estimate. The preliminary range is $${low} - $${high}. This means your request has moved forward, but it still may need an official quote before final approval.`;
+  }
+
+  if (estimate.status === "converted_to_quote") {
+    const quoteText = estimate.quoteNumber
+      ? ` It has been connected to Quote #${estimate.quoteNumber}.`
+      : " It has been moved into the quote workflow.";
+
+    return `${detailSentence} The original preliminary range was $${low} - $${high}.${quoteText} The quote total/status shown below is the more important number to review once NMD prepares or sends it.`;
+  }
+
+  if (estimate.status === "declined") {
+    return `${detailSentence} NMD could not approve or quote this request as submitted. You may need to provide updated details, better photos, a different service scope, or contact NMD directly for clarification.`;
+  }
+
+  if (estimate.status === "archived") {
+    return `${detailSentence} This estimate has been archived. Archived estimates are no longer active unless NMD reopens or recreates the request.`;
+  }
+
+  return `${detailSentence} The preliminary estimate range is $${low} - $${high}. This is informational only until NMD confirms official pricing.`;
+}
+
 export default function ClientEstimatesPage() {
   const [estimates, setEstimates] = React.useState<GuruEstimate[]>([]);
   const [filter, setFilter] = React.useState<
@@ -54,6 +100,7 @@ export default function ClientEstimatesPage() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
   const [expandedPhotoId, setExpandedPhotoId] = React.useState<string | null>(null);
+  const [explanationEstimateId, setExplanationEstimateId] = React.useState<string | null>(null);
 
   const loadEstimates = React.useCallback(async () => {
     setError("");
@@ -240,112 +287,135 @@ export default function ClientEstimatesPage() {
         </div>
 
         <div className="cardsGrid">
-          {visibleEstimates.map((estimate) => (
-            <div key={estimate.id} className="quoteCard">
-              <div className="quoteTopRow">
-                <div className="quoteNumber">{estimate.serviceType || "Estimate"}</div>
-                <span className={`statusBadge ${statusClass(estimate.status)}`}>
-                  {statusLabel(estimate.status)}
-                </span>
-              </div>
+          {visibleEstimates.map((estimate) => {
+            const explanationOpen = explanationEstimateId === estimate.id;
 
-              <div className="listCard" style={{ marginBottom: 10 }}>
-                {statusMessage(estimate.status)}
-              </div>
-
-              {estimate.quoteNumber && (
-                <div className="assignBox" style={{ marginBottom: 12 }}>
-                  <div className="assignTitle">Connected Quote</div>
-                  <div className="cardLine">
-                    <strong>Quote #:</strong> {estimate.quoteNumber}
-                  </div>
-                  <div className="cardLine">
-                    <strong>Quote Total:</strong>{" "}
-                    {estimate.quoteTotal !== null && estimate.quoteTotal !== undefined
-                      ? `$${Number(estimate.quoteTotal).toFixed(2)}`
-                      : "—"}
-                  </div>
-                  <div className="cardLine">
-                    <strong>Quote Status:</strong> {estimate.quoteStatus || "—"}
-                  </div>
+            return (
+              <div key={estimate.id} className="quoteCard">
+                <div className="quoteTopRow">
+                  <div className="quoteNumber">{estimate.serviceType || "Estimate"}</div>
+                  <span className={`statusBadge ${statusClass(estimate.status)}`}>
+                    {statusLabel(estimate.status)}
+                  </span>
                 </div>
-              )}
 
-              {estimate.photoDataUrl && (
-                <div style={{ marginBottom: 12 }}>
-                  <img
-                    src={estimate.photoDataUrl}
-                    alt="Submitted estimate preview"
-                    style={{
-                      width: "100%",
-                      height: 190,
-                      objectFit: "cover",
-                      borderRadius: 14,
-                      border: "1px solid var(--border)"
-                    }}
-                  />
-
-                  <div className="buttonRow" style={{ marginTop: 8 }}>
-                    <button
-                      className="secondaryButton"
-                      type="button"
-                      onClick={() => setExpandedPhotoId(estimate.id)}
-                    >
-                      View Photo
-                    </button>
-                  </div>
+                <div className="listCard" style={{ marginBottom: 10 }}>
+                  {statusMessage(estimate.status)}
                 </div>
-              )}
 
-              <div className="cardLine">
-                <strong>Preliminary Range:</strong> $
-                {estimate.preliminaryEstimateLow.toFixed(2)} - $
-                {estimate.preliminaryEstimateHigh.toFixed(2)}
-              </div>
+                <div className="buttonRow" style={{ marginBottom: 12 }}>
+                  <button
+                    className="secondaryButton"
+                    type="button"
+                    onClick={() =>
+                      setExplanationEstimateId(explanationOpen ? null : estimate.id)
+                    }
+                  >
+                    {explanationOpen ? "Hide Guru Explanation" : "Ask Guru To Explain"}
+                  </button>
+                </div>
 
-              <div className="cardLine">
-                <strong>Address:</strong> {estimate.address || "—"}
-              </div>
+                {explanationOpen && (
+                  <div className="assignBox" style={{ marginBottom: 12 }}>
+                    <div className="assignTitle">Guru Explanation</div>
+                    <div className="cardLine">{buildGuruEstimateExplanation(estimate)}</div>
+                  </div>
+                )}
 
-              <div className="cardLine">
-                <strong>Property Area:</strong> {estimate.propertyArea || "—"}
-              </div>
+                {estimate.quoteNumber && (
+                  <div className="assignBox" style={{ marginBottom: 12 }}>
+                    <div className="assignTitle">Connected Quote</div>
+                    <div className="cardLine">
+                      <strong>Quote #:</strong> {estimate.quoteNumber}
+                    </div>
+                    <div className="cardLine">
+                      <strong>Quote Total:</strong>{" "}
+                      {estimate.quoteTotal !== null && estimate.quoteTotal !== undefined
+                        ? `$${Number(estimate.quoteTotal).toFixed(2)}`
+                        : "—"}
+                    </div>
+                    <div className="cardLine">
+                      <strong>Quote Status:</strong> {estimate.quoteStatus || "—"}
+                    </div>
+                  </div>
+                )}
 
-              <div className="cardLine">
-                <strong>Surface:</strong> {estimate.surfaceType || "—"}
-              </div>
+                {estimate.photoDataUrl && (
+                  <div style={{ marginBottom: 12 }}>
+                    <img
+                      src={estimate.photoDataUrl}
+                      alt="Submitted estimate preview"
+                      style={{
+                        width: "100%",
+                        height: 190,
+                        objectFit: "cover",
+                        borderRadius: 14,
+                        border: "1px solid var(--border)"
+                      }}
+                    />
 
-              <div className="cardLine">
-                <strong>Condition:</strong> {estimate.conditionLevel || "—"}
-              </div>
+                    <div className="buttonRow" style={{ marginTop: 8 }}>
+                      <button
+                        className="secondaryButton"
+                        type="button"
+                        onClick={() => setExpandedPhotoId(estimate.id)}
+                      >
+                        View Photo
+                      </button>
+                    </div>
+                  </div>
+                )}
 
-              <div className="cardLine">
-                <strong>Size:</strong> {estimate.squareFootage || "—"}
-              </div>
+                <div className="cardLine">
+                  <strong>Preliminary Range:</strong> $
+                  {estimate.preliminaryEstimateLow.toFixed(2)} - $
+                  {estimate.preliminaryEstimateHigh.toFixed(2)}
+                </div>
 
-              <div className="cardLine">
-                <strong>Preferred Schedule:</strong> {estimate.preferredSchedule || "—"}
-              </div>
+                <div className="cardLine">
+                  <strong>Address:</strong> {estimate.address || "—"}
+                </div>
 
-              <div className="cardLine">
-                <strong>Special Concerns:</strong> {estimate.specialConcerns || "—"}
-              </div>
+                <div className="cardLine">
+                  <strong>Property Area:</strong> {estimate.propertyArea || "—"}
+                </div>
 
-              <div className="cardLine">
-                <strong>Photo Note:</strong> {estimate.photoNote || "—"}
-              </div>
+                <div className="cardLine">
+                  <strong>Surface:</strong> {estimate.surfaceType || "—"}
+                </div>
 
-              <div className="cardLine">
-                <strong>Submitted:</strong>{" "}
-                {estimate.createdAt ? new Date(estimate.createdAt).toLocaleString() : "—"}
-              </div>
+                <div className="cardLine">
+                  <strong>Condition:</strong> {estimate.conditionLevel || "—"}
+                </div>
 
-              <div className="cardLine">
-                <strong>Reviewed:</strong>{" "}
-                {estimate.reviewedAt ? new Date(estimate.reviewedAt).toLocaleString() : "Not yet"}
+                <div className="cardLine">
+                  <strong>Size:</strong> {estimate.squareFootage || "—"}
+                </div>
+
+                <div className="cardLine">
+                  <strong>Preferred Schedule:</strong> {estimate.preferredSchedule || "—"}
+                </div>
+
+                <div className="cardLine">
+                  <strong>Special Concerns:</strong> {estimate.specialConcerns || "—"}
+                </div>
+
+                <div className="cardLine">
+                  <strong>Photo Note:</strong> {estimate.photoNote || "—"}
+                </div>
+
+                <div className="cardLine">
+                  <strong>Submitted:</strong>{" "}
+                  {estimate.createdAt ? new Date(estimate.createdAt).toLocaleString() : "—"}
+                </div>
+
+                <div className="cardLine">
+                  <strong>Reviewed:</strong>{" "}
+                  {estimate.reviewedAt ? new Date(estimate.reviewedAt).toLocaleString() : "Not yet"}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {visibleEstimates.length === 0 && (
             <div className="listCard">No estimates found for this filter.</div>
