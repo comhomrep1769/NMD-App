@@ -28,6 +28,7 @@ import TreatmentCategorySidebar from "../components/treatments/TreatmentCategory
 import TreatmentMobileJumpBar from "../components/treatments/TreatmentMobileJumpBar";
 import TreatmentFormPanel from "../components/treatments/TreatmentFormPanel";
 import TreatmentWorkspaceLayout from "../components/treatments/TreatmentWorkspaceLayout";
+import TreatmentUploadPanel from "../components/treatments/TreatmentUploadPanel";
 import type { TreatmentPlan } from "../types/treatmentPlans";
 import type { TreatmentTabKey } from "../types/treatmentUi";
 
@@ -122,6 +123,12 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
   const handlePlanSaved = (_plan: TreatmentPlan) => {
     setPlansRefreshKey((prev) => prev + 1);
     setActiveTab("saved");
+  };
+
+  const handleTreatmentsUploaded = (uploadedTreatments: TreatmentItem[], message: string) => {
+    setTreatments(uploadedTreatments.map(normalizeTreatment));
+    setSuccess(message);
+    setActiveTab("search");
   };
 
   const seedTreatments = async () => {
@@ -339,6 +346,13 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
           )}
 
           {activeTab === "guru" && <TreatmentGuruSearchPanel />}
+
+          {activeTab === "upload" && (
+            <TreatmentUploadPanel
+              adminAccess={adminAccess}
+              onUploaded={handleTreatmentsUploaded}
+            />
+          )}
 
           {activeTab === "field" && (
             <TreatmentFieldModePanel
