@@ -50,6 +50,21 @@ type TreatmentCaseRow = {
   treatment_category?: string | null;
 };
 
+type TreatmentPlanRow = {
+  id: string;
+  job_name: string;
+  client_name: string | null;
+  service_address: string | null;
+  surface_type: string | null;
+  condition_level: string | null;
+  selected_treatment_ids: string[];
+  selected_case_ids: string[];
+  notes: string | null;
+  plan_text: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 function mapTreatment(row: TreatmentRow) {
   return {
     id: row.id,
@@ -86,6 +101,23 @@ function mapTreatmentCase(row: TreatmentCaseRow) {
     pricingNote: row.pricing_note,
     customerExpectation: row.customer_expectation,
     riskLevel: row.risk_level,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
+function mapTreatmentPlan(row: TreatmentPlanRow) {
+  return {
+    id: row.id,
+    jobName: row.job_name,
+    clientName: row.client_name || "",
+    serviceAddress: row.service_address || "",
+    surfaceType: row.surface_type || "",
+    conditionLevel: row.condition_level || "",
+    selectedTreatmentIds: row.selected_treatment_ids || [],
+    selectedCaseIds: row.selected_case_ids || [],
+    notes: row.notes || "",
+    planText: row.plan_text || "",
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };
@@ -153,6 +185,33 @@ async function ensureTreatmentsTable() {
   await pool.query(`
     CREATE INDEX IF NOT EXISTS treatment_cases_risk_level_idx
     ON treatment_cases (LOWER(risk_level));
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS treatment_plans (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      job_name TEXT NOT NULL,
+      client_name TEXT NULL,
+      service_address TEXT NULL,
+      surface_type TEXT NULL,
+      condition_level TEXT NULL,
+      selected_treatment_ids UUID[] NOT NULL DEFAULT '{}',
+      selected_case_ids UUID[] NOT NULL DEFAULT '{}',
+      notes TEXT NULL,
+      plan_text TEXT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS treatment_plans_job_name_idx
+    ON treatment_plans (LOWER(job_name));
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS treatment_plans_created_at_idx
+    ON treatment_plans (created_at DESC);
   `);
 }
 
@@ -771,6 +830,152 @@ router.get("/cases", async (req, res) => {
 
     return res.status(500).json({
       message: err instanceof Error ? err.message : "Failed to load treatment cases."
+    });
+  }
+});
+
+router.get("/plans", async (req, res) => {
+  try {
+    await ensureTreatmentsTable();
+
+    const search = String(req.query.search || "").trim();
+    const params: string[] = [];
+    const where: string[] = [];
+
+    if (search) {
+      params.push(`%${search.toLowerCase()}%`);
+      where.push(`
+        (
+          LOWER(job_name) LIKE $${params.length}
+          OR LOWER(COALESCE(client_name, '')) LIKE $${params.length}
+          OR LOWER(COALESCE(service_address, '')) LIKE $${params.length}
+          OR LOWER(COALESCE(surface_type, '')) LIKE $${params.length}
+          OR LOWER(COALESCE(condition_level, '')) LIKE $${params.length}
+          OR LOWER(COALESCE(notes, '')) LIKE $${params.length}
+          OR LOWER(COALESCE(plan_text, '')) LIKE $${params.length}
+        )
+      `);
+    }
+
+    const result = await pool.query<TreatmentPlanRow>(
+      `
+        SELECT *
+        FROM treatment_plans
+        ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
+        ORDER BY created_at DESC;
+      `,
+      params
+    );
+
+    return res.json({
+      plans: result.rows.map(mapTreatmentPlan)
+    });
+  } catch (err) {
+    console.error("Get treatment plans error:", err);
+
+    return res.status(500).json({
+      message: err instanceof Error ? err.message : "Failed to load treatment plans."
+    });
+  }
+});
+
+router.post("/plans", async (req, res) => {
+  try {
+    await ensureTreatmentsTable();
+
+    const jobName = String(req.body?.jobName || "").trim();
+
+    if (!jobName) {
+      return res.status(400).json({
+        message: "Job name is required."
+      });
+    }
+
+    const selectedTreatmentIds = Array.isArray(req.body?.selectedTreatmentIds)
+      ? req.body.selectedTreatmentIds.map((id: unknown) => String(id)).filter(Boolean)
+      : [];
+
+    const selectedCaseIds = Array.isArray(req.body?.selectedCaseIds)
+      ? req.body.selectedCaseIds.map((id: unknown) => String(id)).filter(Boolean)
+      : [];
+
+    const result = await pool.query<TreatmentPlanRow>(
+      `
+        INSERT INTO treatment_plans (
+          job_name,
+          client_name,
+          service_address,
+          surface_type,
+          condition_level,
+          selected_treatment_ids,
+          selected_case_ids,
+          notes,
+          plan_text,
+          updated_at
+        )
+        VALUES ($1,$2,$3,$4,$5,$6::uuid[],$7::uuid[],$8,$9,NOW())
+        RETURNING *;
+      `,
+      [
+        jobName,
+        String(req.body?.clientName || "").trim() || null,
+        String(req.body?.serviceAddress || "").trim() || null,
+        String(req.body?.surfaceType || "").trim() || null,
+        String(req.body?.conditionLevel || "").trim() || null,
+        selectedTreatmentIds,
+        selectedCaseIds,
+        String(req.body?.notes || "").trim() || null,
+        String(req.body?.planText || "").trim() || null
+      ]
+    );
+
+    return res.status(201).json({
+      plan: mapTreatmentPlan(result.rows[0])
+    });
+  } catch (err) {
+    console.error("Create treatment plan error:", err);
+
+    return res.status(500).json({
+      message: err instanceof Error ? err.message : "Failed to create treatment plan."
+    });
+  }
+});
+
+router.delete("/plans/:id", async (req, res) => {
+  try {
+    await ensureTreatmentsTable();
+
+    const id = String(req.params.id || "").trim();
+
+    if (!id) {
+      return res.status(400).json({
+        message: "Treatment plan ID is required."
+      });
+    }
+
+    const result = await pool.query(
+      `
+        DELETE FROM treatment_plans
+        WHERE id = $1
+        RETURNING id;
+      `,
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        message: "Treatment plan not found."
+      });
+    }
+
+    return res.json({
+      message: "Treatment plan deleted."
+    });
+  } catch (err) {
+    console.error("Delete treatment plan error:", err);
+
+    return res.status(500).json({
+      message: err instanceof Error ? err.message : "Failed to delete treatment plan."
     });
   }
 });
