@@ -8,6 +8,7 @@ import {
 } from "../../utils/treatmentCaseUploadHelpers";
 import type { TreatmentCase } from "../../types/treatmentCases";
 import { treatmentCaseRiskBadgeClass } from "../../types/treatmentCases";
+import TreatmentUploadSafetyNotice from "./TreatmentUploadSafetyNotice";
 
 export default function TreatmentCaseUploadPanel({
   adminAccess,
@@ -117,6 +118,8 @@ export default function TreatmentCaseUploadPanel({
           </button>
         </div>
       </div>
+
+      <TreatmentUploadSafetyNotice type="cases" />
 
       {success && <div className="listCard">{success}</div>}
 
