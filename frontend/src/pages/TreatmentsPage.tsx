@@ -19,6 +19,8 @@ import TreatmentDetailPanel from "../components/treatments/TreatmentDetailPanel"
 import TreatmentCasesPanel from "../components/treatments/TreatmentCasesPanel";
 import TreatmentPlanBuilder from "../components/treatments/TreatmentPlanBuilder";
 import SavedTreatmentPlansPanel from "../components/treatments/SavedTreatmentPlansPanel";
+import TreatmentGuruSearchPanel from "../components/treatments/TreatmentGuruSearchPanel";
+import TreatmentFieldModePanel from "../components/treatments/TreatmentFieldModePanel";
 import type { TreatmentPlan } from "../types/treatmentPlans";
 
 export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
@@ -31,6 +33,8 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [form, setForm] = React.useState<TreatmentForm>(emptyTreatmentForm);
   const [showForm, setShowForm] = React.useState(false);
+  const [showGuruSearch, setShowGuruSearch] = React.useState(true);
+  const [showFieldMode, setShowFieldMode] = React.useState(false);
   const [showCalculator, setShowCalculator] = React.useState(true);
   const [showCases, setShowCases] = React.useState(true);
   const [showPlanBuilder, setShowPlanBuilder] = React.useState(false);
@@ -251,7 +255,7 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
           <div>
             <h2 className="panelTitle">Treatment Options & Cases</h2>
             <p className="brandSubtitle">
-              Search chemical usage, dilution ratios, safety notes, surfaces, cases, and field instructions.
+              Search chemical usage, dilution ratios, safety notes, surfaces, cases, saved plans, and field instructions.
             </p>
           </div>
 
@@ -272,6 +276,22 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
                 </button>
               </>
             )}
+
+            <button
+              className="secondaryButton"
+              type="button"
+              onClick={() => setShowGuruSearch((prev) => !prev)}
+            >
+              {showGuruSearch ? "Hide Guru Search" : "Guru Search"}
+            </button>
+
+            <button
+              className="secondaryButton"
+              type="button"
+              onClick={() => setShowFieldMode((prev) => !prev)}
+            >
+              {showFieldMode ? "Hide Field Mode" : "Field Mode"}
+            </button>
 
             <button
               className="secondaryButton"
@@ -354,6 +374,15 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
           </div>
         </div>
       </section>
+
+      {showGuruSearch && <TreatmentGuruSearchPanel />}
+
+      {showFieldMode && (
+        <TreatmentFieldModePanel
+          selectedTreatment={selectedTreatment}
+          onClose={() => setShowFieldMode(false)}
+        />
+      )}
 
       {showPlanBuilder && (
         <TreatmentPlanBuilder
