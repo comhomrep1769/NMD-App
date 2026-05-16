@@ -29,6 +29,14 @@ export default function TreatmentQuickActions({
           <button
             className="secondaryButton"
             type="button"
+            onClick={() => onTabChange("upload")}
+          >
+            Upload
+          </button>
+
+          <button
+            className="secondaryButton"
+            type="button"
             onClick={onSeedDefaults}
             disabled={seeding}
           >
