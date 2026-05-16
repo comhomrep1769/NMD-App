@@ -10,7 +10,9 @@ export type TreatmentPlan = {
   selectedTreatmentIds: string[];
   selectedCaseIds: string[];
   notes: string;
+  planText?: string;
   createdAt: string;
+  updatedAt?: string;
 };
 
 export type TreatmentPlanFormState = {
@@ -46,7 +48,28 @@ export function buildTreatmentPlanFromForm(form: TreatmentPlanFormState): Treatm
     selectedTreatmentIds: form.selectedTreatmentIds,
     selectedCaseIds: form.selectedCaseIds,
     notes: form.notes.trim(),
-    createdAt: new Date().toISOString()
+    planText: "",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+}
+
+export function normalizeTreatmentPlan(plan: TreatmentPlan): TreatmentPlan {
+  return {
+    ...plan,
+    jobName: plan.jobName || "Untitled Treatment Plan",
+    clientName: plan.clientName || "",
+    serviceAddress: plan.serviceAddress || "",
+    surfaceType: plan.surfaceType || "",
+    conditionLevel: plan.conditionLevel || "",
+    selectedTreatmentIds: Array.isArray(plan.selectedTreatmentIds)
+      ? plan.selectedTreatmentIds
+      : [],
+    selectedCaseIds: Array.isArray(plan.selectedCaseIds) ? plan.selectedCaseIds : [],
+    notes: plan.notes || "",
+    planText: plan.planText || "",
+    createdAt: plan.createdAt || new Date().toISOString(),
+    updatedAt: plan.updatedAt || plan.createdAt || new Date().toISOString()
   };
 }
 
