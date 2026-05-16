@@ -1,11 +1,11 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import authRoutes from "./routes/auth";
-import guruRoutes from "./routes/guru";
-import paymentsRoutes from "./routes/payments";
-import posRoutes from "./routes/pos";
-import treatmentsRoutes from "./routes/treatments";
+import authRoutes from "./routes/auth.js";
+import guruRoutes from "./routes/guru.js";
+import paymentsRoutes from "./routes/payments.js";
+import posRoutes from "./routes/pos.js";
+import treatmentsRoutes from "./routes/treatments.js";
 
 dotenv.config();
 
