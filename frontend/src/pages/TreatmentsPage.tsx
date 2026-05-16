@@ -18,6 +18,8 @@ import TreatmentCard from "../components/treatments/TreatmentCard";
 import TreatmentDetailPanel from "../components/treatments/TreatmentDetailPanel";
 import TreatmentCasesPanel from "../components/treatments/TreatmentCasesPanel";
 import TreatmentPlanBuilder from "../components/treatments/TreatmentPlanBuilder";
+import SavedTreatmentPlansPanel from "../components/treatments/SavedTreatmentPlansPanel";
+import type { TreatmentPlan } from "../types/treatmentPlans";
 
 export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
   const adminAccess = isAdminRole(role);
@@ -32,6 +34,8 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
   const [showCalculator, setShowCalculator] = React.useState(true);
   const [showCases, setShowCases] = React.useState(true);
   const [showPlanBuilder, setShowPlanBuilder] = React.useState(false);
+  const [showSavedPlans, setShowSavedPlans] = React.useState(true);
+  const [plansRefreshKey, setPlansRefreshKey] = React.useState(0);
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [seeding, setSeeding] = React.useState(false);
@@ -103,6 +107,11 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
     setForm(emptyTreatmentForm);
     setShowForm(false);
     setError("");
+  };
+
+  const handlePlanSaved = (_plan: TreatmentPlan) => {
+    setPlansRefreshKey((prev) => prev + 1);
+    setShowSavedPlans(true);
   };
 
   const seedTreatments = async () => {
@@ -275,6 +284,14 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
             <button
               className="secondaryButton"
               type="button"
+              onClick={() => setShowSavedPlans((prev) => !prev)}
+            >
+              {showSavedPlans ? "Hide Saved Plans" : "Saved Plans"}
+            </button>
+
+            <button
+              className="secondaryButton"
+              type="button"
               onClick={() => setShowCalculator((prev) => !prev)}
             >
               {showCalculator ? "Hide Calculator" : "Show Calculator"}
@@ -343,6 +360,14 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
           treatments={treatments}
           selectedTreatmentId={selectedTreatment?.id || null}
           onClose={() => setShowPlanBuilder(false)}
+          onPlanSaved={handlePlanSaved}
+        />
+      )}
+
+      {showSavedPlans && (
+        <SavedTreatmentPlansPanel
+          treatments={treatments}
+          casesRefreshKey={plansRefreshKey}
         />
       )}
 
