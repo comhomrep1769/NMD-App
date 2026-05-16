@@ -84,6 +84,59 @@ type TreatmentUploadItem = {
   cost_reference?: string;
 };
 
+type TreatmentCaseUploadItem = {
+  treatmentName?: string;
+  treatment_name?: string;
+  treatmentId?: string;
+  treatment_id?: string;
+  title?: string;
+  surfaceType?: string;
+  surface_type?: string;
+  conditionLevel?: string;
+  condition_level?: string;
+  problemType?: string;
+  problem_type?: string;
+  recommendedMix?: string;
+  recommended_mix?: string;
+  dwellTime?: string;
+  dwell_time?: string;
+  toolsNeeded?: string;
+  tools_needed?: string;
+  stepByStep?: string;
+  step_by_step?: string;
+  safetyChecklist?: string;
+  safety_checklist?: string;
+  pricingNote?: string;
+  pricing_note?: string;
+  customerExpectation?: string;
+  customer_expectation?: string;
+  riskLevel?: string;
+  risk_level?: string;
+};
+
+function textValue(value: unknown) {
+  return String(value || "").trim();
+}
+
+function parseSurfaceTypes(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean);
+  }
+
+  return String(value || "")
+    .split(/[;,|]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function normalizeRiskLevel(value: unknown) {
+  const raw = textValue(value);
+
+  if (raw.toLowerCase() === "high review") return "High Review";
+  if (raw.toLowerCase() === "moderate") return "Moderate";
+  return "Standard";
+}
+
 function mapTreatment(row: TreatmentRow) {
   return {
     id: row.id,
@@ -142,21 +195,6 @@ function mapTreatmentPlan(row: TreatmentPlanRow) {
   };
 }
 
-function textValue(value: unknown) {
-  return String(value || "").trim();
-}
-
-function parseSurfaceTypes(value: unknown) {
-  if (Array.isArray(value)) {
-    return value.map((item) => String(item).trim()).filter(Boolean);
-  }
-
-  return String(value || "")
-    .split(/[;,|]/)
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
 function normalizeUploadItem(item: TreatmentUploadItem) {
   const name = textValue(item.name);
   const category = textValue(item.category) || "General";
@@ -173,6 +211,25 @@ function normalizeUploadItem(item: TreatmentUploadItem) {
     instructions: textValue(item.instructions) || null,
     purchaseLink: textValue(item.purchaseLink || item.purchase_link) || null,
     costReference: textValue(item.costReference || item.cost_reference) || null
+  };
+}
+
+function normalizeCaseUploadItem(item: TreatmentCaseUploadItem) {
+  return {
+    treatmentId: textValue(item.treatmentId || item.treatment_id) || null,
+    treatmentName: textValue(item.treatmentName || item.treatment_name) || null,
+    title: textValue(item.title),
+    surfaceType: textValue(item.surfaceType || item.surface_type) || null,
+    conditionLevel: textValue(item.conditionLevel || item.condition_level) || null,
+    problemType: textValue(item.problemType || item.problem_type) || null,
+    recommendedMix: textValue(item.recommendedMix || item.recommended_mix) || null,
+    dwellTime: textValue(item.dwellTime || item.dwell_time) || null,
+    toolsNeeded: textValue(item.toolsNeeded || item.tools_needed) || null,
+    stepByStep: textValue(item.stepByStep || item.step_by_step) || null,
+    safetyChecklist: textValue(item.safetyChecklist || item.safety_checklist) || null,
+    pricingNote: textValue(item.pricingNote || item.pricing_note) || null,
+    customerExpectation: textValue(item.customerExpectation || item.customer_expectation) || null,
+    riskLevel: normalizeRiskLevel(item.riskLevel || item.risk_level)
   };
 }
 
@@ -201,7 +258,7 @@ async function ensureTreatmentsTable() {
 
   await pool.query(`
     CREATE UNIQUE INDEX IF NOT EXISTS treatments_name_category_unique_idx
-    ON treatments (LOWER(name), LOWER(category));
+    ON treatments ((LOWER(name)), (LOWER(category)));
   `);
 
   await pool.query(`
@@ -233,6 +290,11 @@ async function ensureTreatmentsTable() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+  `);
+
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS treatment_cases_title_unique_idx
+    ON treatment_cases ((LOWER(title)));
   `);
 
   await pool.query(`
@@ -273,7 +335,87 @@ async function ensureTreatmentsTable() {
   `);
 }
 
+async function getTreatmentIdByName(name: string) {
+  if (!name) return null;
+
+  const result = await pool.query<{ id: string }>(
+    `
+      SELECT id
+      FROM treatments
+      WHERE LOWER(name) = LOWER($1)
+      ORDER BY created_at ASC
+      LIMIT 1;
+    `,
+    [name]
+  );
+
+  return result.rows[0]?.id || null;
+}
+
+async function getJoinedCaseById(id: string) {
+  const result = await pool.query<TreatmentCaseRow>(
+    `
+      SELECT
+        tc.*,
+        t.name AS treatment_name,
+        t.category AS treatment_category
+      FROM treatment_cases tc
+      LEFT JOIN treatments t ON t.id = tc.treatment_id
+      WHERE tc.id = $1
+      LIMIT 1;
+    `,
+    [id]
+  );
+
+  return result.rows[0] || null;
+}
+
 async function upsertTreatment(item: ReturnType<typeof normalizeUploadItem>) {
+  const existing = await pool.query<TreatmentRow>(
+    `
+      SELECT *
+      FROM treatments
+      WHERE LOWER(name) = LOWER($1)
+        AND LOWER(category) = LOWER($2)
+      LIMIT 1;
+    `,
+    [item.name, item.category]
+  );
+
+  if (existing.rows[0]) {
+    const result = await pool.query<TreatmentRow>(
+      `
+        UPDATE treatments
+        SET
+          surface_types = $3,
+          chemical = $4,
+          dilution_ratio = $5,
+          use_case = $6,
+          safety_notes = $7,
+          instructions = $8,
+          purchase_link = $9,
+          cost_reference = $10,
+          updated_at = NOW()
+        WHERE id = $1
+        RETURNING *;
+      `,
+      [
+        existing.rows[0].id,
+        item.name,
+        item.surfaceTypes,
+        item.chemical,
+        item.dilutionRatio,
+        item.useCase,
+        item.safetyNotes,
+        item.instructions,
+        item.purchaseLink,
+        item.costReference
+      ]
+    );
+
+    return result.rows[0];
+  }
+
   const result = await pool.query<TreatmentRow>(
     `
       INSERT INTO treatments (
@@ -290,17 +432,6 @@ async function upsertTreatment(item: ReturnType<typeof normalizeUploadItem>) {
         updated_at
       )
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW())
-      ON CONFLICT (LOWER(name), LOWER(category))
-      DO UPDATE SET
-        surface_types = EXCLUDED.surface_types,
-        chemical = EXCLUDED.chemical,
-        dilution_ratio = EXCLUDED.dilution_ratio,
-        use_case = EXCLUDED.use_case,
-        safety_notes = EXCLUDED.safety_notes,
-        instructions = EXCLUDED.instructions,
-        purchase_link = EXCLUDED.purchase_link,
-        cost_reference = EXCLUDED.cost_reference,
-        updated_at = NOW()
       RETURNING *;
     `,
     [
@@ -320,65 +451,61 @@ async function upsertTreatment(item: ReturnType<typeof normalizeUploadItem>) {
   return result.rows[0];
 }
 
-async function upsertDefaultTreatment(item: {
-  name: string;
-  category: string;
-  surfaceTypes: string[];
-  chemical: string;
-  dilutionRatio: string;
-  useCase: string;
-  safetyNotes: string;
-  instructions: string;
-  purchaseLink: string;
-  costReference: string;
-}) {
-  await upsertTreatment({
-    name: item.name,
-    category: item.category,
-    surfaceTypes: item.surfaceTypes,
-    chemical: item.chemical,
-    dilutionRatio: item.dilutionRatio,
-    useCase: item.useCase,
-    safetyNotes: item.safetyNotes,
-    instructions: item.instructions,
-    purchaseLink: item.purchaseLink,
-    costReference: item.costReference
-  });
-}
+async function upsertTreatmentCase(item: ReturnType<typeof normalizeCaseUploadItem>) {
+  const treatmentId = item.treatmentId || (await getTreatmentIdByName(item.treatmentName || ""));
 
-async function getTreatmentIdByName(name: string) {
-  const result = await pool.query<{ id: string }>(
+  const existing = await pool.query<TreatmentCaseRow>(
     `
-      SELECT id
-      FROM treatments
-      WHERE LOWER(name) = LOWER($1)
-      ORDER BY created_at ASC
+      SELECT *
+      FROM treatment_cases
+      WHERE LOWER(title) = LOWER($1)
       LIMIT 1;
     `,
-    [name]
+    [item.title]
   );
 
-  return result.rows[0]?.id || null;
-}
+  if (existing.rows[0]) {
+    const result = await pool.query<TreatmentCaseRow>(
+      `
+        UPDATE treatment_cases
+        SET
+          treatment_id = $2,
+          surface_type = $3,
+          condition_level = $4,
+          problem_type = $5,
+          recommended_mix = $6,
+          dwell_time = $7,
+          tools_needed = $8,
+          step_by_step = $9,
+          safety_checklist = $10,
+          pricing_note = $11,
+          customer_expectation = $12,
+          risk_level = $13,
+          updated_at = NOW()
+        WHERE id = $1
+        RETURNING *;
+      `,
+      [
+        existing.rows[0].id,
+        treatmentId,
+        item.surfaceType,
+        item.conditionLevel,
+        item.problemType,
+        item.recommendedMix,
+        item.dwellTime,
+        item.toolsNeeded,
+        item.stepByStep,
+        item.safetyChecklist,
+        item.pricingNote,
+        item.customerExpectation,
+        item.riskLevel
+      ]
+    );
 
-async function upsertDefaultTreatmentCase(item: {
-  treatmentName?: string;
-  title: string;
-  surfaceType: string;
-  conditionLevel: string;
-  problemType: string;
-  recommendedMix: string;
-  dwellTime: string;
-  toolsNeeded: string;
-  stepByStep: string;
-  safetyChecklist: string;
-  pricingNote: string;
-  customerExpectation: string;
-  riskLevel: string;
-}) {
-  const treatmentId = item.treatmentName ? await getTreatmentIdByName(item.treatmentName) : null;
+    return result.rows[0];
+  }
 
-  await pool.query(
+  const result = await pool.query<TreatmentCaseRow>(
     `
       INSERT INTO treatment_cases (
         treatment_id,
@@ -396,12 +523,8 @@ async function upsertDefaultTreatmentCase(item: {
         risk_level,
         updated_at
       )
-      SELECT $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,NOW()
-      WHERE NOT EXISTS (
-        SELECT 1
-        FROM treatment_cases
-        WHERE LOWER(title) = LOWER($2)
-      );
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,NOW())
+      RETURNING *;
     `,
     [
       treatmentId,
@@ -419,6 +542,8 @@ async function upsertDefaultTreatmentCase(item: {
       item.riskLevel
     ]
   );
+
+  return result.rows[0];
 }
 
 async function seedDefaultTreatments() {
@@ -458,22 +583,6 @@ async function seedDefaultTreatments() {
         "Price separately from house wash. Account for roof pitch, size, access, moss load, plant protection, and chemical cost."
     },
     {
-      name: "Concrete Surface Cleaning",
-      category: "Flatwork",
-      surfaceTypes: ["Concrete", "Driveways", "Sidewalks", "Patios"],
-      chemical: "Pre/post treatment with SH or degreaser when needed",
-      dilutionRatio: "Post-treat commonly 1%–3% depending on organic staining",
-      useCase:
-        "Driveway, sidewalk, patio, and flatwork cleaning for organic growth and general dirt.",
-      safetyNotes:
-        "Avoid damaging new concrete, verify GPM/surface cleaner size, prevent stripes, watch drainage/runoff, and test questionable surfaces.",
-      instructions:
-        "Pre-treat if needed, surface clean at proper pace, rinse thoroughly, post-treat organic staining, and avoid excessive pressure on weak/new concrete.",
-      purchaseLink: "",
-      costReference:
-        "Price by square foot with minimum service charge. Increase for heavy staining, poor drainage, oil, rust, or restoration work."
-    },
-    {
       name: "Rust Stain Removal",
       category: "Specialty Restoration",
       surfaceTypes: ["Concrete", "Pavers", "Stucco", "Stone", "Exterior walls"],
@@ -492,34 +601,38 @@ async function seedDefaultTreatments() {
   ];
 
   for (const item of defaults) {
-    await upsertDefaultTreatment(item);
+    await upsertTreatment({
+      ...item,
+      chemical: item.chemical,
+      dilutionRatio: item.dilutionRatio,
+      useCase: item.useCase,
+      safetyNotes: item.safetyNotes,
+      instructions: item.instructions,
+      purchaseLink: item.purchaseLink,
+      costReference: item.costReference
+    });
   }
 
-  const defaultCases = [
-    {
-      treatmentName: "Rust Stain Removal",
-      title: "Heavy Irrigation Rust On Concrete",
-      surfaceType: "Concrete / driveway / sidewalk",
-      conditionLevel: "Heavy",
-      problemType: "Orange irrigation rust staining",
-      recommendedMix: "F9 BARC or compatible rust remover per label. Oxalic acid may be used only where appropriate.",
-      dwellTime: "Follow product label; do not allow product to dry.",
-      toolsNeeded: "Pump sprayer, PPE, water source, brush for agitation if safe, test area supplies.",
-      stepByStep:
-        "1. Inspect stain source. 2. Test a small area. 3. Protect adjacent surfaces/plants. 4. Apply rust remover evenly. 5. Allow controlled dwell. 6. Agitate only if safe. 7. Rinse thoroughly. 8. Repeat only if surface tolerates it.",
-      safetyChecklist:
-        "Wear PPE, avoid glass/metal overspray, control runoff, protect plants, document pre-existing surface damage, and do not guarantee 100% removal before testing.",
-      pricingNote:
-        "Treat as specialty restoration. Heavy irrigation rust can be $300–$800+ depending on size, severity, chemical use, and repeat applications.",
-      customerExpectation:
-        "Explain that rust may need multiple applications and final results depend on stain depth, surface age, and previous chemical exposure.",
-      riskLevel: "High Review"
-    }
-  ];
-
-  for (const item of defaultCases) {
-    await upsertDefaultTreatmentCase(item);
-  }
+  await upsertTreatmentCase({
+    treatmentName: "Rust Stain Removal",
+    treatmentId: null,
+    title: "Heavy Irrigation Rust On Concrete",
+    surfaceType: "Concrete / driveway / sidewalk",
+    conditionLevel: "Heavy",
+    problemType: "Orange irrigation rust staining",
+    recommendedMix: "F9 BARC or compatible rust remover per label. Oxalic acid may be used only where appropriate.",
+    dwellTime: "Follow product label; do not allow product to dry.",
+    toolsNeeded: "Pump sprayer, PPE, water source, brush for agitation if safe, test area supplies.",
+    stepByStep:
+      "1. Inspect stain source. 2. Test a small area. 3. Protect adjacent surfaces/plants. 4. Apply rust remover evenly. 5. Allow controlled dwell. 6. Agitate only if safe. 7. Rinse thoroughly. 8. Repeat only if surface tolerates it.",
+    safetyChecklist:
+      "Wear PPE, avoid glass/metal overspray, control runoff, protect plants, document pre-existing surface damage, and do not guarantee 100% removal before testing.",
+    pricingNote:
+      "Treat as specialty restoration. Heavy irrigation rust can be $300–$800+ depending on size, severity, chemical use, and repeat applications.",
+    customerExpectation:
+      "Explain that rust may need multiple applications and final results depend on stain depth, surface age, and previous chemical exposure.",
+    riskLevel: "High Review"
+  });
 }
 
 router.get("/", async (req, res) => {
@@ -601,10 +714,7 @@ router.post("/upload", async (req, res) => {
       const normalized = normalizeUploadItem(items[index]);
 
       if (!normalized.name) {
-        skipped.push({
-          index,
-          reason: "Missing treatment name."
-        });
+        skipped.push({ index, reason: "Missing treatment name." });
         continue;
       }
 
@@ -621,10 +731,7 @@ router.post("/upload", async (req, res) => {
         );
 
         if (exists.rows.length > 0) {
-          skipped.push({
-            index,
-            reason: `Duplicate skipped: ${normalized.name}`
-          });
+          skipped.push({ index, reason: `Duplicate skipped: ${normalized.name}` });
           continue;
         }
       }
@@ -657,47 +764,56 @@ router.post("/upload", async (req, res) => {
   }
 });
 
-router.post("/seed", async (_req, res) => {
-  try {
-    await seedDefaultTreatments();
-
-    const result = await pool.query<TreatmentRow>(
-      `
-        SELECT *
-        FROM treatments
-        ORDER BY category ASC, name ASC;
-      `
-    );
-
-    const casesResult = await pool.query<TreatmentCaseRow>(
-      `
-        SELECT
-          tc.*,
-          t.name AS treatment_name,
-          t.category AS treatment_category
-        FROM treatment_cases tc
-        LEFT JOIN treatments t ON t.id = tc.treatment_id
-        ORDER BY tc.risk_level DESC, tc.title ASC;
-      `
-    );
-
-    return res.json({
-      message: "Treatment database and cases seeded successfully.",
-      treatments: result.rows.map(mapTreatment),
-      cases: casesResult.rows.map(mapTreatmentCase)
-    });
-  } catch (err) {
-    console.error("Seed treatments error:", err);
-
-    return res.status(500).json({
-      message: err instanceof Error ? err.message : "Failed to seed treatments."
-    });
-  }
-});
-
-router.get("/cases", async (_req, res) => {
+router.post("/cases/upload", async (req, res) => {
   try {
     await ensureTreatmentsTable();
+
+    const mode = String(req.body?.mode || "upsert").trim();
+    const items = Array.isArray(req.body?.cases) ? req.body.cases : [];
+
+    if (items.length === 0) {
+      return res.status(400).json({
+        message: "No treatment cases were provided for upload."
+      });
+    }
+
+    if (items.length > 500) {
+      return res.status(400).json({
+        message: "Upload limit is 500 treatment cases at a time."
+      });
+    }
+
+    const imported: TreatmentCaseRow[] = [];
+    const skipped: Array<{ index: number; reason: string }> = [];
+
+    for (let index = 0; index < items.length; index += 1) {
+      const normalized = normalizeCaseUploadItem(items[index]);
+
+      if (!normalized.title) {
+        skipped.push({ index, reason: "Missing case title." });
+        continue;
+      }
+
+      if (mode === "create-only") {
+        const exists = await pool.query<{ id: string }>(
+          `
+            SELECT id
+            FROM treatment_cases
+            WHERE LOWER(title) = LOWER($1)
+            LIMIT 1;
+          `,
+          [normalized.title]
+        );
+
+        if (exists.rows.length > 0) {
+          skipped.push({ index, reason: `Duplicate skipped: ${normalized.title}` });
+          continue;
+        }
+      }
+
+      const saved = await upsertTreatmentCase(normalized);
+      imported.push(saved);
+    }
 
     const result = await pool.query<TreatmentCaseRow>(
       `
@@ -718,6 +834,119 @@ router.get("/cases", async (_req, res) => {
     );
 
     return res.json({
+      message: `Treatment case upload complete. Imported ${imported.length}. Skipped ${skipped.length}.`,
+      importedCount: imported.length,
+      skippedCount: skipped.length,
+      skipped,
+      cases: result.rows.map(mapTreatmentCase)
+    });
+  } catch (err) {
+    console.error("Upload treatment cases error:", err);
+
+    return res.status(500).json({
+      message: err instanceof Error ? err.message : "Failed to upload treatment cases."
+    });
+  }
+});
+
+router.post("/seed", async (_req, res) => {
+  try {
+    await seedDefaultTreatments();
+
+    const result = await pool.query<TreatmentRow>(
+      `
+        SELECT *
+        FROM treatments
+        ORDER BY category ASC, name ASC;
+      `
+    );
+
+    const casesResult = await pool.query<TreatmentCaseRow>(
+      `
+        SELECT
+          tc.*,
+          t.name AS treatment_name,
+          t.category AS treatment_category
+        FROM treatment_cases tc
+        LEFT JOIN treatments t ON t.id = tc.treatment_id
+        ORDER BY tc.title ASC;
+      `
+    );
+
+    return res.json({
+      message: "Treatment database and cases seeded successfully.",
+      treatments: result.rows.map(mapTreatment),
+      cases: casesResult.rows.map(mapTreatmentCase)
+    });
+  } catch (err) {
+    console.error("Seed treatments error:", err);
+
+    return res.status(500).json({
+      message: err instanceof Error ? err.message : "Failed to seed treatments."
+    });
+  }
+});
+
+router.get("/cases", async (req, res) => {
+  try {
+    await ensureTreatmentsTable();
+
+    const search = String(req.query.search || "").trim();
+    const treatmentId = String(req.query.treatmentId || "").trim();
+    const riskLevel = String(req.query.riskLevel || "").trim();
+
+    const params: string[] = [];
+    const where: string[] = [];
+
+    if (search) {
+      params.push(`%${search.toLowerCase()}%`);
+      where.push(`
+        (
+          LOWER(tc.title) LIKE $${params.length}
+          OR LOWER(COALESCE(tc.surface_type, '')) LIKE $${params.length}
+          OR LOWER(COALESCE(tc.condition_level, '')) LIKE $${params.length}
+          OR LOWER(COALESCE(tc.problem_type, '')) LIKE $${params.length}
+          OR LOWER(COALESCE(tc.recommended_mix, '')) LIKE $${params.length}
+          OR LOWER(COALESCE(tc.step_by_step, '')) LIKE $${params.length}
+          OR LOWER(COALESCE(tc.safety_checklist, '')) LIKE $${params.length}
+          OR LOWER(COALESCE(tc.pricing_note, '')) LIKE $${params.length}
+          OR LOWER(COALESCE(tc.customer_expectation, '')) LIKE $${params.length}
+          OR LOWER(COALESCE(t.name, '')) LIKE $${params.length}
+        )
+      `);
+    }
+
+    if (treatmentId && treatmentId !== "all") {
+      params.push(treatmentId);
+      where.push(`tc.treatment_id = $${params.length}`);
+    }
+
+    if (riskLevel && riskLevel !== "all") {
+      params.push(riskLevel.toLowerCase());
+      where.push(`LOWER(tc.risk_level) = $${params.length}`);
+    }
+
+    const result = await pool.query<TreatmentCaseRow>(
+      `
+        SELECT
+          tc.*,
+          t.name AS treatment_name,
+          t.category AS treatment_category
+        FROM treatment_cases tc
+        LEFT JOIN treatments t ON t.id = tc.treatment_id
+        ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
+        ORDER BY
+          CASE
+            WHEN LOWER(tc.risk_level) = 'high review' THEN 1
+            WHEN LOWER(tc.risk_level) = 'moderate' THEN 2
+            ELSE 3
+          END,
+          tc.title ASC;
+      `,
+      params
+    );
+
+    return res.json({
       cases: result.rows.map(mapTreatmentCase)
     });
   } catch (err) {
@@ -725,6 +954,153 @@ router.get("/cases", async (_req, res) => {
 
     return res.status(500).json({
       message: err instanceof Error ? err.message : "Failed to load treatment cases."
+    });
+  }
+});
+
+router.post("/cases", async (req, res) => {
+  try {
+    await ensureTreatmentsTable();
+
+    const normalized = normalizeCaseUploadItem(req.body || {});
+
+    if (!normalized.title) {
+      return res.status(400).json({
+        message: "Case title is required."
+      });
+    }
+
+    const saved = await upsertTreatmentCase(normalized);
+    const joined = await getJoinedCaseById(saved.id);
+
+    return res.status(201).json({
+      case: joined ? mapTreatmentCase(joined) : mapTreatmentCase(saved)
+    });
+  } catch (err) {
+    console.error("Create treatment case error:", err);
+
+    return res.status(500).json({
+      message: err instanceof Error ? err.message : "Failed to create treatment case."
+    });
+  }
+});
+
+router.patch("/cases/:id", async (req, res) => {
+  try {
+    await ensureTreatmentsTable();
+
+    const id = String(req.params.id || "").trim();
+    const normalized = normalizeCaseUploadItem(req.body || {});
+
+    if (!id) {
+      return res.status(400).json({
+        message: "Case ID is required."
+      });
+    }
+
+    if (!normalized.title) {
+      return res.status(400).json({
+        message: "Case title is required."
+      });
+    }
+
+    const treatmentId =
+      normalized.treatmentId || (await getTreatmentIdByName(normalized.treatmentName || ""));
+
+    const result = await pool.query<TreatmentCaseRow>(
+      `
+        UPDATE treatment_cases
+        SET
+          treatment_id = $2,
+          title = $3,
+          surface_type = $4,
+          condition_level = $5,
+          problem_type = $6,
+          recommended_mix = $7,
+          dwell_time = $8,
+          tools_needed = $9,
+          step_by_step = $10,
+          safety_checklist = $11,
+          pricing_note = $12,
+          customer_expectation = $13,
+          risk_level = $14,
+          updated_at = NOW()
+        WHERE id = $1
+        RETURNING *;
+      `,
+      [
+        id,
+        treatmentId,
+        normalized.title,
+        normalized.surfaceType,
+        normalized.conditionLevel,
+        normalized.problemType,
+        normalized.recommendedMix,
+        normalized.dwellTime,
+        normalized.toolsNeeded,
+        normalized.stepByStep,
+        normalized.safetyChecklist,
+        normalized.pricingNote,
+        normalized.customerExpectation,
+        normalized.riskLevel
+      ]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        message: "Treatment case not found."
+      });
+    }
+
+    const joined = await getJoinedCaseById(id);
+
+    return res.json({
+      case: joined ? mapTreatmentCase(joined) : mapTreatmentCase(result.rows[0])
+    });
+  } catch (err) {
+    console.error("Update treatment case error:", err);
+
+    return res.status(500).json({
+      message: err instanceof Error ? err.message : "Failed to update treatment case."
+    });
+  }
+});
+
+router.delete("/cases/:id", async (req, res) => {
+  try {
+    await ensureTreatmentsTable();
+
+    const id = String(req.params.id || "").trim();
+
+    if (!id) {
+      return res.status(400).json({
+        message: "Case ID is required."
+      });
+    }
+
+    const result = await pool.query(
+      `
+        DELETE FROM treatment_cases
+        WHERE id = $1
+        RETURNING id;
+      `,
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        message: "Treatment case not found."
+      });
+    }
+
+    return res.json({
+      message: "Treatment case deleted."
+    });
+  } catch (err) {
+    console.error("Delete treatment case error:", err);
+
+    return res.status(500).json({
+      message: err instanceof Error ? err.message : "Failed to delete treatment case."
     });
   }
 });
