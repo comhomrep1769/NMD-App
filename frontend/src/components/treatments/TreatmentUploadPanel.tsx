@@ -8,6 +8,7 @@ import {
   type TreatmentUploadRow
 } from "../../utils/treatmentUploadHelpers";
 import TreatmentCard from "./TreatmentCard";
+import TreatmentUploadSafetyNotice from "./TreatmentUploadSafetyNotice";
 
 export default function TreatmentUploadPanel({
   adminAccess,
@@ -118,6 +119,8 @@ export default function TreatmentUploadPanel({
         </div>
       </div>
 
+      <TreatmentUploadSafetyNotice type="treatments" />
+
       {success && <div className="listCard">{success}</div>}
 
       {errors.length > 0 && (
@@ -180,7 +183,7 @@ export default function TreatmentUploadPanel({
         </div>
 
         <div className="statCard">
-          <div className="statLabel">Errors</div>
+          <div className="statLabel">Notices</div>
           <div className="statValue">{errors.length}</div>
         </div>
       </div>
