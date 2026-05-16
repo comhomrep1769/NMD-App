@@ -31,7 +31,15 @@ export default function TreatmentQuickActions({
             type="button"
             onClick={() => onTabChange("upload")}
           >
-            Upload
+            Upload Treatments
+          </button>
+
+          <button
+            className="secondaryButton"
+            type="button"
+            onClick={() => onTabChange("uploadCases")}
+          >
+            Upload Cases
           </button>
 
           <button
