@@ -10,6 +10,10 @@ const mobileButtons: Array<{
     label: "Guru"
   },
   {
+    key: "uploadHub",
+    label: "Upload"
+  },
+  {
     key: "field",
     label: "Field"
   },
