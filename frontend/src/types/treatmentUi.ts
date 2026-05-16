@@ -1,5 +1,6 @@
 export type TreatmentTabKey =
   | "guru"
+  | "uploadHub"
   | "upload"
   | "uploadCases"
   | "field"
