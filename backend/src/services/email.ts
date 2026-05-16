@@ -1,97 +1,111 @@
 import { Resend } from "resend";
 
-const emailEnabled = process.env.EMAIL_ENABLED === "true";
-const resendApiKey = process.env.RESEND_API_KEY || "";
-const fromEmail =
-  process.env.RESEND_FROM_EMAIL ||
-  "NMD Pressure Washing <quotes@mail.nmdpowash.com>";
-
-const resend = resendApiKey ? new Resend(resendApiKey) : null;
-
 type SendEmailInput = {
-  to: string;
+  to: string | string[];
   subject: string;
-  html: string;
+  html?: string;
   text?: string;
+  from?: string;
 };
 
-export async function sendEmail({ to, subject, html, text }: SendEmailInput) {
-  if (!emailEnabled || !resend || !resendApiKey) {
-    console.log("Email disabled or missing Resend config:", {
-      to,
-      subject
+function getResendClient() {
+  const apiKey = process.env.RESEND_API_KEY || "";
+
+  if (!apiKey) {
+    return null;
+  }
+
+  return new Resend(apiKey);
+}
+
+export async function sendEmail(input: SendEmailInput) {
+  const resend = getResendClient();
+
+  if (!resend) {
+    console.warn("RESEND_API_KEY is not set. Email was skipped.", {
+      to: input.to,
+      subject: input.subject
     });
 
     return {
       skipped: true,
-      reason: "Email disabled or missing Resend config"
+      reason: "RESEND_API_KEY is not set."
     };
   }
 
-  try {
-    const result = await resend.emails.send({
-      from: fromEmail,
-      to,
-      subject,
-      html,
-      text
-    });
+  const from =
+    input.from ||
+    process.env.RESEND_FROM_EMAIL ||
+    "NMD Pressure Washing <onboarding@resend.dev>";
 
-    return {
-      skipped: false,
-      result
-    };
-  } catch (error) {
-    console.error("Resend email error", error);
+  const result = await resend.emails.send({
+    from,
+    to: input.to,
+    subject: input.subject,
+    html: input.html || input.text || "",
+    text: input.text
+  });
 
-    return {
-      skipped: false,
-      error: "Email failed to send"
-    };
-  }
+  return {
+    skipped: false,
+    result
+  };
 }
 
-export function buildNmdEmailTemplate({
-  title,
-  message,
-  actionLabel,
-  actionUrl,
-  footer
-}: {
-  title: string;
-  message: string;
-  actionLabel?: string;
-  actionUrl?: string;
-  footer?: string;
+export async function sendClientQuoteEmail(input: {
+  to: string;
+  clientName: string;
+  quoteNumber?: number | string;
+  message?: string;
 }) {
-  const button =
-    actionLabel && actionUrl
-      ? `
-        <p style="margin:24px 0;">
-          <a href="${actionUrl}" style="background:#16a34a;color:#ffffff;padding:12px 18px;border-radius:10px;text-decoration:none;font-weight:bold;display:inline-block;">
-            ${actionLabel}
-          </a>
-        </p>
-      `
-      : "";
-
-  return `
-    <div style="font-family:Arial,sans-serif;background:#f6f8f7;padding:24px;">
-      <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:16px;padding:24px;border:1px solid #dbe5dd;">
-        <h1 style="margin:0 0 12px;color:#0f3d2e;">${title}</h1>
-
-        <div style="font-size:16px;line-height:1.6;color:#1f2937;">
-          ${message}
-        </div>
-
-        ${button}
-
-        <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;" />
-
-        <p style="font-size:13px;color:#6b7280;margin:0;">
-          ${footer || "NMD Pressure Washing Services LLC • No More Dirt"}
-        </p>
+  return sendEmail({
+    to: input.to,
+    subject: `NMD Quote${input.quoteNumber ? ` #${input.quoteNumber}` : ""}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.5;">
+        <h2>NMD Pressure Washing Services</h2>
+        <p>Hello ${input.clientName || "there"},</p>
+        <p>${input.message || "Your quote is ready for review."}</p>
+        <p>Thank you,<br/>NMD Pressure Washing Services</p>
       </div>
-    </div>
-  `;
+    `,
+    text: `Hello ${input.clientName || "there"},\n\n${
+      input.message || "Your quote is ready for review."
+    }\n\nThank you,\nNMD Pressure Washing Services`
+  });
 }
+
+export async function sendEmployeeOnboardingEmail(input: {
+  to: string;
+  displayName: string;
+  temporaryPassword?: string;
+}) {
+  return sendEmail({
+    to: input.to,
+    subject: "Your NMD Employee Portal Account",
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.5;">
+        <h2>NMD Employee Portal</h2>
+        <p>Hello ${input.displayName || "there"},</p>
+        <p>Your employee portal account has been created.</p>
+        ${
+          input.temporaryPassword
+            ? `<p><strong>Temporary password:</strong> ${input.temporaryPassword}</p>`
+            : ""
+        }
+        <p>Please log in through the employee portal.</p>
+      </div>
+    `,
+    text: `Hello ${input.displayName || "there"},\n\nYour employee portal account has been created.${
+      input.temporaryPassword
+        ? `\nTemporary password: ${input.temporaryPassword}`
+        : ""
+    }\n\nPlease log in through the employee portal.`
+  });
+}
+
+export default {
+  sendEmail,
+  sendClientQuoteEmail,
+  sendEmployeeOnboardingEmail
+};
