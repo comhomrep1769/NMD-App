@@ -1,5 +1,6 @@
 import express from "express";
 import { Pool } from "pg";
+import { requireAdmin, requireAuth } from "../middleware/authGuard.js";
 
 const router = express.Router();
 
@@ -130,10 +131,10 @@ function parseSurfaceTypes(value: unknown) {
 }
 
 function normalizeRiskLevel(value: unknown) {
-  const raw = textValue(value);
+  const raw = textValue(value).toLowerCase();
 
-  if (raw.toLowerCase() === "high review") return "High Review";
-  if (raw.toLowerCase() === "moderate") return "Moderate";
+  if (raw === "high review" || raw === "high") return "High Review";
+  if (raw === "moderate" || raw === "medium") return "Moderate";
   return "Standard";
 }
 
@@ -387,14 +388,16 @@ async function upsertTreatment(item: ReturnType<typeof normalizeUploadItem>) {
       `
         UPDATE treatments
         SET
-          surface_types = $3,
-          chemical = $4,
-          dilution_ratio = $5,
-          use_case = $6,
-          safety_notes = $7,
-          instructions = $8,
-          purchase_link = $9,
-          cost_reference = $10,
+          name = $2,
+          category = $3,
+          surface_types = $4,
+          chemical = $5,
+          dilution_ratio = $6,
+          use_case = $7,
+          safety_notes = $8,
+          instructions = $9,
+          purchase_link = $10,
+          cost_reference = $11,
           updated_at = NOW()
         WHERE id = $1
         RETURNING *;
@@ -402,6 +405,7 @@ async function upsertTreatment(item: ReturnType<typeof normalizeUploadItem>) {
       [
         existing.rows[0].id,
         item.name,
+        item.category,
         item.surfaceTypes,
         item.chemical,
         item.dilutionRatio,
@@ -470,17 +474,18 @@ async function upsertTreatmentCase(item: ReturnType<typeof normalizeCaseUploadIt
         UPDATE treatment_cases
         SET
           treatment_id = $2,
-          surface_type = $3,
-          condition_level = $4,
-          problem_type = $5,
-          recommended_mix = $6,
-          dwell_time = $7,
-          tools_needed = $8,
-          step_by_step = $9,
-          safety_checklist = $10,
-          pricing_note = $11,
-          customer_expectation = $12,
-          risk_level = $13,
+          title = $3,
+          surface_type = $4,
+          condition_level = $5,
+          problem_type = $6,
+          recommended_mix = $7,
+          dwell_time = $8,
+          tools_needed = $9,
+          step_by_step = $10,
+          safety_checklist = $11,
+          pricing_note = $12,
+          customer_expectation = $13,
+          risk_level = $14,
           updated_at = NOW()
         WHERE id = $1
         RETURNING *;
@@ -488,6 +493,7 @@ async function upsertTreatmentCase(item: ReturnType<typeof normalizeCaseUploadIt
       [
         existing.rows[0].id,
         treatmentId,
+        item.title,
         item.surfaceType,
         item.conditionLevel,
         item.problemType,
@@ -601,16 +607,7 @@ async function seedDefaultTreatments() {
   ];
 
   for (const item of defaults) {
-    await upsertTreatment({
-      ...item,
-      chemical: item.chemical,
-      dilutionRatio: item.dilutionRatio,
-      useCase: item.useCase,
-      safetyNotes: item.safetyNotes,
-      instructions: item.instructions,
-      purchaseLink: item.purchaseLink,
-      costReference: item.costReference
-    });
+    await upsertTreatment(item);
   }
 
   await upsertTreatmentCase({
@@ -635,7 +632,7 @@ async function seedDefaultTreatments() {
   });
 }
 
-router.get("/", async (req, res) => {
+router.get("/", requireAuth, async (req, res) => {
   try {
     await ensureTreatmentsTable();
 
@@ -688,7 +685,161 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.post("/upload", async (req, res) => {
+router.get("/cases", requireAuth, async (req, res) => {
+  try {
+    await ensureTreatmentsTable();
+
+    const search = String(req.query.search || "").trim();
+    const treatmentId = String(req.query.treatmentId || "").trim();
+    const riskLevel = String(req.query.riskLevel || "").trim();
+
+    const params: string[] = [];
+    const where: string[] = [];
+
+    if (search) {
+      params.push(`%${search.toLowerCase()}%`);
+      where.push(`
+        (
+          LOWER(tc.title) LIKE $${params.length}
+          OR LOWER(COALESCE(tc.surface_type, '')) LIKE $${params.length}
+          OR LOWER(COALESCE(tc.condition_level, '')) LIKE $${params.length}
+          OR LOWER(COALESCE(tc.problem_type, '')) LIKE $${params.length}
+          OR LOWER(COALESCE(tc.recommended_mix, '')) LIKE $${params.length}
+          OR LOWER(COALESCE(tc.step_by_step, '')) LIKE $${params.length}
+          OR LOWER(COALESCE(tc.safety_checklist, '')) LIKE $${params.length}
+          OR LOWER(COALESCE(tc.pricing_note, '')) LIKE $${params.length}
+          OR LOWER(COALESCE(tc.customer_expectation, '')) LIKE $${params.length}
+          OR LOWER(COALESCE(t.name, '')) LIKE $${params.length}
+        )
+      `);
+    }
+
+    if (treatmentId && treatmentId !== "all") {
+      params.push(treatmentId);
+      where.push(`tc.treatment_id = $${params.length}`);
+    }
+
+    if (riskLevel && riskLevel !== "all") {
+      params.push(riskLevel.toLowerCase());
+      where.push(`LOWER(tc.risk_level) = $${params.length}`);
+    }
+
+    const result = await pool.query<TreatmentCaseRow>(
+      `
+        SELECT
+          tc.*,
+          t.name AS treatment_name,
+          t.category AS treatment_category
+        FROM treatment_cases tc
+        LEFT JOIN treatments t ON t.id = tc.treatment_id
+        ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
+        ORDER BY
+          CASE
+            WHEN LOWER(tc.risk_level) = 'high review' THEN 1
+            WHEN LOWER(tc.risk_level) = 'moderate' THEN 2
+            ELSE 3
+          END,
+          tc.title ASC;
+      `,
+      params
+    );
+
+    return res.json({
+      cases: result.rows.map(mapTreatmentCase)
+    });
+  } catch (err) {
+    console.error("Get treatment cases error:", err);
+
+    return res.status(500).json({
+      message: err instanceof Error ? err.message : "Failed to load treatment cases."
+    });
+  }
+});
+
+router.get("/plans", requireAuth, async (req, res) => {
+  try {
+    await ensureTreatmentsTable();
+
+    const search = String(req.query.search || "").trim();
+    const params: string[] = [];
+    const where: string[] = [];
+
+    if (search) {
+      params.push(`%${search.toLowerCase()}%`);
+      where.push(`
+        (
+          LOWER(job_name) LIKE $${params.length}
+          OR LOWER(COALESCE(client_name, '')) LIKE $${params.length}
+          OR LOWER(COALESCE(service_address, '')) LIKE $${params.length}
+          OR LOWER(COALESCE(surface_type, '')) LIKE $${params.length}
+          OR LOWER(COALESCE(condition_level, '')) LIKE $${params.length}
+          OR LOWER(COALESCE(notes, '')) LIKE $${params.length}
+          OR LOWER(COALESCE(plan_text, '')) LIKE $${params.length}
+        )
+      `);
+    }
+
+    const result = await pool.query<TreatmentPlanRow>(
+      `
+        SELECT *
+        FROM treatment_plans
+        ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
+        ORDER BY created_at DESC;
+      `,
+      params
+    );
+
+    return res.json({
+      plans: result.rows.map(mapTreatmentPlan)
+    });
+  } catch (err) {
+    console.error("Get treatment plans error:", err);
+
+    return res.status(500).json({
+      message: err instanceof Error ? err.message : "Failed to load treatment plans."
+    });
+  }
+});
+
+router.post("/seed", requireAdmin, async (_req, res) => {
+  try {
+    await seedDefaultTreatments();
+
+    const treatmentsResult = await pool.query<TreatmentRow>(
+      `
+        SELECT *
+        FROM treatments
+        ORDER BY category ASC, name ASC;
+      `
+    );
+
+    const casesResult = await pool.query<TreatmentCaseRow>(
+      `
+        SELECT
+          tc.*,
+          t.name AS treatment_name,
+          t.category AS treatment_category
+        FROM treatment_cases tc
+        LEFT JOIN treatments t ON t.id = tc.treatment_id
+        ORDER BY tc.title ASC;
+      `
+    );
+
+    return res.json({
+      message: "Treatment database and cases seeded successfully.",
+      treatments: treatmentsResult.rows.map(mapTreatment),
+      cases: casesResult.rows.map(mapTreatmentCase)
+    });
+  } catch (err) {
+    console.error("Seed treatments error:", err);
+
+    return res.status(500).json({
+      message: err instanceof Error ? err.message : "Failed to seed treatments."
+    });
+  }
+});
+
+router.post("/upload", requireAdmin, async (req, res) => {
   try {
     await ensureTreatmentsTable();
 
@@ -764,7 +915,7 @@ router.post("/upload", async (req, res) => {
   }
 });
 
-router.post("/cases/upload", async (req, res) => {
+router.post("/cases/upload", requireAdmin, async (req, res) => {
   try {
     await ensureTreatmentsTable();
 
@@ -849,116 +1000,7 @@ router.post("/cases/upload", async (req, res) => {
   }
 });
 
-router.post("/seed", async (_req, res) => {
-  try {
-    await seedDefaultTreatments();
-
-    const result = await pool.query<TreatmentRow>(
-      `
-        SELECT *
-        FROM treatments
-        ORDER BY category ASC, name ASC;
-      `
-    );
-
-    const casesResult = await pool.query<TreatmentCaseRow>(
-      `
-        SELECT
-          tc.*,
-          t.name AS treatment_name,
-          t.category AS treatment_category
-        FROM treatment_cases tc
-        LEFT JOIN treatments t ON t.id = tc.treatment_id
-        ORDER BY tc.title ASC;
-      `
-    );
-
-    return res.json({
-      message: "Treatment database and cases seeded successfully.",
-      treatments: result.rows.map(mapTreatment),
-      cases: casesResult.rows.map(mapTreatmentCase)
-    });
-  } catch (err) {
-    console.error("Seed treatments error:", err);
-
-    return res.status(500).json({
-      message: err instanceof Error ? err.message : "Failed to seed treatments."
-    });
-  }
-});
-
-router.get("/cases", async (req, res) => {
-  try {
-    await ensureTreatmentsTable();
-
-    const search = String(req.query.search || "").trim();
-    const treatmentId = String(req.query.treatmentId || "").trim();
-    const riskLevel = String(req.query.riskLevel || "").trim();
-
-    const params: string[] = [];
-    const where: string[] = [];
-
-    if (search) {
-      params.push(`%${search.toLowerCase()}%`);
-      where.push(`
-        (
-          LOWER(tc.title) LIKE $${params.length}
-          OR LOWER(COALESCE(tc.surface_type, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(tc.condition_level, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(tc.problem_type, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(tc.recommended_mix, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(tc.step_by_step, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(tc.safety_checklist, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(tc.pricing_note, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(tc.customer_expectation, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(t.name, '')) LIKE $${params.length}
-        )
-      `);
-    }
-
-    if (treatmentId && treatmentId !== "all") {
-      params.push(treatmentId);
-      where.push(`tc.treatment_id = $${params.length}`);
-    }
-
-    if (riskLevel && riskLevel !== "all") {
-      params.push(riskLevel.toLowerCase());
-      where.push(`LOWER(tc.risk_level) = $${params.length}`);
-    }
-
-    const result = await pool.query<TreatmentCaseRow>(
-      `
-        SELECT
-          tc.*,
-          t.name AS treatment_name,
-          t.category AS treatment_category
-        FROM treatment_cases tc
-        LEFT JOIN treatments t ON t.id = tc.treatment_id
-        ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
-        ORDER BY
-          CASE
-            WHEN LOWER(tc.risk_level) = 'high review' THEN 1
-            WHEN LOWER(tc.risk_level) = 'moderate' THEN 2
-            ELSE 3
-          END,
-          tc.title ASC;
-      `,
-      params
-    );
-
-    return res.json({
-      cases: result.rows.map(mapTreatmentCase)
-    });
-  } catch (err) {
-    console.error("Get treatment cases error:", err);
-
-    return res.status(500).json({
-      message: err instanceof Error ? err.message : "Failed to load treatment cases."
-    });
-  }
-});
-
-router.post("/cases", async (req, res) => {
+router.post("/cases", requireAdmin, async (req, res) => {
   try {
     await ensureTreatmentsTable();
 
@@ -985,7 +1027,7 @@ router.post("/cases", async (req, res) => {
   }
 });
 
-router.patch("/cases/:id", async (req, res) => {
+router.patch("/cases/:id", requireAdmin, async (req, res) => {
   try {
     await ensureTreatmentsTable();
 
@@ -1066,7 +1108,7 @@ router.patch("/cases/:id", async (req, res) => {
   }
 });
 
-router.delete("/cases/:id", async (req, res) => {
+router.delete("/cases/:id", requireAdmin, async (req, res) => {
   try {
     await ensureTreatmentsTable();
 
@@ -1105,52 +1147,7 @@ router.delete("/cases/:id", async (req, res) => {
   }
 });
 
-router.get("/plans", async (req, res) => {
-  try {
-    await ensureTreatmentsTable();
-
-    const search = String(req.query.search || "").trim();
-    const params: string[] = [];
-    const where: string[] = [];
-
-    if (search) {
-      params.push(`%${search.toLowerCase()}%`);
-      where.push(`
-        (
-          LOWER(job_name) LIKE $${params.length}
-          OR LOWER(COALESCE(client_name, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(service_address, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(surface_type, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(condition_level, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(notes, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(plan_text, '')) LIKE $${params.length}
-        )
-      `);
-    }
-
-    const result = await pool.query<TreatmentPlanRow>(
-      `
-        SELECT *
-        FROM treatment_plans
-        ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
-        ORDER BY created_at DESC;
-      `,
-      params
-    );
-
-    return res.json({
-      plans: result.rows.map(mapTreatmentPlan)
-    });
-  } catch (err) {
-    console.error("Get treatment plans error:", err);
-
-    return res.status(500).json({
-      message: err instanceof Error ? err.message : "Failed to load treatment plans."
-    });
-  }
-});
-
-router.post("/plans", async (req, res) => {
+router.post("/plans", requireAuth, async (req, res) => {
   try {
     await ensureTreatmentsTable();
 
@@ -1212,7 +1209,7 @@ router.post("/plans", async (req, res) => {
   }
 });
 
-router.delete("/plans/:id", async (req, res) => {
+router.delete("/plans/:id", requireAdmin, async (req, res) => {
   try {
     await ensureTreatmentsTable();
 
@@ -1245,7 +1242,7 @@ router.delete("/plans/:id", async (req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
+router.post("/", requireAdmin, async (req, res) => {
   try {
     await ensureTreatmentsTable();
 
@@ -1271,7 +1268,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.patch("/:id", async (req, res) => {
+router.patch("/:id", requireAdmin, async (req, res) => {
   try {
     await ensureTreatmentsTable();
 
@@ -1341,7 +1338,7 @@ router.patch("/:id", async (req, res) => {
   }
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", requireAdmin, async (req, res) => {
   try {
     await ensureTreatmentsTable();
 
