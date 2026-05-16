@@ -128,7 +128,10 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
     setActiveTab("saved");
   };
 
-  const handleTreatmentsUploaded = (uploadedTreatments: TreatmentItem[], message: string) => {
+  const handleTreatmentsUploaded = (
+    uploadedTreatments: TreatmentItem[],
+    message: string
+  ) => {
     setTreatments(uploadedTreatments.map(normalizeTreatment));
     setSuccess(message);
     setActiveTab("search");
@@ -279,7 +282,8 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
           <div>
             <h2 className="panelTitle">Treatment Options & Cases</h2>
             <p className="brandSubtitle">
-              Search chemical usage, dilution ratios, safety notes, surfaces, cases, saved plans, and field instructions.
+              Search chemical usage, dilution ratios, safety notes, surfaces, cases,
+              saved plans, and field instructions.
             </p>
           </div>
 
@@ -357,6 +361,14 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
 
           {activeTab === "guru" && <TreatmentGuruSearchPanel />}
 
+          {activeTab === "uploadHub" && (
+            <TreatmentUploadHubPanel
+              adminAccess={adminAccess}
+              onOpenTreatmentUpload={() => setActiveTab("upload")}
+              onOpenCaseUpload={() => setActiveTab("uploadCases")}
+            />
+          )}
+
           {activeTab === "upload" && (
             <TreatmentUploadPanel
               adminAccess={adminAccess}
@@ -368,14 +380,6 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
             <TreatmentCaseUploadPanel
               adminAccess={adminAccess}
               onUploaded={handleCasesUploaded}
-            />
-          )}
-
-          {activeTab === "uploadHub" && (
-            <TreatmentUploadHubPanel
-              adminAccess={adminAccess}
-              onOpenTreatmentUpload={() => setActiveTab("upload")}
-              onOpenCaseUpload={() => setActiveTab("uploadCases")}
             />
           )}
 
