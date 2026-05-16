@@ -1,65 +1,79 @@
 import webpush from "web-push";
-import { pool } from "../db.js";
 
-const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
-const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
-const vapidSubject = process.env.VAPID_SUBJECT || "mailto:nmdpowash@gmail.com";
+type PushSubscriptionLike = {
+  endpoint: string;
+  keys: {
+    p256dh: string;
+    auth: string;
+  };
+};
 
-const pushConfigured = Boolean(vapidPublicKey && vapidPrivateKey);
+type SendPushInput = {
+  subscription: PushSubscriptionLike;
+  title: string;
+  body: string;
+  url?: string;
+};
 
-if (pushConfigured) {
-  webpush.setVapidDetails(
-    vapidSubject,
-    vapidPublicKey as string,
-    vapidPrivateKey as string
-  );
-} else {
-  console.warn("Push notifications disabled: missing VAPID keys.");
+let configured = false;
+
+function configureWebPush() {
+  if (configured) return true;
+
+  const publicKey = process.env.VAPID_PUBLIC_KEY || "";
+  const privateKey = process.env.VAPID_PRIVATE_KEY || "";
+  const subject = process.env.VAPID_SUBJECT || "mailto:nmdpowash@gmail.com";
+
+  if (!publicKey || !privateKey) {
+    console.warn("VAPID_PUBLIC_KEY or VAPID_PRIVATE_KEY is not set. Push notification skipped.");
+    return false;
+  }
+
+  webpush.setVapidDetails(subject, publicKey, privateKey);
+  configured = true;
+
+  return true;
 }
 
-export async function sendPushToUser(
-  userId: string,
-  payload: {
-    title: string;
-    body: string;
-    url?: string;
-  }
-) {
-  if (!pushConfigured) {
-    console.warn("Push skipped: VAPID keys are not configured.");
-    return;
+export async function sendPushNotification(input: SendPushInput) {
+  const ready = configureWebPush();
+
+  if (!ready) {
+    return {
+      skipped: true,
+      reason: "VAPID keys are not configured."
+    };
   }
 
-  const result = await pool.query(
-    `
-    SELECT id, endpoint, p256dh, auth
-    FROM push_subscriptions
-    WHERE user_id = $1
-    `,
-    [userId]
-  );
+  const payload = JSON.stringify({
+    title: input.title,
+    body: input.body,
+    url: input.url || "/"
+  });
 
-  for (const row of result.rows) {
-    try {
-      await webpush.sendNotification(
-        {
-          endpoint: row.endpoint,
-          keys: {
-            p256dh: row.p256dh,
-            auth: row.auth
-          }
-        },
-        JSON.stringify(payload)
-      );
-    } catch (error: any) {
-      console.error("push send error", error);
+  const result = await webpush.sendNotification(input.subscription, payload);
 
-      if (error.statusCode === 404 || error.statusCode === 410) {
-        await pool.query(
-          `DELETE FROM push_subscriptions WHERE id = $1`,
-          [row.id]
-        );
-      }
-    }
-  }
+  return {
+    skipped: false,
+    result
+  };
 }
+
+export async function sendChatNotification(input: {
+  subscription: PushSubscriptionLike;
+  senderName: string;
+  message: string;
+  url?: string;
+}) {
+  return sendPushNotification({
+    subscription: input.subscription,
+    title: `New message from ${input.senderName || "NMD"}`,
+    body: input.message,
+    url: input.url || "/"
+  });
+}
+
+export default {
+  sendPushNotification,
+  sendChatNotification
+};
