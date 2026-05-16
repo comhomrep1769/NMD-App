@@ -14,13 +14,21 @@ type BuildNmdEmailTemplateInput = {
   preheader?: string;
   body?: string;
   message?: string;
+
   buttonText?: string;
   buttonUrl?: string;
+
+  actionLabel?: string;
+  actionUrl?: string;
+  actionText?: string;
+  actionHref?: string;
+
   footerNote?: string;
+  footer?: string;
 };
 
 function escapeHtml(value: string) {
-  return value
+  return String(value || "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
@@ -28,7 +36,7 @@ function escapeHtml(value: string) {
 }
 
 function paragraphsFromText(value: string) {
-  return value
+  return String(value || "")
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean)
@@ -42,7 +50,7 @@ function paragraphsFromText(value: string) {
 }
 
 export function buildNmdEmailTemplate(input: BuildNmdEmailTemplateInput | string) {
-  const config =
+  const config: BuildNmdEmailTemplateInput =
     typeof input === "string"
       ? {
           title: "NMD Pressure Washing Services",
@@ -54,17 +62,25 @@ export function buildNmdEmailTemplate(input: BuildNmdEmailTemplateInput | string
   const title = config.title || "NMD Pressure Washing Services";
   const heading = config.heading || title;
   const body = config.body || config.message || "";
+
+  const buttonText =
+    config.buttonText || config.actionLabel || config.actionText || "";
+
+  const buttonUrl =
+    config.buttonUrl || config.actionUrl || config.actionHref || "";
+
   const footerNote =
     config.footerNote ||
+    config.footer ||
     "Thank you for choosing NMD Pressure Washing Services — No More Dirt.";
 
   const buttonHtml =
-    config.buttonText && config.buttonUrl
+    buttonText && buttonUrl
       ? `
         <div style="margin:24px 0;">
-          <a href="${escapeHtml(config.buttonUrl)}"
+          <a href="${escapeHtml(buttonUrl)}"
              style="display:inline-block;background:linear-gradient(135deg,#0b5ed7,#1d9bf0,#22c55e);color:#ffffff;text-decoration:none;font-weight:800;padding:12px 18px;border-radius:12px;">
-            ${escapeHtml(config.buttonText)}
+            ${escapeHtml(buttonText)}
           </a>
         </div>
       `
@@ -180,8 +196,8 @@ export async function sendClientQuoteEmail(input: {
       title: "NMD Quote",
       heading: `Quote${input.quoteNumber ? ` #${input.quoteNumber}` : ""}`,
       body: `Hello ${input.clientName || "there"},\n\n${message}`,
-      buttonText: input.quoteUrl ? "View Quote" : undefined,
-      buttonUrl: input.quoteUrl
+      actionLabel: input.quoteUrl ? "View Quote" : undefined,
+      actionUrl: input.quoteUrl
     }),
     text: `Hello ${input.clientName || "there"},\n\n${message}\n\nThank you,\nNMD Pressure Washing Services`
   });
@@ -203,8 +219,8 @@ export async function sendClientInvoiceEmail(input: {
       title: "NMD Invoice",
       heading: `Invoice${input.invoiceNumber ? ` #${input.invoiceNumber}` : ""}`,
       body: `Hello ${input.clientName || "there"},\n\n${message}`,
-      buttonText: input.paymentUrl ? "Pay Invoice" : undefined,
-      buttonUrl: input.paymentUrl
+      actionLabel: input.paymentUrl ? "Pay Invoice" : undefined,
+      actionUrl: input.paymentUrl
     }),
     text: `Hello ${input.clientName || "there"},\n\n${message}\n\nThank you,\nNMD Pressure Washing Services`
   });
@@ -233,8 +249,8 @@ export async function sendEmployeeOnboardingEmail(input: {
       title: "NMD Employee Portal",
       heading: "Employee Portal Account",
       body,
-      buttonText: input.portalUrl ? "Open Employee Portal" : undefined,
-      buttonUrl: input.portalUrl
+      actionLabel: input.portalUrl ? "Open Employee Portal" : undefined,
+      actionUrl: input.portalUrl
     }),
     text: body
   });
@@ -263,8 +279,8 @@ export async function sendPasswordResetEmail(input: {
       title: "NMD Password Reset",
       heading: "Password Reset",
       body,
-      buttonText: input.resetUrl ? "Reset Password" : undefined,
-      buttonUrl: input.resetUrl
+      actionLabel: input.resetUrl ? "Reset Password" : undefined,
+      actionUrl: input.resetUrl
     }),
     text: body
   });
