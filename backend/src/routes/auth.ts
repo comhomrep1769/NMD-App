@@ -30,6 +30,12 @@ type DbUser = {
   updated_at: string;
 };
 
+type SeedUserResponse = {
+  role: string;
+  email: string;
+  password: string;
+};
+
 function getJwtSecret() {
   const secret = process.env.JWT_SECRET;
 
@@ -89,6 +95,10 @@ function normalizeRole(value: unknown): UserRole {
 }
 
 async function ensureUsersTable() {
+  await pool.query(`
+    CREATE EXTENSION IF NOT EXISTS pgcrypto;
+  `);
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -403,7 +413,7 @@ router.post("/seed-test-users", async (req, res) => {
       }
     ];
 
-    const savedUsers = [];
+    const savedUsers: SeedUserResponse[] = [];
 
     for (const testUser of testUsers) {
       await upsertTestUser({
