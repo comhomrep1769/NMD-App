@@ -8,6 +8,11 @@ const tabs: TreatmentTab[] = [
     description: "Search treatments, cases, and saved plans."
   },
   {
+    key: "upload",
+    label: "Upload",
+    description: "Import treatments from CSV or JSON."
+  },
+  {
     key: "field",
     label: "Field Mode",
     description: "Employee checklist and quick job guidance."
@@ -57,7 +62,7 @@ export default function TreatmentPageTabs({
         <div>
           <h2 className="panelTitle">Treatment Workspace</h2>
           <p className="brandSubtitle">
-            Use tabs to move between Guru search, field tools, saved plans, cases, and treatment records.
+            Use tabs to move between Guru search, uploads, field tools, saved plans, cases, and treatment records.
           </p>
         </div>
       </div>
