@@ -9,8 +9,13 @@ const tabs: TreatmentTab[] = [
   },
   {
     key: "upload",
-    label: "Upload",
+    label: "Upload Treatments",
     description: "Import treatments from CSV or JSON."
+  },
+  {
+    key: "uploadCases",
+    label: "Upload Cases",
+    description: "Import treatment cases from CSV or JSON."
   },
   {
     key: "field",
