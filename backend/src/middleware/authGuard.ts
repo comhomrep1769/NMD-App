@@ -7,6 +7,7 @@ export type AuthPayload = {
   id: string;
   email: string;
   role: UserRole;
+  displayName: string;
 };
 
 export type AuthenticatedRequest = Request & {
@@ -33,7 +34,36 @@ function getBearerToken(req: Request) {
   return "";
 }
 
-export function requireAuth(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+function normalizeRole(value: unknown): UserRole {
+  if (value === "superadmin") return "superadmin";
+  if (value === "admin") return "admin";
+  if (value === "employee") return "employee";
+  return "client";
+}
+
+function normalizeAuthPayload(value: unknown): AuthPayload {
+  const raw = value as {
+    id?: unknown;
+    email?: unknown;
+    role?: unknown;
+    displayName?: unknown;
+    display_name?: unknown;
+    name?: unknown;
+  };
+
+  return {
+    id: String(raw.id || ""),
+    email: String(raw.email || ""),
+    role: normalizeRole(raw.role),
+    displayName: String(raw.displayName || raw.display_name || raw.name || raw.email || "")
+  };
+}
+
+export function requireAuth(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) {
   try {
     const token = getBearerToken(req);
 
@@ -43,7 +73,7 @@ export function requireAuth(req: AuthenticatedRequest, res: Response, next: Next
       });
     }
 
-    const decoded = jwt.verify(token, getJwtSecret()) as AuthPayload;
+    const decoded = normalizeAuthPayload(jwt.verify(token, getJwtSecret()));
 
     if (!decoded.id || !decoded.email || !decoded.role) {
       return res.status(401).json({
@@ -60,9 +90,13 @@ export function requireAuth(req: AuthenticatedRequest, res: Response, next: Next
   }
 }
 
-export function requireAdmin(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+export function requireAdmin(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) {
   requireAuth(req, res, () => {
-    const role = req.user?.role;
+    const role = String(req.user?.role || "");
 
     if (role !== "superadmin" && role !== "admin") {
       return res.status(403).json({
@@ -75,5 +109,6 @@ export function requireAdmin(req: AuthenticatedRequest, res: Response, next: Nex
 }
 
 export function isAdminRole(role: unknown) {
-  return role === "superadmin" || role === "admin";
+  const value = String(role || "");
+  return value === "superadmin" || value === "admin";
 }
