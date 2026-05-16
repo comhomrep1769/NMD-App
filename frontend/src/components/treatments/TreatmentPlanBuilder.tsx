@@ -10,10 +10,12 @@ import {
 import {
   buildTreatmentPlanFromForm,
   emptyTreatmentPlanForm,
+  normalizeTreatmentPlan,
   type TreatmentPlan,
   type TreatmentPlanFormState
 } from "../../types/treatmentPlans";
 import {
+  buildTreatmentPlanText,
   getSelectedTreatmentCases,
   getSelectedTreatments
 } from "../../utils/treatmentPlanHelpers";
@@ -23,17 +25,21 @@ import TreatmentPlanPreview from "./TreatmentPlanPreview";
 export default function TreatmentPlanBuilder({
   treatments,
   selectedTreatmentId,
-  onClose
+  onClose,
+  onPlanSaved
 }: {
   treatments: TreatmentItem[];
   selectedTreatmentId: string | null;
   onClose: () => void;
+  onPlanSaved?: (plan: TreatmentPlan) => void;
 }) {
   const [cases, setCases] = React.useState<TreatmentCase[]>([]);
   const [caseSearch, setCaseSearch] = React.useState("");
   const [treatmentSearch, setTreatmentSearch] = React.useState("");
   const [loadingCases, setLoadingCases] = React.useState(true);
+  const [savingPlan, setSavingPlan] = React.useState(false);
   const [error, setError] = React.useState("");
+  const [success, setSuccess] = React.useState("");
   const [plan, setPlan] = React.useState<TreatmentPlan | null>(null);
 
   const [form, setForm] = React.useState<TreatmentPlanFormState>(() => ({
@@ -131,17 +137,91 @@ export default function TreatmentPlanBuilder({
     event.preventDefault();
 
     const createdPlan = buildTreatmentPlanFromForm(form);
-    setPlan(createdPlan);
+    const planText = buildTreatmentPlanText({
+      plan: createdPlan,
+      treatments: selectedTreatments,
+      cases: selectedCases
+    });
+
+    setPlan({
+      ...createdPlan,
+      planText
+    });
+  };
+
+  const savePlanToDatabase = async () => {
+    const draftPlan = plan || buildTreatmentPlanFromForm(form);
+    const planText = buildTreatmentPlanText({
+      plan: draftPlan,
+      treatments: selectedTreatments,
+      cases: selectedCases
+    });
+
+    if (!draftPlan.jobName.trim()) {
+      setError("Job name is required before saving a treatment plan.");
+      return;
+    }
+
+    setSavingPlan(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const data = await apiFetch<{ plan: TreatmentPlan }>("/api/treatments/plans", {
+        method: "POST",
+        body: JSON.stringify({
+          ...draftPlan,
+          selectedTreatmentIds: form.selectedTreatmentIds,
+          selectedCaseIds: form.selectedCaseIds,
+          planText
+        })
+      });
+
+      const saved = normalizeTreatmentPlan(data.plan);
+
+      setPlan(saved);
+      setSuccess("Treatment plan saved to database.");
+
+      if (onPlanSaved) {
+        onPlanSaved(saved);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save treatment plan.");
+    } finally {
+      setSavingPlan(false);
+    }
   };
 
   if (plan) {
     return (
-      <TreatmentPlanPreview
-        plan={plan}
-        treatments={selectedTreatments}
-        cases={selectedCases}
-        onClose={() => setPlan(null)}
-      />
+      <>
+        {success && <div className="listCard">{success}</div>}
+        {error && <div className="errorBox">{error}</div>}
+
+        <TreatmentPlanPreview
+          plan={plan}
+          treatments={selectedTreatments}
+          cases={selectedCases}
+          onClose={() => setPlan(null)}
+        />
+
+        <section className="panel">
+          <div className="buttonRow">
+            <button
+              className="primaryButton"
+              type="button"
+              onClick={savePlanToDatabase}
+              disabled={savingPlan}
+            >
+              {savingPlan ? "Saving Plan..." : "Save Plan To Database"}
+            </button>
+
+            <button className="secondaryButton" type="button" onClick={onClose}>
+              Close Builder
+            </button>
+          </div>
+        </section>
+      </>
     );
   }
 
@@ -161,6 +241,7 @@ export default function TreatmentPlanBuilder({
       </div>
 
       {error && <div className="errorBox">{error}</div>}
+      {success && <div className="listCard">{success}</div>}
 
       <form className="formGrid" onSubmit={generatePlan}>
         <label className="fieldLabel">
@@ -227,6 +308,15 @@ export default function TreatmentPlanBuilder({
         <div className="buttonRow">
           <button className="primaryButton" type="submit">
             Generate Treatment Plan
+          </button>
+
+          <button
+            className="secondaryButton"
+            type="button"
+            onClick={savePlanToDatabase}
+            disabled={savingPlan}
+          >
+            {savingPlan ? "Saving..." : "Save Directly"}
           </button>
 
           <button
