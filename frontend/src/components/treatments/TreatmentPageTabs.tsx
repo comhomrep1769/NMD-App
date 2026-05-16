@@ -8,6 +8,11 @@ const tabs: TreatmentTab[] = [
     description: "Search treatments, cases, and saved plans."
   },
   {
+    key: "uploadHub",
+    label: "Upload Center",
+    description: "Choose treatment or case upload."
+  },
+  {
     key: "upload",
     label: "Upload Treatments",
     description: "Import treatments from CSV or JSON."
