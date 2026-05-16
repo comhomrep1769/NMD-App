@@ -26,14 +26,17 @@ type SendPushInput = {
   url?: string;
 };
 
-type SendPushToUserInput = {
-  userId?: string;
-  recipientUserId?: string;
+type PushPayloadInput = {
   title?: string;
   body?: string;
   message?: string;
   url?: string;
   data?: Record<string, unknown>;
+};
+
+type SendPushToUserInput = PushPayloadInput & {
+  userId?: string;
+  recipientUserId?: string;
 };
 
 type PushSubscriptionRow = {
@@ -190,18 +193,23 @@ export async function sendChatNotification(input: {
 
 export async function sendPushToUser(
   userIdOrInput: string | SendPushToUserInput,
-  titleArg?: string,
+  payloadOrTitle?: PushPayloadInput | string,
   bodyArg?: string,
   urlArg?: string
 ) {
   const input: SendPushToUserInput =
     typeof userIdOrInput === "string"
-      ? {
-          userId: userIdOrInput,
-          title: titleArg,
-          body: bodyArg,
-          url: urlArg
-        }
+      ? typeof payloadOrTitle === "object" && payloadOrTitle !== null
+        ? {
+            userId: userIdOrInput,
+            ...payloadOrTitle
+          }
+        : {
+            userId: userIdOrInput,
+            title: payloadOrTitle,
+            body: bodyArg,
+            url: urlArg
+          }
       : userIdOrInput;
 
   const userId = input.userId || input.recipientUserId || "";
