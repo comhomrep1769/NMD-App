@@ -65,6 +65,25 @@ type TreatmentPlanRow = {
   updated_at: string;
 };
 
+type TreatmentUploadItem = {
+  name?: string;
+  category?: string;
+  surfaceTypes?: string[] | string;
+  surface_types?: string[] | string;
+  chemical?: string;
+  dilutionRatio?: string;
+  dilution_ratio?: string;
+  useCase?: string;
+  use_case?: string;
+  safetyNotes?: string;
+  safety_notes?: string;
+  instructions?: string;
+  purchaseLink?: string;
+  purchase_link?: string;
+  costReference?: string;
+  cost_reference?: string;
+};
+
 function mapTreatment(row: TreatmentRow) {
   return {
     id: row.id,
@@ -123,6 +142,40 @@ function mapTreatmentPlan(row: TreatmentPlanRow) {
   };
 }
 
+function textValue(value: unknown) {
+  return String(value || "").trim();
+}
+
+function parseSurfaceTypes(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean);
+  }
+
+  return String(value || "")
+    .split(/[;,|]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function normalizeUploadItem(item: TreatmentUploadItem) {
+  const name = textValue(item.name);
+  const category = textValue(item.category) || "General";
+  const surfaceTypes = parseSurfaceTypes(item.surfaceTypes || item.surface_types);
+
+  return {
+    name,
+    category,
+    surfaceTypes,
+    chemical: textValue(item.chemical) || null,
+    dilutionRatio: textValue(item.dilutionRatio || item.dilution_ratio) || null,
+    useCase: textValue(item.useCase || item.use_case) || null,
+    safetyNotes: textValue(item.safetyNotes || item.safety_notes) || null,
+    instructions: textValue(item.instructions) || null,
+    purchaseLink: textValue(item.purchaseLink || item.purchase_link) || null,
+    costReference: textValue(item.costReference || item.cost_reference) || null
+  };
+}
+
 async function ensureTreatmentsTable() {
   await pool.query(`
     CREATE EXTENSION IF NOT EXISTS pgcrypto;
@@ -144,6 +197,11 @@ async function ensureTreatmentsTable() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+  `);
+
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS treatments_name_category_unique_idx
+    ON treatments (LOWER(name), LOWER(category));
   `);
 
   await pool.query(`
@@ -215,19 +273,8 @@ async function ensureTreatmentsTable() {
   `);
 }
 
-async function upsertDefaultTreatment(item: {
-  name: string;
-  category: string;
-  surfaceTypes: string[];
-  chemical: string;
-  dilutionRatio: string;
-  useCase: string;
-  safetyNotes: string;
-  instructions: string;
-  purchaseLink: string;
-  costReference: string;
-}) {
-  await pool.query(
+async function upsertTreatment(item: ReturnType<typeof normalizeUploadItem>) {
+  const result = await pool.query<TreatmentRow>(
     `
       INSERT INTO treatments (
         name,
@@ -243,7 +290,18 @@ async function upsertDefaultTreatment(item: {
         updated_at
       )
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW())
-      ON CONFLICT DO NOTHING;
+      ON CONFLICT (LOWER(name), LOWER(category))
+      DO UPDATE SET
+        surface_types = EXCLUDED.surface_types,
+        chemical = EXCLUDED.chemical,
+        dilution_ratio = EXCLUDED.dilution_ratio,
+        use_case = EXCLUDED.use_case,
+        safety_notes = EXCLUDED.safety_notes,
+        instructions = EXCLUDED.instructions,
+        purchase_link = EXCLUDED.purchase_link,
+        cost_reference = EXCLUDED.cost_reference,
+        updated_at = NOW()
+      RETURNING *;
     `,
     [
       item.name,
@@ -258,6 +316,34 @@ async function upsertDefaultTreatment(item: {
       item.costReference
     ]
   );
+
+  return result.rows[0];
+}
+
+async function upsertDefaultTreatment(item: {
+  name: string;
+  category: string;
+  surfaceTypes: string[];
+  chemical: string;
+  dilutionRatio: string;
+  useCase: string;
+  safetyNotes: string;
+  instructions: string;
+  purchaseLink: string;
+  costReference: string;
+}) {
+  await upsertTreatment({
+    name: item.name,
+    category: item.category,
+    surfaceTypes: item.surfaceTypes,
+    chemical: item.chemical,
+    dilutionRatio: item.dilutionRatio,
+    useCase: item.useCase,
+    safetyNotes: item.safetyNotes,
+    instructions: item.instructions,
+    purchaseLink: item.purchaseLink,
+    costReference: item.costReference
+  });
 }
 
 async function getTreatmentIdByName(name: string) {
@@ -402,166 +488,6 @@ async function seedDefaultTreatments() {
       purchaseLink: "",
       costReference:
         "Price as specialty restoration. Small spots $50–$100, entry pads $125–$300, heavy irrigation stains $300–$800+."
-    },
-    {
-      name: "Wood Fence / Deck Cleaning",
-      category: "Wood Restoration",
-      surfaceTypes: ["Wood fence", "Deck", "Wood siding"],
-      chemical: "Sodium percarbonate, sodium hydroxide, oxalic acid brightener",
-      dilutionRatio: "Depends on wood condition and product. Oxalic brightener commonly used after cleaning/stripping.",
-      useCase:
-        "Wood cleaning, gray wood restoration, fence/deck prep, and brightening after alkaline cleaners.",
-      safetyNotes:
-        "Avoid excessive pressure, test first, manage fuzzing, protect plants, and set expectations about existing damage and final color.",
-      instructions:
-        "Apply appropriate wood cleaner, dwell, gently rinse with low pressure, apply oxalic brightener if needed, rinse, and allow proper drying.",
-      purchaseLink: "",
-      costReference:
-        "Wood is specialty work. Price based on linear feet/square footage, condition, prep needs, and whether staining/sealing is included."
-    },
-    {
-      name: "Oil / Grease Spot Treatment",
-      category: "Stain Removal",
-      surfaceTypes: ["Concrete", "Pavers", "Garage floors", "Dumpster pads"],
-      chemical: "Butyl degreaser, sodium hydroxide degreaser, hot water if available",
-      dilutionRatio: "Varies by product and stain severity",
-      useCase:
-        "Oil, grease, tire marks, restaurant grease, dumpster pad buildup, and automotive stains.",
-      safetyNotes:
-        "May not fully remove deep oil stains. Watch runoff, protect nearby surfaces, wear PPE, and use heat where available.",
-      instructions:
-        "Apply degreaser, dwell, agitate, hot water rinse if available, repeat if needed, and explain that deep stains may lighten but not disappear.",
-      purchaseLink: "",
-      costReference:
-        "Charge as add-on or specialty stain treatment. Increase price for commercial grease, repeat applications, and hot water needs."
-    },
-    {
-      name: "Oxidation Caution / Siding Test",
-      category: "Risk / Liability",
-      surfaceTypes: ["Vinyl siding", "Aluminum siding", "Painted siding", "Gutters"],
-      chemical: "Test before applying stronger mixes",
-      dilutionRatio: "Use mild test spot first",
-      useCase:
-        "Identify oxidation risk before washing siding, gutters, painted metals, and older exterior surfaces.",
-      safetyNotes:
-        "Oxidation can streak or change appearance. Do not scrub or pressure oxidized surfaces without approval.",
-      instructions:
-        "Perform a test spot, document existing oxidation, explain risk to client, and avoid promising restoration during a standard wash.",
-      purchaseLink: "",
-      costReference:
-        "Oxidation removal is separate from standard washing and should be priced as restoration."
-    },
-    {
-      name: "Plant Protection Workflow",
-      category: "Safety / Protection",
-      surfaceTypes: ["Landscaping", "Grass", "Plants", "Flower beds"],
-      chemical: "Water, neutralizer when appropriate",
-      dilutionRatio: "N/A",
-      useCase:
-        "Protect landscaping during soft washing, roof cleaning, and chemical-based exterior cleaning.",
-      safetyNotes:
-        "Plant damage can happen from SH overspray or runoff. Protect before, during, and after chemical application.",
-      instructions:
-        "Pre-wet plants, cover sensitive plants if needed, control runoff, rinse repeatedly during and after, and use neutralizer where appropriate.",
-      purchaseLink: "",
-      costReference:
-        "Include plant protection time/materials in roof cleaning, heavy soft washing, and chemical restoration pricing."
-    },
-    {
-      name: "Painted Concrete Warning",
-      category: "Risk / Liability",
-      surfaceTypes: ["Painted concrete", "Decorative concrete", "Coated surfaces"],
-      chemical: "Mild cleaner / soft wash only after test spot",
-      dilutionRatio: "Start mild. Avoid aggressive pressure.",
-      useCase:
-        "Driveways, patios, walkways, or pool decks that appear painted, coated, or sealed.",
-      safetyNotes:
-        "Surface cleaner pressure can leave stripes, remove paint, or expose uneven coating. Confirm with client before cleaning.",
-      instructions:
-        "Test first. If painted or coated, avoid surface cleaner unless stripping/repainting is the agreed scope. Soft wash and rinse carefully.",
-      purchaseLink: "",
-      costReference:
-        "If damage already exists, quote repainting/stripping separately. Do not include coating correction in standard wash."
-    },
-    {
-      name: "Stucco Soft Wash",
-      category: "Soft Washing",
-      surfaceTypes: ["Stucco", "EIFS", "Painted stucco"],
-      chemical: "Low-pressure SH mix with surfactant",
-      dilutionRatio: "Typically 0.5%–1.5% on surface depending on organic growth and paint condition",
-      useCase:
-        "Algae, mildew, and organic staining on stucco walls where high pressure can cause damage.",
-      safetyNotes:
-        "Check cracks, failed paint, oxidation, window seals, water intrusion risks, and delicate landscaping.",
-      instructions:
-        "Apply low pressure, keep controlled dwell, avoid forcing water into cracks or weep points, rinse gently, and document pre-existing cracks.",
-      purchaseLink: "",
-      costReference:
-        "Increase pricing for height, heavy staining, delicate access, oxidation, or water intrusion risk."
-    },
-    {
-      name: "Paver Cleaning Caution",
-      category: "Flatwork",
-      surfaceTypes: ["Pavers", "Brick pavers", "Travertine", "Pool deck pavers"],
-      chemical: "SH for organics, degreaser for grease, specialty removers as needed",
-      dilutionRatio: "Varies by stain and paver condition",
-      useCase:
-        "Cleaning pavers while protecting joints, sand, sealer, and surrounding pool/landscaping areas.",
-      safetyNotes:
-        "Watch polymeric sand, loose joints, old sealer, efflorescence, drainage, and pool water contamination.",
-      instructions:
-        "Test first, use appropriate pressure, rinse well, avoid blowing out joints unnecessarily, and recommend resanding/sealing when needed.",
-      purchaseLink: "",
-      costReference:
-        "Pavers may require add-on pricing for resanding, sealing, efflorescence, heavy algae, or specialty stain removal."
-    },
-    {
-      name: "Gutter Brightening",
-      category: "Specialty Restoration",
-      surfaceTypes: ["Gutters", "Fascia", "Painted metal"],
-      chemical: "Gutter brightener / oxidation-safe cleaner",
-      dilutionRatio: "Follow label. Test first.",
-      useCase:
-        "Tiger stripes and oxidation staining on gutters that standard house washing does not remove.",
-      safetyNotes:
-        "Can affect paint or oxidized surfaces. Test spot required. Avoid glass and sensitive metals.",
-      instructions:
-        "Apply to small sections, agitate gently if safe, rinse thoroughly, and separate from standard wash pricing.",
-      purchaseLink: "",
-      costReference:
-        "Price as specialty add-on, not included in a normal house wash unless specifically sold."
-    },
-    {
-      name: "New Concrete Cleaning Caution",
-      category: "Risk / Liability",
-      surfaceTypes: ["New concrete", "Young concrete", "Driveways", "Sidewalks"],
-      chemical: "Mild SH treatment for organics if needed",
-      dilutionRatio: "Avoid aggressive pressure. Use chemical-first approach when safe.",
-      useCase:
-        "Concrete less than 2–3 years old or weak/green concrete that can etch easily.",
-      safetyNotes:
-        "High pressure can permanently scar or expose cream layer. Customer expectations must be documented.",
-      instructions:
-        "Avoid surface cleaner pressure on questionable new concrete. Use soft treatment, rinse, and test before proceeding.",
-      purchaseLink: "",
-      costReference:
-        "If client wants full restoration, price carefully and document risk before work."
-    },
-    {
-      name: "Restaurant Degreasing",
-      category: "Commercial",
-      surfaceTypes: ["Dumpster pads", "Restaurant concrete", "Drive-thru lanes", "Grease areas"],
-      chemical: "Butyl degreaser, sodium hydroxide degreaser, hot water recommended",
-      dilutionRatio: "Varies by grease load and product label",
-      useCase:
-        "Commercial grease, food waste, dumpster pad buildup, drive-thru stains, and high-traffic commercial grime.",
-      safetyNotes:
-        "Manage runoff, slip hazards, PPE, hot water burns, chemical strength, and local disposal requirements.",
-      instructions:
-        "Pre-scrape heavy debris, apply degreaser, dwell, agitate, hot water wash if available, rinse, repeat, and document remaining deep stains.",
-      purchaseLink: "",
-      costReference:
-        "Commercial degreasing should be premium priced. Consider hourly + chemical cost + disposal/runoff complexity."
     }
   ];
 
@@ -588,82 +514,6 @@ async function seedDefaultTreatments() {
       customerExpectation:
         "Explain that rust may need multiple applications and final results depend on stain depth, surface age, and previous chemical exposure.",
       riskLevel: "High Review"
-    },
-    {
-      treatmentName: "Painted Concrete Warning",
-      title: "Painted Driveway With Stripes After Surface Cleaning",
-      surfaceType: "Painted or coated concrete",
-      conditionLevel: "Damaged / striped",
-      problemType: "Pressure stripes or coating damage",
-      recommendedMix: "Do not continue aggressive pressure. Soft wash only if testing confirms it is safe.",
-      dwellTime: "N/A unless soft washing with mild chemistry.",
-      toolsNeeded: "Camera, test spot supplies, mild cleaner, low-pressure rinse tools.",
-      stepByStep:
-        "1. Stop pressure cleaning. 2. Document the coating/paint condition. 3. Discuss with client. 4. Test mild soft wash in small area only. 5. If coating is damaged, recommend repainting or stripping as a separate scope.",
-      safetyChecklist:
-        "Do not promise standard washing will fix coating damage. Avoid further pressure. Get client approval before any correction attempt.",
-      pricingNote:
-        "Repaint/strip/coating correction is separate from standard flatwork cleaning and should be bid separately.",
-      customerExpectation:
-        "Explain that the surface appears painted/coated and pressure may expose uneven coating or create permanent striping.",
-      riskLevel: "High Review"
-    },
-    {
-      treatmentName: "Standard House Wash",
-      title: "Basic Vinyl Siding Algae House Wash",
-      surfaceType: "Vinyl siding",
-      conditionLevel: "Light to moderate organic growth",
-      problemType: "Algae, mildew, dirt",
-      recommendedMix: "0.5%–1.5% SH on surface with surfactant depending on growth.",
-      dwellTime: "5–10 minutes controlled dwell; do not let dry.",
-      toolsNeeded: "Soft wash system, garden hose, plant protection, brush for small trouble spots.",
-      stepByStep:
-        "1. Inspect siding/oxidation. 2. Pre-wet plants. 3. Apply mix in controlled sections. 4. Let dwell without drying. 5. Rinse thoroughly. 6. Rinse plants/windows again.",
-      safetyChecklist:
-        "Protect outlets, cameras, doorbells, plants, windows, and avoid forcing water behind siding.",
-      pricingNote:
-        "Use house wash pricing minimums and increase for height, heavy growth, access, oxidation, or detached structures.",
-      customerExpectation:
-        "Standard wash removes organic growth and dirt but does not automatically restore oxidation or faded siding.",
-      riskLevel: "Standard"
-    },
-    {
-      treatmentName: "Roof Cleaning Soft Wash",
-      title: "Black Streak Asphalt Shingle Roof",
-      surfaceType: "Asphalt shingles",
-      conditionLevel: "Moderate to heavy organic staining",
-      problemType: "Gloeocapsa magma / black streaks / algae",
-      recommendedMix: "3%–6% roof mix depending on staining, roof material, and company policy.",
-      dwellTime: "Controlled dwell; reapply as needed. Follow roof cleaning workflow.",
-      toolsNeeded: "Soft wash system, PPE, fall protection, plant protection, runoff control, ladder/stabilizer.",
-      stepByStep:
-        "1. Inspect roof and access. 2. Protect plants and control runoff. 3. Apply roof mix from safe position. 4. Allow dwell. 5. Reapply stubborn areas. 6. Rinse only if job scope requires. 7. Final plant rinse/protection.",
-      safetyChecklist:
-        "Fall protection, ladder safety, overspray control, plant protection, runoff control, roof material verification.",
-      pricingNote:
-        "Price separately from house wash. Consider pitch, access, roof size, moss load, chemical cost, and plant protection labor.",
-      customerExpectation:
-        "Some roof treatments continue working after service. Moss/lichen may take time to fully release.",
-      riskLevel: "High Review"
-    },
-    {
-      treatmentName: "Wood Fence / Deck Cleaning",
-      title: "Gray Wood Fence Cleaning And Brightening",
-      surfaceType: "Wood fence",
-      conditionLevel: "Weathered / gray",
-      problemType: "Oxidized gray wood and organic buildup",
-      recommendedMix: "Wood cleaner appropriate to condition, followed by oxalic brightener when needed.",
-      dwellTime: "Depends on product and wood condition. Do not let product dry.",
-      toolsNeeded: "Pump sprayer or soft wash, low-pressure rinse, brush, oxalic brightener, PPE.",
-      stepByStep:
-        "1. Test area. 2. Apply wood cleaner. 3. Allow controlled dwell. 4. Rinse gently with low pressure. 5. Apply oxalic brightener if needed. 6. Rinse and allow to dry.",
-      safetyChecklist:
-        "Avoid high pressure, document existing damage, protect plants, manage fuzzing, and do not promise stain/sealer results unless included.",
-      pricingNote:
-        "Wood restoration is specialty work. Price by linear feet/square footage, condition, and whether brightening/staining/sealing is included.",
-      customerExpectation:
-        "Wood color may vary after cleaning based on age, prior coatings, sun exposure, and damage.",
-      riskLevel: "Moderate"
     }
   ];
 
@@ -725,6 +575,88 @@ router.get("/", async (req, res) => {
   }
 });
 
+router.post("/upload", async (req, res) => {
+  try {
+    await ensureTreatmentsTable();
+
+    const mode = String(req.body?.mode || "upsert").trim();
+    const items = Array.isArray(req.body?.treatments) ? req.body.treatments : [];
+
+    if (items.length === 0) {
+      return res.status(400).json({
+        message: "No treatments were provided for upload."
+      });
+    }
+
+    if (items.length > 500) {
+      return res.status(400).json({
+        message: "Upload limit is 500 treatments at a time."
+      });
+    }
+
+    const imported: TreatmentRow[] = [];
+    const skipped: Array<{ index: number; reason: string }> = [];
+
+    for (let index = 0; index < items.length; index += 1) {
+      const normalized = normalizeUploadItem(items[index]);
+
+      if (!normalized.name) {
+        skipped.push({
+          index,
+          reason: "Missing treatment name."
+        });
+        continue;
+      }
+
+      if (mode === "create-only") {
+        const exists = await pool.query<{ id: string }>(
+          `
+            SELECT id
+            FROM treatments
+            WHERE LOWER(name) = LOWER($1)
+              AND LOWER(category) = LOWER($2)
+            LIMIT 1;
+          `,
+          [normalized.name, normalized.category]
+        );
+
+        if (exists.rows.length > 0) {
+          skipped.push({
+            index,
+            reason: `Duplicate skipped: ${normalized.name}`
+          });
+          continue;
+        }
+      }
+
+      const saved = await upsertTreatment(normalized);
+      imported.push(saved);
+    }
+
+    const result = await pool.query<TreatmentRow>(
+      `
+        SELECT *
+        FROM treatments
+        ORDER BY category ASC, name ASC;
+      `
+    );
+
+    return res.json({
+      message: `Treatment upload complete. Imported ${imported.length}. Skipped ${skipped.length}.`,
+      importedCount: imported.length,
+      skippedCount: skipped.length,
+      skipped,
+      treatments: result.rows.map(mapTreatment)
+    });
+  } catch (err) {
+    console.error("Upload treatments error:", err);
+
+    return res.status(500).json({
+      message: err instanceof Error ? err.message : "Failed to upload treatments."
+    });
+  }
+});
+
 router.post("/seed", async (_req, res) => {
   try {
     await seedDefaultTreatments();
@@ -763,44 +695,9 @@ router.post("/seed", async (_req, res) => {
   }
 });
 
-router.get("/cases", async (req, res) => {
+router.get("/cases", async (_req, res) => {
   try {
     await ensureTreatmentsTable();
-
-    const search = String(req.query.search || "").trim();
-    const treatmentId = String(req.query.treatmentId || "").trim();
-    const riskLevel = String(req.query.riskLevel || "").trim();
-
-    const params: string[] = [];
-    const where: string[] = [];
-
-    if (search) {
-      params.push(`%${search.toLowerCase()}%`);
-      where.push(`
-        (
-          LOWER(tc.title) LIKE $${params.length}
-          OR LOWER(COALESCE(tc.surface_type, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(tc.condition_level, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(tc.problem_type, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(tc.recommended_mix, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(tc.step_by_step, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(tc.safety_checklist, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(tc.pricing_note, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(tc.customer_expectation, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(t.name, '')) LIKE $${params.length}
-        )
-      `);
-    }
-
-    if (treatmentId && treatmentId !== "all") {
-      params.push(treatmentId);
-      where.push(`tc.treatment_id = $${params.length}`);
-    }
-
-    if (riskLevel && riskLevel !== "all") {
-      params.push(riskLevel.toLowerCase());
-      where.push(`LOWER(tc.risk_level) = $${params.length}`);
-    }
 
     const result = await pool.query<TreatmentCaseRow>(
       `
@@ -810,7 +707,6 @@ router.get("/cases", async (req, res) => {
           t.category AS treatment_category
         FROM treatment_cases tc
         LEFT JOIN treatments t ON t.id = tc.treatment_id
-        ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
         ORDER BY
           CASE
             WHEN LOWER(tc.risk_level) = 'high review' THEN 1
@@ -818,8 +714,7 @@ router.get("/cases", async (req, res) => {
             ELSE 3
           END,
           tc.title ASC;
-      `,
-      params
+      `
     );
 
     return res.json({
@@ -947,12 +842,6 @@ router.delete("/plans/:id", async (req, res) => {
 
     const id = String(req.params.id || "").trim();
 
-    if (!id) {
-      return res.status(400).json({
-        message: "Treatment plan ID is required."
-      });
-    }
-
     const result = await pool.query(
       `
         DELETE FROM treatment_plans
@@ -980,269 +869,22 @@ router.delete("/plans/:id", async (req, res) => {
   }
 });
 
-router.post("/cases", async (req, res) => {
-  try {
-    await ensureTreatmentsTable();
-
-    const title = String(req.body?.title || "").trim();
-
-    if (!title) {
-      return res.status(400).json({
-        message: "Case title is required."
-      });
-    }
-
-    const treatmentId = String(req.body?.treatmentId || "").trim() || null;
-
-    const result = await pool.query<TreatmentCaseRow>(
-      `
-        INSERT INTO treatment_cases (
-          treatment_id,
-          title,
-          surface_type,
-          condition_level,
-          problem_type,
-          recommended_mix,
-          dwell_time,
-          tools_needed,
-          step_by_step,
-          safety_checklist,
-          pricing_note,
-          customer_expectation,
-          risk_level,
-          updated_at
-        )
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,NOW())
-        RETURNING *;
-      `,
-      [
-        treatmentId,
-        title,
-        String(req.body?.surfaceType || "").trim() || null,
-        String(req.body?.conditionLevel || "").trim() || null,
-        String(req.body?.problemType || "").trim() || null,
-        String(req.body?.recommendedMix || "").trim() || null,
-        String(req.body?.dwellTime || "").trim() || null,
-        String(req.body?.toolsNeeded || "").trim() || null,
-        String(req.body?.stepByStep || "").trim() || null,
-        String(req.body?.safetyChecklist || "").trim() || null,
-        String(req.body?.pricingNote || "").trim() || null,
-        String(req.body?.customerExpectation || "").trim() || null,
-        String(req.body?.riskLevel || "Standard").trim() || "Standard"
-      ]
-    );
-
-    const joinedResult = await pool.query<TreatmentCaseRow>(
-      `
-        SELECT
-          tc.*,
-          t.name AS treatment_name,
-          t.category AS treatment_category
-        FROM treatment_cases tc
-        LEFT JOIN treatments t ON t.id = tc.treatment_id
-        WHERE tc.id = $1
-        LIMIT 1;
-      `,
-      [result.rows[0].id]
-    );
-
-    return res.status(201).json({
-      case: mapTreatmentCase(joinedResult.rows[0])
-    });
-  } catch (err) {
-    console.error("Create treatment case error:", err);
-
-    return res.status(500).json({
-      message: err instanceof Error ? err.message : "Failed to create treatment case."
-    });
-  }
-});
-
-router.patch("/cases/:id", async (req, res) => {
-  try {
-    await ensureTreatmentsTable();
-
-    const id = String(req.params.id || "").trim();
-    const title = String(req.body?.title || "").trim();
-
-    if (!id) {
-      return res.status(400).json({
-        message: "Case ID is required."
-      });
-    }
-
-    if (!title) {
-      return res.status(400).json({
-        message: "Case title is required."
-      });
-    }
-
-    const treatmentId = String(req.body?.treatmentId || "").trim() || null;
-
-    const result = await pool.query<TreatmentCaseRow>(
-      `
-        UPDATE treatment_cases
-        SET
-          treatment_id = $2,
-          title = $3,
-          surface_type = $4,
-          condition_level = $5,
-          problem_type = $6,
-          recommended_mix = $7,
-          dwell_time = $8,
-          tools_needed = $9,
-          step_by_step = $10,
-          safety_checklist = $11,
-          pricing_note = $12,
-          customer_expectation = $13,
-          risk_level = $14,
-          updated_at = NOW()
-        WHERE id = $1
-        RETURNING *;
-      `,
-      [
-        id,
-        treatmentId,
-        title,
-        String(req.body?.surfaceType || "").trim() || null,
-        String(req.body?.conditionLevel || "").trim() || null,
-        String(req.body?.problemType || "").trim() || null,
-        String(req.body?.recommendedMix || "").trim() || null,
-        String(req.body?.dwellTime || "").trim() || null,
-        String(req.body?.toolsNeeded || "").trim() || null,
-        String(req.body?.stepByStep || "").trim() || null,
-        String(req.body?.safetyChecklist || "").trim() || null,
-        String(req.body?.pricingNote || "").trim() || null,
-        String(req.body?.customerExpectation || "").trim() || null,
-        String(req.body?.riskLevel || "Standard").trim() || "Standard"
-      ]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        message: "Treatment case not found."
-      });
-    }
-
-    const joinedResult = await pool.query<TreatmentCaseRow>(
-      `
-        SELECT
-          tc.*,
-          t.name AS treatment_name,
-          t.category AS treatment_category
-        FROM treatment_cases tc
-        LEFT JOIN treatments t ON t.id = tc.treatment_id
-        WHERE tc.id = $1
-        LIMIT 1;
-      `,
-      [id]
-    );
-
-    return res.json({
-      case: mapTreatmentCase(joinedResult.rows[0])
-    });
-  } catch (err) {
-    console.error("Update treatment case error:", err);
-
-    return res.status(500).json({
-      message: err instanceof Error ? err.message : "Failed to update treatment case."
-    });
-  }
-});
-
-router.delete("/cases/:id", async (req, res) => {
-  try {
-    await ensureTreatmentsTable();
-
-    const id = String(req.params.id || "").trim();
-
-    if (!id) {
-      return res.status(400).json({
-        message: "Case ID is required."
-      });
-    }
-
-    const result = await pool.query(
-      `
-        DELETE FROM treatment_cases
-        WHERE id = $1
-        RETURNING id;
-      `,
-      [id]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        message: "Treatment case not found."
-      });
-    }
-
-    return res.json({
-      message: "Treatment case deleted."
-    });
-  } catch (err) {
-    console.error("Delete treatment case error:", err);
-
-    return res.status(500).json({
-      message: err instanceof Error ? err.message : "Failed to delete treatment case."
-    });
-  }
-});
-
 router.post("/", async (req, res) => {
   try {
     await ensureTreatmentsTable();
 
-    const name = String(req.body?.name || "").trim();
-    const category = String(req.body?.category || "General").trim();
+    const normalized = normalizeUploadItem(req.body || {});
 
-    const surfaceTypes = Array.isArray(req.body?.surfaceTypes)
-      ? req.body.surfaceTypes.map((item: unknown) => String(item).trim()).filter(Boolean)
-      : String(req.body?.surfaceTypes || "")
-          .split(",")
-          .map((item) => item.trim())
-          .filter(Boolean);
-
-    if (!name) {
+    if (!normalized.name) {
       return res.status(400).json({
         message: "Treatment name is required."
       });
     }
 
-    const result = await pool.query<TreatmentRow>(
-      `
-        INSERT INTO treatments (
-          name,
-          category,
-          surface_types,
-          chemical,
-          dilution_ratio,
-          use_case,
-          safety_notes,
-          instructions,
-          purchase_link,
-          cost_reference,
-          updated_at
-        )
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW())
-        RETURNING *;
-      `,
-      [
-        name,
-        category || "General",
-        surfaceTypes,
-        String(req.body?.chemical || "").trim() || null,
-        String(req.body?.dilutionRatio || "").trim() || null,
-        String(req.body?.useCase || "").trim() || null,
-        String(req.body?.safetyNotes || "").trim() || null,
-        String(req.body?.instructions || "").trim() || null,
-        String(req.body?.purchaseLink || "").trim() || null,
-        String(req.body?.costReference || "").trim() || null
-      ]
-    );
+    const saved = await upsertTreatment(normalized);
 
     return res.status(201).json({
-      treatment: mapTreatment(result.rows[0])
+      treatment: mapTreatment(saved)
     });
   } catch (err) {
     console.error("Create treatment error:", err);
@@ -1258,15 +900,7 @@ router.patch("/:id", async (req, res) => {
     await ensureTreatmentsTable();
 
     const id = String(req.params.id || "").trim();
-    const name = String(req.body?.name || "").trim();
-    const category = String(req.body?.category || "General").trim();
-
-    const surfaceTypes = Array.isArray(req.body?.surfaceTypes)
-      ? req.body.surfaceTypes.map((item: unknown) => String(item).trim()).filter(Boolean)
-      : String(req.body?.surfaceTypes || "")
-          .split(",")
-          .map((item) => item.trim())
-          .filter(Boolean);
+    const normalized = normalizeUploadItem(req.body || {});
 
     if (!id) {
       return res.status(400).json({
@@ -1274,7 +908,7 @@ router.patch("/:id", async (req, res) => {
       });
     }
 
-    if (!name) {
+    if (!normalized.name) {
       return res.status(400).json({
         message: "Treatment name is required."
       });
@@ -1300,16 +934,16 @@ router.patch("/:id", async (req, res) => {
       `,
       [
         id,
-        name,
-        category || "General",
-        surfaceTypes,
-        String(req.body?.chemical || "").trim() || null,
-        String(req.body?.dilutionRatio || "").trim() || null,
-        String(req.body?.useCase || "").trim() || null,
-        String(req.body?.safetyNotes || "").trim() || null,
-        String(req.body?.instructions || "").trim() || null,
-        String(req.body?.purchaseLink || "").trim() || null,
-        String(req.body?.costReference || "").trim() || null
+        normalized.name,
+        normalized.category,
+        normalized.surfaceTypes,
+        normalized.chemical,
+        normalized.dilutionRatio,
+        normalized.useCase,
+        normalized.safetyNotes,
+        normalized.instructions,
+        normalized.purchaseLink,
+        normalized.costReference
       ]
     );
 
@@ -1336,12 +970,6 @@ router.delete("/:id", async (req, res) => {
     await ensureTreatmentsTable();
 
     const id = String(req.params.id || "").trim();
-
-    if (!id) {
-      return res.status(400).json({
-        message: "Treatment ID is required."
-      });
-    }
 
     const result = await pool.query(
       `
