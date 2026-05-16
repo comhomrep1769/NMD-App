@@ -14,31 +14,29 @@ import {
   type TreatmentForm
 } from "../utils/treatmentHelpers";
 import DilutionCalculator from "../components/treatments/DilutionCalculator";
-import TreatmentCard from "../components/treatments/TreatmentCard";
 import TreatmentDetailPanel from "../components/treatments/TreatmentDetailPanel";
 import TreatmentCasesPanel from "../components/treatments/TreatmentCasesPanel";
 import TreatmentPlanBuilder from "../components/treatments/TreatmentPlanBuilder";
 import SavedTreatmentPlansPanel from "../components/treatments/SavedTreatmentPlansPanel";
 import TreatmentGuruSearchPanel from "../components/treatments/TreatmentGuruSearchPanel";
 import TreatmentFieldModePanel from "../components/treatments/TreatmentFieldModePanel";
+import TreatmentPageTabs from "../components/treatments/TreatmentPageTabs";
+import TreatmentStatsPanel from "../components/treatments/TreatmentStatsPanel";
+import TreatmentSearchPanel from "../components/treatments/TreatmentSearchPanel";
 import type { TreatmentPlan } from "../types/treatmentPlans";
+import type { TreatmentTabKey } from "../types/treatmentUi";
 
 export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
   const adminAccess = isAdminRole(role);
 
   const [treatments, setTreatments] = React.useState<TreatmentItem[]>([]);
+  const [activeTab, setActiveTab] = React.useState<TreatmentTabKey>("guru");
   const [search, setSearch] = React.useState("");
   const [categoryFilter, setCategoryFilter] = React.useState("all");
   const [riskFilter, setRiskFilter] = React.useState("all");
   const [selectedId, setSelectedId] = React.useState<string | null>(null);
   const [form, setForm] = React.useState<TreatmentForm>(emptyTreatmentForm);
   const [showForm, setShowForm] = React.useState(false);
-  const [showGuruSearch, setShowGuruSearch] = React.useState(true);
-  const [showFieldMode, setShowFieldMode] = React.useState(false);
-  const [showCalculator, setShowCalculator] = React.useState(true);
-  const [showCases, setShowCases] = React.useState(true);
-  const [showPlanBuilder, setShowPlanBuilder] = React.useState(false);
-  const [showSavedPlans, setShowSavedPlans] = React.useState(true);
   const [plansRefreshKey, setPlansRefreshKey] = React.useState(0);
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
@@ -96,6 +94,7 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
   const startCreate = () => {
     setForm(emptyTreatmentForm);
     setShowForm(true);
+    setActiveTab("search");
     setError("");
     setSuccess("");
   };
@@ -103,6 +102,7 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
   const startEdit = (treatment: TreatmentItem) => {
     setForm(treatmentToForm(treatment));
     setShowForm(true);
+    setActiveTab("details");
     setError("");
     setSuccess("");
   };
@@ -115,7 +115,7 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
 
   const handlePlanSaved = (_plan: TreatmentPlan) => {
     setPlansRefreshKey((prev) => prev + 1);
-    setShowSavedPlans(true);
+    setActiveTab("saved");
   };
 
   const seedTreatments = async () => {
@@ -224,20 +224,11 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
       setTreatments((prev) => prev.filter((item) => item.id !== treatment.id));
       setSelectedId(null);
       setSuccess("Treatment deleted.");
+      setActiveTab("search");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete treatment.");
     }
   };
-
-  const highRiskCount = treatments.filter(
-    (treatment) => getTreatmentRiskLevel(treatment) === "High Review"
-  ).length;
-
-  const specialtyCount = treatments.filter((treatment) =>
-    ["Specialty Restoration", "Risk / Liability", "Commercial", "Stain Removal"].includes(
-      treatment.category
-    )
-  ).length;
 
   if (loading) {
     return (
@@ -280,49 +271,9 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
             <button
               className="secondaryButton"
               type="button"
-              onClick={() => setShowGuruSearch((prev) => !prev)}
+              onClick={() => setActiveTab("planner")}
             >
-              {showGuruSearch ? "Hide Guru Search" : "Guru Search"}
-            </button>
-
-            <button
-              className="secondaryButton"
-              type="button"
-              onClick={() => setShowFieldMode((prev) => !prev)}
-            >
-              {showFieldMode ? "Hide Field Mode" : "Field Mode"}
-            </button>
-
-            <button
-              className="secondaryButton"
-              type="button"
-              onClick={() => setShowPlanBuilder((prev) => !prev)}
-            >
-              {showPlanBuilder ? "Hide Plan Builder" : "Plan Builder"}
-            </button>
-
-            <button
-              className="secondaryButton"
-              type="button"
-              onClick={() => setShowSavedPlans((prev) => !prev)}
-            >
-              {showSavedPlans ? "Hide Saved Plans" : "Saved Plans"}
-            </button>
-
-            <button
-              className="secondaryButton"
-              type="button"
-              onClick={() => setShowCalculator((prev) => !prev)}
-            >
-              {showCalculator ? "Hide Calculator" : "Show Calculator"}
-            </button>
-
-            <button
-              className="secondaryButton"
-              type="button"
-              onClick={() => setShowCases((prev) => !prev)}
-            >
-              {showCases ? "Hide Cases" : "Show Cases"}
+              Plan Builder
             </button>
 
             <button
@@ -340,69 +291,14 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
 
         {success && <div className="listCard">{success}</div>}
 
-        <div className="statsGrid" style={{ marginTop: 16 }}>
-          <div className="statCard">
-            <div className="statLabel">Treatments</div>
-            <div className="statValue">{treatments.length}</div>
-          </div>
-
-          <div className="statCard">
-            <div className="statLabel">Categories</div>
-            <div className="statValue">{categories.length}</div>
-          </div>
-
-          <div className="statCard">
-            <div className="statLabel">Visible</div>
-            <div className="statValue">{visibleTreatments.length}</div>
-          </div>
-
-          <div className="statCard">
-            <div className="statLabel">High Review</div>
-            <div className="statValue">{highRiskCount}</div>
-          </div>
-
-          <div className="statCard">
-            <div className="statLabel">Specialty</div>
-            <div className="statValue">{specialtyCount}</div>
-          </div>
-
-          <div className="statCard">
-            <div className="statLabel">Access</div>
-            <div className="statValue" style={{ fontSize: 18 }}>
-              {adminAccess ? "Manage" : "View"}
-            </div>
-          </div>
-        </div>
+        <TreatmentStatsPanel
+          treatments={treatments}
+          visibleTreatments={visibleTreatments}
+          adminAccess={adminAccess}
+        />
       </section>
 
-      {showGuruSearch && <TreatmentGuruSearchPanel />}
-
-      {showFieldMode && (
-        <TreatmentFieldModePanel
-          selectedTreatment={selectedTreatment}
-          onClose={() => setShowFieldMode(false)}
-        />
-      )}
-
-      {showPlanBuilder && (
-        <TreatmentPlanBuilder
-          treatments={treatments}
-          selectedTreatmentId={selectedTreatment?.id || null}
-          onClose={() => setShowPlanBuilder(false)}
-          onPlanSaved={handlePlanSaved}
-        />
-      )}
-
-      {showSavedPlans && (
-        <SavedTreatmentPlansPanel
-          treatments={treatments}
-          casesRefreshKey={plansRefreshKey}
-        />
-      )}
-
-      {showCalculator && (
-        <DilutionCalculator onClose={() => setShowCalculator(false)} />
-      )}
+      <TreatmentPageTabs activeTab={activeTab} onChange={setActiveTab} />
 
       {showForm && adminAccess && (
         <section className="panel">
@@ -539,66 +435,31 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
         </section>
       )}
 
-      <section className="panel">
-        <div className="panelHeader">
-          <div>
-            <h2 className="panelTitle">Search Treatments</h2>
-            <p className="brandSubtitle">
-              Filter by category, surface, chemical, stain type, risk level, or safety concern.
-            </p>
-          </div>
-        </div>
+      {activeTab === "guru" && <TreatmentGuruSearchPanel />}
 
-        <div className="formGrid">
-          <input
-            className="textInput"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search: roof, rust, concrete, SH, oxidation, plants..."
-          />
+      {activeTab === "field" && (
+        <TreatmentFieldModePanel
+          selectedTreatment={selectedTreatment}
+          onClose={() => setActiveTab("search")}
+        />
+      )}
 
-          <select
-            className="textInput"
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-          >
-            <option value="all">All Categories</option>
-            {categories.map((category) => (
-              <option key={category} value={category}>
-                {category}
-              </option>
-            ))}
-          </select>
+      {activeTab === "search" && (
+        <TreatmentSearchPanel
+          search={search}
+          setSearch={setSearch}
+          categoryFilter={categoryFilter}
+          setCategoryFilter={setCategoryFilter}
+          riskFilter={riskFilter}
+          setRiskFilter={setRiskFilter}
+          categories={categories}
+          visibleTreatments={visibleTreatments}
+          selectedTreatment={selectedTreatment}
+          setSelectedId={setSelectedId}
+        />
+      )}
 
-          <select
-            className="textInput"
-            value={riskFilter}
-            onChange={(e) => setRiskFilter(e.target.value)}
-          >
-            <option value="all">All Risk Levels</option>
-            <option value="Standard">Standard</option>
-            <option value="Moderate">Moderate</option>
-            <option value="High Review">High Review</option>
-          </select>
-        </div>
-
-        <div className="cardsGrid" style={{ marginTop: 16 }}>
-          {visibleTreatments.map((treatment) => (
-            <TreatmentCard
-              key={treatment.id}
-              treatment={treatment}
-              active={selectedTreatment?.id === treatment.id}
-              onSelect={() => setSelectedId(treatment.id)}
-            />
-          ))}
-
-          {visibleTreatments.length === 0 && (
-            <div className="listCard">No treatments found for this search/filter.</div>
-          )}
-        </div>
-      </section>
-
-      {selectedTreatment && (
+      {activeTab === "details" && selectedTreatment && (
         <TreatmentDetailPanel
           treatment={selectedTreatment}
           adminAccess={adminAccess}
@@ -607,11 +468,38 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
         />
       )}
 
-      {showCases && (
+      {activeTab === "details" && !selectedTreatment && (
+        <section className="panel">
+          <h2 className="panelTitle">Treatment Details</h2>
+          <div className="listCard">Select a treatment first.</div>
+        </section>
+      )}
+
+      {activeTab === "calculator" && (
+        <DilutionCalculator onClose={() => setActiveTab("search")} />
+      )}
+
+      {activeTab === "cases" && (
         <TreatmentCasesPanel
           treatments={treatments}
           selectedTreatmentId={selectedTreatment?.id || null}
           adminAccess={adminAccess}
+        />
+      )}
+
+      {activeTab === "planner" && (
+        <TreatmentPlanBuilder
+          treatments={treatments}
+          selectedTreatmentId={selectedTreatment?.id || null}
+          onClose={() => setActiveTab("search")}
+          onPlanSaved={handlePlanSaved}
+        />
+      )}
+
+      {activeTab === "saved" && (
+        <SavedTreatmentPlansPanel
+          treatments={treatments}
+          casesRefreshKey={plansRefreshKey}
         />
       )}
     </div>
