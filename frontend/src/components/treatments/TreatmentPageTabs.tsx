@@ -72,7 +72,8 @@ export default function TreatmentPageTabs({
         <div>
           <h2 className="panelTitle">Treatment Workspace</h2>
           <p className="brandSubtitle">
-            Use tabs to move between Guru search, uploads, field tools, saved plans, cases, and treatment records.
+            Use tabs to move between Guru search, uploads, field tools, saved plans,
+            cases, and treatment records.
           </p>
         </div>
       </div>
