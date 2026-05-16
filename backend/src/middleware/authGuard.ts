@@ -11,7 +11,7 @@ export type AuthPayload = {
 };
 
 export type AuthenticatedRequest = Request & {
-  user?: AuthPayload;
+  authUser?: AuthPayload;
 };
 
 function getJwtSecret() {
@@ -35,9 +35,11 @@ function getBearerToken(req: Request) {
 }
 
 function normalizeRole(value: unknown): UserRole {
-  if (value === "superadmin") return "superadmin";
-  if (value === "admin") return "admin";
-  if (value === "employee") return "employee";
+  const role = String(value || "").toLowerCase();
+
+  if (role === "superadmin") return "superadmin";
+  if (role === "admin") return "admin";
+  if (role === "employee") return "employee";
   return "client";
 }
 
@@ -51,11 +53,13 @@ function normalizeAuthPayload(value: unknown): AuthPayload {
     name?: unknown;
   };
 
+  const email = String(raw.email || "");
+
   return {
     id: String(raw.id || ""),
-    email: String(raw.email || ""),
+    email,
     role: normalizeRole(raw.role),
-    displayName: String(raw.displayName || raw.display_name || raw.name || raw.email || "")
+    displayName: String(raw.displayName || raw.display_name || raw.name || email || "")
   };
 }
 
@@ -81,7 +85,8 @@ export function requireAuth(
       });
     }
 
-    req.user = decoded;
+    req.authUser = decoded;
+
     return next();
   } catch (err) {
     return res.status(401).json({
@@ -96,7 +101,7 @@ export function requireAdmin(
   next: NextFunction
 ) {
   requireAuth(req, res, () => {
-    const role = String(req.user?.role || "");
+    const role = String(req.authUser?.role || "");
 
     if (role !== "superadmin" && role !== "admin") {
       return res.status(403).json({
@@ -109,6 +114,10 @@ export function requireAdmin(
 }
 
 export function isAdminRole(role: unknown) {
-  const value = String(role || "");
+  const value = String(role || "").toLowerCase();
   return value === "superadmin" || value === "admin";
+}
+
+export function getAuthUser(req: AuthenticatedRequest) {
+  return req.authUser || null;
 }
