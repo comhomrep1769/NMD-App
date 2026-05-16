@@ -25,6 +25,10 @@ export function buildTreatmentPlanText(input: {
   treatments: TreatmentItem[];
   cases: TreatmentCase[];
 }) {
+  if (input.plan.planText && input.treatments.length === 0 && input.cases.length === 0) {
+    return input.plan.planText;
+  }
+
   const lines: string[] = [];
 
   lines.push("NMD TREATMENT PLAN");
