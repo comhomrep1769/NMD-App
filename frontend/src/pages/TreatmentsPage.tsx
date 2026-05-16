@@ -26,6 +26,8 @@ import TreatmentSearchPanel from "../components/treatments/TreatmentSearchPanel"
 import TreatmentQuickActions from "../components/treatments/TreatmentQuickActions";
 import TreatmentCategorySidebar from "../components/treatments/TreatmentCategorySidebar";
 import TreatmentMobileJumpBar from "../components/treatments/TreatmentMobileJumpBar";
+import TreatmentFormPanel from "../components/treatments/TreatmentFormPanel";
+import TreatmentWorkspaceLayout from "../components/treatments/TreatmentWorkspaceLayout";
 import type { TreatmentPlan } from "../types/treatmentPlans";
 import type { TreatmentTabKey } from "../types/treatmentUi";
 
@@ -313,15 +315,9 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
 
       <TreatmentPageTabs activeTab={activeTab} onChange={setActiveTab} />
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: showFilters ? "minmax(240px, 320px) minmax(0, 1fr)" : "1fr",
-          gap: 18,
-          alignItems: "start"
-        }}
-      >
-        {showFilters && (
+      <TreatmentWorkspaceLayout
+        showFilters={showFilters}
+        filters={
           <TreatmentCategorySidebar
             treatments={treatments}
             selectedCategory={categoryFilter}
@@ -329,142 +325,17 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
             onCategoryChange={handleCategoryChange}
             onRiskChange={handleRiskChange}
           />
-        )}
-
+        }
+      >
         <div className="pageGrid">
           {showForm && adminAccess && (
-            <section className="panel">
-              <div className="panelHeader">
-                <div>
-                  <h2 className="panelTitle">
-                    {form.id ? "Edit Treatment" : "Add Treatment"}
-                  </h2>
-                  <p className="brandSubtitle">
-                    Admin/Super Admin can manage treatment records used by employees and Guru.
-                  </p>
-                </div>
-
-                <button className="secondaryButton" type="button" onClick={cancelForm}>
-                  Cancel
-                </button>
-              </div>
-
-              <form className="formGrid" onSubmit={saveTreatment}>
-                <label className="fieldLabel">
-                  Treatment Name
-                  <input
-                    className="textInput"
-                    value={form.name}
-                    onChange={(e) => updateForm("name", e.target.value)}
-                    placeholder="Example: Rust Stain Removal"
-                  />
-                </label>
-
-                <label className="fieldLabel">
-                  Category
-                  <input
-                    className="textInput"
-                    value={form.category}
-                    onChange={(e) => updateForm("category", e.target.value)}
-                    placeholder="Example: Specialty Restoration"
-                  />
-                </label>
-
-                <label className="fieldLabel">
-                  Surface Types
-                  <input
-                    className="textInput"
-                    value={form.surfaceTypes}
-                    onChange={(e) => updateForm("surfaceTypes", e.target.value)}
-                    placeholder="Comma separated: concrete, pavers, stucco"
-                  />
-                </label>
-
-                <label className="fieldLabel">
-                  Chemical / Product
-                  <input
-                    className="textInput"
-                    value={form.chemical}
-                    onChange={(e) => updateForm("chemical", e.target.value)}
-                    placeholder="Example: F9 BARC, oxalic acid, SH"
-                  />
-                </label>
-
-                <label className="fieldLabel">
-                  Dilution Ratio
-                  <input
-                    className="textInput"
-                    value={form.dilutionRatio}
-                    onChange={(e) => updateForm("dilutionRatio", e.target.value)}
-                    placeholder="Example: 6–8 oz per gallon"
-                  />
-                </label>
-
-                <label className="fieldLabel">
-                  Use Case
-                  <textarea
-                    className="textInput"
-                    rows={3}
-                    value={form.useCase}
-                    onChange={(e) => updateForm("useCase", e.target.value)}
-                    placeholder="What problem does this treatment solve?"
-                  />
-                </label>
-
-                <label className="fieldLabel">
-                  Safety Notes
-                  <textarea
-                    className="textInput"
-                    rows={3}
-                    value={form.safetyNotes}
-                    onChange={(e) => updateForm("safetyNotes", e.target.value)}
-                    placeholder="PPE, plant protection, runoff, customer expectation notes..."
-                  />
-                </label>
-
-                <label className="fieldLabel">
-                  Instructions
-                  <textarea
-                    className="textInput"
-                    rows={4}
-                    value={form.instructions}
-                    onChange={(e) => updateForm("instructions", e.target.value)}
-                    placeholder="Step-by-step field workflow..."
-                  />
-                </label>
-
-                <label className="fieldLabel">
-                  Purchase Link Optional
-                  <input
-                    className="textInput"
-                    value={form.purchaseLink}
-                    onChange={(e) => updateForm("purchaseLink", e.target.value)}
-                    placeholder="https://..."
-                  />
-                </label>
-
-                <label className="fieldLabel">
-                  Cost / Pricing Reference
-                  <textarea
-                    className="textInput"
-                    rows={3}
-                    value={form.costReference}
-                    onChange={(e) => updateForm("costReference", e.target.value)}
-                    placeholder="Material cost, pricing note, add-on guidance..."
-                  />
-                </label>
-
-                <div className="buttonRow">
-                  <button className="primaryButton" type="submit" disabled={saving}>
-                    {saving ? "Saving..." : form.id ? "Save Treatment" : "Create Treatment"}
-                  </button>
-
-                  <button className="secondaryButton" type="button" onClick={cancelForm}>
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </section>
+            <TreatmentFormPanel
+              form={form}
+              saving={saving}
+              onChange={updateForm}
+              onSubmit={saveTreatment}
+              onCancel={cancelForm}
+            />
           )}
 
           {activeTab === "guru" && <TreatmentGuruSearchPanel />}
@@ -535,7 +406,7 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
             />
           )}
         </div>
-      </div>
+      </TreatmentWorkspaceLayout>
     </div>
   );
 }
