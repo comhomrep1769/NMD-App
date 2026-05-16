@@ -71,7 +71,9 @@ export default function TreatmentUploadHubPanel({
         >
           <div className="quoteTopRow">
             <div className="quoteNumber">Upload Treatment Cases</div>
-            <span className="statusBadge status-pending_admin_approval">Case Workflows</span>
+            <span className="statusBadge status-pending_admin_approval">
+              Case Workflows
+            </span>
           </div>
 
           <div className="cardLine">
@@ -91,9 +93,9 @@ export default function TreatmentUploadHubPanel({
       </div>
 
       <div className="errorBox" style={{ marginTop: 16 }}>
-        Uploads are meant for structured treatment knowledge. Advanced Guru auto-ingestion from
-        screenshots, PDFs, and raw community posts should stay reserved for the later Super Admin
-        knowledge-ingestion phase.
+        Uploads are for structured treatment knowledge only. Advanced Guru auto-ingestion
+        from screenshots, PDFs, raw notes, and community posts should stay reserved for the
+        later Super Admin knowledge-ingestion phase.
       </div>
     </section>
   );
