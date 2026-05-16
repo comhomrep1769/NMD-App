@@ -29,6 +29,8 @@ import TreatmentMobileJumpBar from "../components/treatments/TreatmentMobileJump
 import TreatmentFormPanel from "../components/treatments/TreatmentFormPanel";
 import TreatmentWorkspaceLayout from "../components/treatments/TreatmentWorkspaceLayout";
 import TreatmentUploadPanel from "../components/treatments/TreatmentUploadPanel";
+import TreatmentCaseUploadPanel from "../components/treatments/TreatmentCaseUploadPanel";
+import TreatmentUploadHubPanel from "../components/treatments/TreatmentUploadHubPanel";
 import type { TreatmentPlan } from "../types/treatmentPlans";
 import type { TreatmentTabKey } from "../types/treatmentUi";
 
@@ -45,6 +47,7 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
   const [showForm, setShowForm] = React.useState(false);
   const [showFilters, setShowFilters] = React.useState(true);
   const [plansRefreshKey, setPlansRefreshKey] = React.useState(0);
+  const [casesRefreshKey, setCasesRefreshKey] = React.useState(0);
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [seeding, setSeeding] = React.useState(false);
@@ -131,6 +134,12 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
     setActiveTab("search");
   };
 
+  const handleCasesUploaded = (message: string) => {
+    setSuccess(message);
+    setCasesRefreshKey((prev) => prev + 1);
+    setActiveTab("cases");
+  };
+
   const seedTreatments = async () => {
     setError("");
     setSuccess("");
@@ -145,6 +154,7 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
       });
 
       setTreatments((data.treatments || []).map(normalizeTreatment));
+      setCasesRefreshKey((prev) => prev + 1);
       setSuccess(data.message || "Treatment database seeded.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to seed treatments.");
@@ -354,6 +364,21 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
             />
           )}
 
+          {activeTab === "uploadCases" && (
+            <TreatmentCaseUploadPanel
+              adminAccess={adminAccess}
+              onUploaded={handleCasesUploaded}
+            />
+          )}
+
+          {activeTab === "uploadHub" && (
+            <TreatmentUploadHubPanel
+              adminAccess={adminAccess}
+              onOpenTreatmentUpload={() => setActiveTab("upload")}
+              onOpenCaseUpload={() => setActiveTab("uploadCases")}
+            />
+          )}
+
           {activeTab === "field" && (
             <TreatmentFieldModePanel
               selectedTreatment={selectedTreatment}
@@ -398,6 +423,7 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
 
           {activeTab === "cases" && (
             <TreatmentCasesPanel
+              key={`cases-${casesRefreshKey}`}
               treatments={treatments}
               selectedTreatmentId={selectedTreatment?.id || null}
               adminAccess={adminAccess}
@@ -416,7 +442,7 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
           {activeTab === "saved" && (
             <SavedTreatmentPlansPanel
               treatments={treatments}
-              casesRefreshKey={plansRefreshKey}
+              casesRefreshKey={plansRefreshKey + casesRefreshKey}
             />
           )}
         </div>
