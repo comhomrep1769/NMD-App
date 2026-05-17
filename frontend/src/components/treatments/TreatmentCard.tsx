@@ -1,9 +1,27 @@
 import React from "react";
 import type { TreatmentItem } from "../../types";
-import {
-  getRiskBadgeClass,
-  getTreatmentRiskLevel
-} from "../../utils/treatmentHelpers";
+import { getTreatmentRiskLevel } from "../../utils/treatmentHelpers";
+
+function riskBadgeClass(riskLevel: string) {
+  if (riskLevel === "High Review") return "statusBadge status-pending_admin_approval";
+  if (riskLevel === "Moderate") return "statusBadge status-approved";
+  return "statusBadge status-paid";
+}
+
+function formatSurfaces(surfaces: string[] | null | undefined) {
+  if (!surfaces || surfaces.length === 0) return "No surfaces listed";
+  return surfaces.join(", ");
+}
+
+function shortText(value: string | null | undefined, fallback = "No details added yet.") {
+  const text = String(value || "").trim();
+
+  if (!text) return fallback;
+
+  if (text.length <= 155) return text;
+
+  return `${text.slice(0, 155).trim()}...`;
+}
 
 export default function TreatmentCard({
   treatment,
@@ -14,7 +32,7 @@ export default function TreatmentCard({
   active: boolean;
   onSelect: () => void;
 }) {
-  const risk = getTreatmentRiskLevel(treatment);
+  const riskLevel = getTreatmentRiskLevel(treatment);
 
   return (
     <button
@@ -24,31 +42,47 @@ export default function TreatmentCard({
       style={{
         textAlign: "left",
         cursor: "pointer",
-        borderColor: active ? "rgba(56, 189, 248, 0.7)" : undefined
+        borderColor: active ? "rgba(37, 99, 235, 0.75)" : undefined,
+        boxShadow: active ? "0 18px 42px rgba(37, 99, 235, 0.18)" : undefined
       }}
     >
       <div className="quoteTopRow">
-        <div className="quoteNumber">{treatment.name}</div>
-        <span className="statusBadge status-approved">
-          {treatment.category || "General"}
+        <div>
+          <div className="quoteNumber">{treatment.name || "Untitled Treatment"}</div>
+          <div className="cardLine">
+            <strong>Category:</strong> {treatment.category || "General"}
+          </div>
+        </div>
+
+        <span className={riskBadgeClass(riskLevel)}>{riskLevel}</span>
+      </div>
+
+      <div className="cardLine">
+        <strong>Surfaces:</strong> {formatSurfaces(treatment.surfaceTypes)}
+      </div>
+
+      <div className="cardLine">
+        <strong>Chemical:</strong> {treatment.chemical || "Not listed"}
+      </div>
+
+      <div className="cardLine">
+        <strong>Dilution:</strong> {treatment.dilutionRatio || "Not listed"}
+      </div>
+
+      <div className="assignBox" style={{ marginTop: 12 }}>
+        <div className="assignTitle">Use Case</div>
+        <div className="cardLine">{shortText(treatment.useCase)}</div>
+      </div>
+
+      <div className="assignBox">
+        <div className="assignTitle">Safety</div>
+        <div className="cardLine">{shortText(treatment.safetyNotes)}</div>
+      </div>
+
+      <div className="buttonRow" style={{ marginTop: 12 }}>
+        <span className={active ? "primaryButton" : "secondaryButton"}>
+          {active ? "Selected" : "Open Details"}
         </span>
-      </div>
-
-      <div className="buttonRow" style={{ marginBottom: 8 }}>
-        <span className={getRiskBadgeClass(risk)}>{risk}</span>
-      </div>
-
-      <div className="cardLine">
-        <strong>Chemical:</strong> {treatment.chemical || "—"}
-      </div>
-
-      <div className="cardLine">
-        <strong>Dilution:</strong> {treatment.dilutionRatio || "—"}
-      </div>
-
-      <div className="cardLine">
-        <strong>Surfaces:</strong>{" "}
-        {treatment.surfaceTypes?.length ? treatment.surfaceTypes.join(", ") : "—"}
       </div>
     </button>
   );
