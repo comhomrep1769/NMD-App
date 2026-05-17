@@ -1,59 +1,69 @@
 import React from "react";
-import type { AuthUser, ThemeMode } from "../types";
-import { getRoleLabel } from "../utils/roles";
+import type { AuthUserRole } from "../types";
 
-function roleBadgeClass(user: AuthUser | null) {
-  if (!user) return "statusBadge status-archived";
-  if (user.role === "superadmin") return "statusBadge status-paid";
-  if (user.role === "admin") return "statusBadge status-approved";
-  if (user.role === "employee") return "statusBadge status-pending_admin_approval";
-  return "statusBadge status-approved";
-}
+type HeaderProps = {
+  title?: string;
+  subtitle?: string;
+  role?: AuthUserRole | string;
+  user?: {
+    displayName?: string;
+    email?: string;
+    role?: AuthUserRole | string;
+  } | null;
+  onLogout?: () => void;
+};
 
-function headerTitle(user: AuthUser | null) {
-  if (!user) return "No More Dirt";
-  if (user.role === "superadmin") return "Owner Command Center";
-  if (user.role === "admin") return "Admin Command Center";
-  if (user.role === "employee") return "Employee Portal";
-  return "Client Portal";
+function formatRole(role?: string) {
+  const value = String(role || "").toLowerCase();
+
+  if (value === "superadmin" || value === "super_admin" || value === "super-admin") {
+    return "Super Admin";
+  }
+
+  if (value === "admin") return "Admin";
+  if (value === "employee") return "Employee";
+  if (value === "client") return "Client";
+
+  return "NMD";
 }
 
 export default function Header({
-  theme,
-  onToggleTheme,
+  title = "NMD Pressure Washing",
+  subtitle = "No More Dirt operations center",
+  role = "admin",
   user,
   onLogout
-}: {
-  theme: ThemeMode;
-  onToggleTheme: () => void;
-  user: AuthUser | null;
-  onLogout: () => void;
-}) {
+}: HeaderProps) {
+  const displayName = user?.displayName || user?.email || "NMD User";
+  const roleLabel = formatRole(String(role || user?.role || "admin"));
+
   return (
-    <header className="topHeader">
-      <div>
-        <div className="headerKicker">NMD Pressure Washing Services</div>
-        <h1 className="headerTitle">{headerTitle(user)}</h1>
+    <header className="appHeader">
+      <div className="appHeaderBrand">
+        <div className="appHeaderLogo">NMD</div>
+        <div>
+          <h1>{title}</h1>
+          <p>{subtitle}</p>
+        </div>
       </div>
 
-      <div className="headerActions">
-        {user && (
-          <div className="userPill">
-            <div>
-              <div className="userName">{user.displayName || user.email}</div>
-              <div className="userEmail">{user.email}</div>
-            </div>
+      <div className="appHeaderActions">
+        <a className="secondaryButton" href="/chat">
+          Chat
+          <span className="headerNotificationDot" aria-label="Unread messages" />
+        </a>
 
-            <span className={roleBadgeClass(user)}>{getRoleLabel(user)}</span>
-          </div>
-        )}
+        <a className="secondaryButton" href="/schedule">
+          Schedule
+        </a>
 
-        <button className="secondaryButton" type="button" onClick={onToggleTheme}>
-          {theme === "dark" ? "Light Mode" : "Dark Mode"}
-        </button>
+        <div className="appUserPill">
+          <strong>{displayName}</strong>
+          <small>{roleLabel}</small>
+        </div>
 
-        {user && (
-          <button className="secondaryButton" type="button" onClick={onLogout}>
+        {onLogout && (
+          <button className="dangerButton" type="button" onClick={onLogout}>
             Logout
           </button>
         )}
