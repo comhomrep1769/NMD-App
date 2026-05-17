@@ -288,7 +288,7 @@ export default function TreatmentCasesPanel({
   const copyWorkflow = async (item: TreatmentCase) => {
     const text = [
       `Treatment: ${item.title}`,
-      `Linked Treatment Type: ${getLinkedTreatmentName(item, treatments)}`,
+      `Treatment Type: ${getLinkedTreatmentName(item, treatments)}`,
       `Surface: ${item.surfaceType || "—"}`,
       `Condition: ${item.conditionLevel || "—"}`,
       `Problem: ${item.problemType || "—"}`,
