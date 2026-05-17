@@ -23,6 +23,10 @@ function getCategoryCounts(treatments: TreatmentItem[]): CategoryCount[] {
     .sort((a, b) => a.category.localeCompare(b.category));
 }
 
+function getRiskCount(treatments: TreatmentItem[], riskLevel: string) {
+  return treatments.filter((item) => getTreatmentRiskLevel(item) === riskLevel).length;
+}
+
 export default function TreatmentCategorySidebar({
   treatments,
   selectedCategory,
@@ -38,17 +42,11 @@ export default function TreatmentCategorySidebar({
 }) {
   const categories = getCategoryCounts(treatments);
 
-  const standardCount = treatments.filter(
-    (item) => getTreatmentRiskLevel(item) === "Standard"
-  ).length;
+  const standardCount = getRiskCount(treatments, "Standard");
+  const moderateCount = getRiskCount(treatments, "Moderate");
+  const highReviewCount = getRiskCount(treatments, "High Review");
 
-  const moderateCount = treatments.filter(
-    (item) => getTreatmentRiskLevel(item) === "Moderate"
-  ).length;
-
-  const highReviewCount = treatments.filter(
-    (item) => getTreatmentRiskLevel(item) === "High Review"
-  ).length;
+  const noData = treatments.length === 0;
 
   return (
     <section className="panel">
@@ -56,10 +54,17 @@ export default function TreatmentCategorySidebar({
         <div>
           <h2 className="panelTitle">Treatment Filters</h2>
           <p className="brandSubtitle">
-            Jump by category or risk level without scrolling through every card.
+            Filter employee-visible treatment records by category and risk level.
           </p>
         </div>
       </div>
+
+      {noData && (
+        <div className="errorBox" style={{ marginTop: 16 }}>
+          No treatment records are loaded yet. Admin or Super Admin must seed defaults or
+          upload treatment data before filters will show options.
+        </div>
+      )}
 
       <div className="assignBox" style={{ marginTop: 16 }}>
         <div className="assignTitle">Categories</div>
@@ -89,11 +94,15 @@ export default function TreatmentCategorySidebar({
               <span>{item.count}</span>
             </button>
           ))}
+
+          {!noData && categories.length === 0 && (
+            <div className="listCard">No categories found.</div>
+          )}
         </div>
       </div>
 
       <div className="assignBox">
-        <div className="assignTitle">Risk Level</div>
+        <div className="assignTitle">Risk Levels</div>
 
         <div style={{ display: "grid", gap: 10 }}>
           <button
@@ -111,6 +120,7 @@ export default function TreatmentCategorySidebar({
             type="button"
             onClick={() => onRiskChange("Standard")}
             style={{ justifyContent: "space-between" }}
+            disabled={standardCount === 0}
           >
             <span>Standard</span>
             <span>{standardCount}</span>
@@ -121,6 +131,7 @@ export default function TreatmentCategorySidebar({
             type="button"
             onClick={() => onRiskChange("Moderate")}
             style={{ justifyContent: "space-between" }}
+            disabled={moderateCount === 0}
           >
             <span>Moderate</span>
             <span>{moderateCount}</span>
@@ -133,10 +144,20 @@ export default function TreatmentCategorySidebar({
             type="button"
             onClick={() => onRiskChange("High Review")}
             style={{ justifyContent: "space-between" }}
+            disabled={highReviewCount === 0}
           >
             <span>High Review</span>
             <span>{highReviewCount}</span>
           </button>
+        </div>
+      </div>
+
+      <div className="assignBox">
+        <div className="assignTitle">Employee Note</div>
+        <div className="cardLine">
+          Employees can view treatment records, cases, SH calculator, Guru treatment search,
+          and field guidance. Uploading, editing, deleting, plan building, and saved plans are
+          Admin/Super Admin tools.
         </div>
       </div>
     </section>
