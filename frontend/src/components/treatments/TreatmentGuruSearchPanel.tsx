@@ -1,5 +1,8 @@
 import React from "react";
 import { apiFetch } from "../../api";
+import type { TreatmentItem } from "../../types";
+import type { TreatmentCase } from "../../types/treatmentCases";
+import { getTreatmentRiskLevel, normalizeTreatment } from "../../utils/treatmentHelpers";
 
 type GuruTreatmentResult = {
   recordType: "treatment" | "case" | "plan";
@@ -43,6 +46,91 @@ function recordLabel(type: string) {
   return "Treatment";
 }
 
+function textMatches(value: string, search: string) {
+  const needle = search.trim().toLowerCase();
+  if (!needle) return true;
+
+  return value.toLowerCase().includes(needle);
+}
+
+function resultMatchesFilters(
+  result: GuruTreatmentResult,
+  search: string,
+  riskLevel: string,
+  recordType: string
+) {
+  const haystack = [
+    result.title,
+    result.category,
+    result.surfaceType,
+    result.problemType,
+    result.chemical,
+    result.dilutionRatio,
+    result.riskLevel,
+    result.instructions,
+    result.safetyNotes,
+    result.pricingNote,
+    result.customerExpectation,
+    result.sourceName
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const matchesSearch = textMatches(haystack, search);
+
+  const matchesRisk =
+    riskLevel === "all" ||
+    String(result.riskLevel || "").toLowerCase() === riskLevel.toLowerCase();
+
+  const matchesType = recordType === "all" || result.recordType === recordType;
+
+  return matchesSearch && matchesRisk && matchesType;
+}
+
+function treatmentToResult(treatment: TreatmentItem): GuruTreatmentResult {
+  const riskLevel = getTreatmentRiskLevel(treatment);
+
+  return {
+    recordType: "treatment",
+    id: treatment.id,
+    title: treatment.name || "Untitled Treatment",
+    category: treatment.category || "General",
+    surfaceType: Array.isArray(treatment.surfaceTypes)
+      ? treatment.surfaceTypes.join(", ")
+      : "",
+    problemType: treatment.useCase || "",
+    chemical: treatment.chemical || "",
+    dilutionRatio: treatment.dilutionRatio || "",
+    riskLevel,
+    instructions: treatment.instructions || "",
+    safetyNotes: treatment.safetyNotes || "",
+    pricingNote: treatment.costReference || "",
+    customerExpectation: "",
+    sourceName: treatment.name || "Treatment Record",
+    createdAt: treatment.createdAt || ""
+  };
+}
+
+function caseToResult(item: TreatmentCase): GuruTreatmentResult {
+  return {
+    recordType: "case",
+    id: item.id,
+    title: item.title || "Untitled Case",
+    category: item.treatmentCategory || "Treatment Case",
+    surfaceType: item.surfaceType || "",
+    problemType: item.problemType || "",
+    chemical: item.recommendedMix || "",
+    dilutionRatio: item.dwellTime || "",
+    riskLevel: item.riskLevel || "Standard",
+    instructions: item.stepByStep || "",
+    safetyNotes: item.safetyChecklist || "",
+    pricingNote: item.pricingNote || "",
+    customerExpectation: item.customerExpectation || "",
+    sourceName: item.treatmentName || "Treatment Case",
+    createdAt: item.createdAt || ""
+  };
+}
+
 function buildResultSummary(result: GuruTreatmentResult) {
   return [
     `Record Type: ${recordLabel(result.recordType)}`,
@@ -72,6 +160,30 @@ export default function TreatmentGuruSearchPanel() {
   const [error, setError] = React.useState("");
   const [success, setSuccess] = React.useState("");
 
+  const runFallbackTreatmentSearch = React.useCallback(
+    async (overrideSearch?: string) => {
+      const activeSearch = String(overrideSearch ?? search).trim();
+
+      const [treatmentsData, casesData] = await Promise.all([
+        apiFetch<{ treatments: TreatmentItem[] }>("/api/treatments"),
+        apiFetch<{ cases: TreatmentCase[] }>("/api/treatments/cases")
+      ]);
+
+      const treatmentResults = (treatmentsData.treatments || [])
+        .map(normalizeTreatment)
+        .map(treatmentToResult);
+
+      const caseResults = (casesData.cases || []).map(caseToResult);
+
+      const combined = [...treatmentResults, ...caseResults].filter((item) =>
+        resultMatchesFilters(item, activeSearch, riskLevel, recordType)
+      );
+
+      return combined;
+    },
+    [search, riskLevel, recordType]
+  );
+
   const runSearch = React.useCallback(
     async (overrideSearch?: string) => {
       setLoading(true);
@@ -79,9 +191,11 @@ export default function TreatmentGuruSearchPanel() {
       setSuccess("");
       setHasSearched(true);
 
+      const activeSearch = String(overrideSearch ?? search).trim();
+
       try {
         const params = new URLSearchParams();
-        params.set("search", String(overrideSearch ?? search).trim());
+        params.set("search", activeSearch);
         params.set("riskLevel", riskLevel);
         params.set("recordType", recordType);
         params.set("limit", "75");
@@ -90,24 +204,43 @@ export default function TreatmentGuruSearchPanel() {
           `/api/guru/treatment-search?${params.toString()}`
         );
 
-        const nextResults = data.results || [];
+        const nextResults = (data.results || []).filter((item) =>
+          resultMatchesFilters(item, activeSearch, riskLevel, recordType)
+        );
+
         setResults(nextResults);
 
         if (nextResults.length > 0) {
           setSuccess(`Guru found ${nextResults.length} treatment knowledge result(s).`);
         }
-      } catch (err) {
-        setResults([]);
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Guru treatment search failed. Make sure the backend is live and treatment records exist."
-        );
+      } catch {
+        try {
+          const fallbackResults = await runFallbackTreatmentSearch(activeSearch);
+
+          setResults(fallbackResults);
+
+          if (fallbackResults.length > 0) {
+            setSuccess(
+              `Guru backend search was unavailable, but local treatment search found ${fallbackResults.length} result(s).`
+            );
+          } else {
+            setError(
+              "Guru backend search was unavailable, and no treatment/case records matched this search."
+            );
+          }
+        } catch (fallbackErr) {
+          setResults([]);
+          setError(
+            fallbackErr instanceof Error
+              ? fallbackErr.message
+              : "Guru treatment search failed. Make sure treatments and treatment cases have been seeded or uploaded."
+          );
+        }
       } finally {
         setLoading(false);
       }
     },
-    [search, riskLevel, recordType]
+    [search, riskLevel, recordType, runFallbackTreatmentSearch]
   );
 
   React.useEffect(() => {
@@ -145,8 +278,7 @@ export default function TreatmentGuruSearchPanel() {
         <div>
           <h2 className="panelTitle">Guru Treatment Search</h2>
           <p className="brandSubtitle">
-            Search treatment records, treatment cases, and saved plans. Employees can use this
-            as a read-only field knowledge lookup.
+            Search treatments, treatment cases, and saved plans from one Guru-ready field tool.
           </p>
         </div>
 
@@ -250,9 +382,8 @@ export default function TreatmentGuruSearchPanel() {
 
       {hasSearched && !loading && results.length === 0 && !error && (
         <div className="errorBox" style={{ marginTop: 16 }}>
-          Guru did not find treatment knowledge yet. This usually means Admin/Super Admin still
-          needs to seed defaults or upload treatment records and cases. Employees are read-only
-          and cannot upload treatment data.
+          No Guru treatment results found. Admin or Super Admin may need to seed defaults
+          or upload treatment/case records.
         </div>
       )}
 
@@ -340,7 +471,9 @@ export default function TreatmentGuruSearchPanel() {
 
                   <div className="assignBox">
                     <div className="assignTitle">Source</div>
-                    <div className="cardLine">{result.sourceName || "NMD treatment database"}</div>
+                    <div className="cardLine">
+                      {result.sourceName || "NMD treatment database"}
+                    </div>
                   </div>
                 </div>
               )}
