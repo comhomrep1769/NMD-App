@@ -3,6 +3,7 @@ export type TreatmentTabKey =
   | "uploadHub"
   | "upload"
   | "uploadCases"
+  | "chemicals"
   | "field"
   | "search"
   | "details"
