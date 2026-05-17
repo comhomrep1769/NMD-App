@@ -1,4 +1,6 @@
 import React from "react";
+import ServicesCatalog from "../components/ServicesCatalog";
+import type { NmdServiceItem } from "../utils/nmdServicesCatalog";
 
 type ClientPortalCard = {
   key: string;
@@ -73,16 +75,15 @@ const quickActions = [
   }
 ];
 
-const serviceHighlights = [
-  "House Washing",
-  "Roof Cleaning",
-  "Driveway & Sidewalk Cleaning",
-  "Pool Cage & Enclosure Washing",
-  "Paver Cleaning & Sealing",
-  "Commercial Exterior Washing"
-];
-
 export default function ClientDashboardPage() {
+  const requestService = (service: NmdServiceItem) => {
+    const params = new URLSearchParams({
+      service: service.title
+    });
+
+    window.location.href = `/client/request-service?${params.toString()}`;
+  };
+
   return (
     <div className="clientPortalPage">
       <section className="clientHeroPanel">
@@ -109,7 +110,8 @@ export default function ClientDashboardPage() {
           <div className="clientStatusTitle">Ready for your next request</div>
           <p>
             Once a job is scheduled, this area will show safe status updates like on the
-            way, ETA, arrived, and completed.
+            way, ETA, arrived, and completed without exposing employee private location
+            history.
           </p>
         </div>
       </section>
@@ -169,24 +171,6 @@ export default function ClientDashboardPage() {
             ))}
           </div>
 
-          <section className="clientInfoPanel">
-            <div>
-              <h2>Common Services</h2>
-              <p>
-                Browse common NMD services or request a custom estimate if your surface,
-                stain, or property condition needs review.
-              </p>
-            </div>
-
-            <div className="clientServicePills">
-              {serviceHighlights.map((service) => (
-                <span key={service} className="clientServicePill">
-                  {service}
-                </span>
-              ))}
-            </div>
-          </section>
-
           <section className="clientInfoPanel clientPhotoPanel">
             <div>
               <h2>Photos & Property Notes</h2>
@@ -200,6 +184,8 @@ export default function ClientDashboardPage() {
               Upload Photos
             </a>
           </section>
+
+          <ServicesCatalog onRequestService={requestService} />
         </main>
       </section>
     </div>
