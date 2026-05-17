@@ -1,5 +1,5 @@
 import React from "react";
-import { apiFetch } from "../../api";
+import { apiFetch, getCurrentAuthTokenForDebug } from "../../api";
 import {
   downloadTreatmentCaseUploadTemplate,
   parseTreatmentCaseUploadFile,
@@ -50,8 +50,18 @@ export default function TreatmentCaseUploadPanel({
       return;
     }
 
+    const token = getCurrentAuthTokenForDebug();
+
+    if (!token) {
+      setErrors([
+        "Missing authorization token. Please log out, log back in as Admin or Super Admin, then try uploading again."
+      ]);
+      return;
+    }
+
     setUploading(true);
     setSuccess("");
+    setErrors([]);
 
     try {
       const data = await apiFetch<{
@@ -68,11 +78,20 @@ export default function TreatmentCaseUploadPanel({
         })
       });
 
-      setSuccess(data.message || "Treatment case upload complete.");
+      const confirmedMessage =
+        data.message ||
+        `Upload confirmed. Imported ${data.importedCount || 0} treatment case(s). Skipped ${data.skippedCount || 0}.`;
+
+      setSuccess(`Upload confirmed: ${confirmedMessage}`);
       setErrors((data.skipped || []).map((item) => `Row ${item.index + 1}: ${item.reason}`));
-      onUploaded(data.message || "Treatment case upload complete.");
+      onUploaded(`Upload confirmed: ${confirmedMessage}`);
     } catch (err) {
-      setErrors([err instanceof Error ? err.message : "Treatment case upload failed."]);
+      setSuccess("");
+      setErrors([
+        err instanceof Error
+          ? err.message
+          : "Treatment case upload failed. Please try again."
+      ]);
     } finally {
       setUploading(false);
     }
@@ -121,7 +140,11 @@ export default function TreatmentCaseUploadPanel({
 
       <TreatmentUploadSafetyNotice type="cases" />
 
-      {success && <div className="listCard">{success}</div>}
+      {success && (
+        <div className="listCard" style={{ borderColor: "rgba(34, 197, 94, 0.65)" }}>
+          {success}
+        </div>
+      )}
 
       {errors.length > 0 && (
         <div className="errorBox">
