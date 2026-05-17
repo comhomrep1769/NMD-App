@@ -18,7 +18,7 @@ type SidebarItem = {
   key: string;
   label: string;
   href: string;
-  roles: Array<AuthUserRole | "superadmin" | "admin" | "employee" | "client" | string>;
+  roles: string[];
 };
 
 const items: SidebarItem[] = [
@@ -65,6 +65,18 @@ const items: SidebarItem[] = [
     roles: ["client"]
   },
   {
+    key: "clientPhotos",
+    label: "My Photos",
+    href: "/client/photos",
+    roles: ["client"]
+  },
+  {
+    key: "clientRequestService",
+    label: "Request Service",
+    href: "/client/request-service",
+    roles: ["client"]
+  },
+  {
     key: "quotes",
     label: "Quotes",
     href: "/quotes",
@@ -89,9 +101,21 @@ const items: SidebarItem[] = [
     roles: ["superadmin", "admin", "employee"]
   },
   {
+    key: "photos",
+    label: "Job Photos",
+    href: "/photos",
+    roles: ["superadmin", "admin", "employee"]
+  },
+  {
     key: "employees",
     label: "Employees",
     href: "/employees",
+    roles: ["superadmin", "admin"]
+  },
+  {
+    key: "clients",
+    label: "Clients",
+    href: "/clients",
     roles: ["superadmin", "admin"]
   },
   {
@@ -141,6 +165,20 @@ function normalizeRole(role?: string) {
   return value || "client";
 }
 
+function getActiveState(active: string, item: SidebarItem) {
+  if (active === item.key || active === item.href) return true;
+
+  if (typeof window === "undefined") return false;
+
+  const path = window.location.pathname;
+
+  if (path === item.href) return true;
+
+  if (item.href !== "/" && path.startsWith(`${item.href}/`)) return true;
+
+  return false;
+}
+
 export default function Sidebar({
   role,
   user,
@@ -152,9 +190,7 @@ export default function Sidebar({
   const normalizedRole = normalizeRole(String(role || user?.role || "client"));
   const active = currentPage || activePage || "";
 
-  const visibleItems = items.filter((item) =>
-    item.roles.map((entry) => normalizeRole(String(entry))).includes(normalizedRole)
-  );
+  const visibleItems = items.filter((item) => item.roles.includes(normalizedRole));
 
   const handleClick = (event: React.MouseEvent<HTMLAnchorElement>, item: SidebarItem) => {
     if (onNavigate || setCurrentPage) {
@@ -178,10 +214,7 @@ export default function Sidebar({
 
       <nav className="sidebarNav" aria-label="Main navigation">
         {visibleItems.map((item) => {
-          const selected =
-            active === item.key ||
-            active === item.href ||
-            window.location.pathname === item.href;
+          const selected = getActiveState(active, item);
 
           return (
             <a
