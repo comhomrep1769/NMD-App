@@ -29,7 +29,7 @@ const employeeTabs: TreatmentTab[] = [
   },
   {
     key: "cases",
-    label: "Treatment Workflows",
+    label: "Treatments",
     description: "Detailed treatment workflows and field guidance."
   }
 ];
@@ -38,7 +38,7 @@ const adminOnlyTabs: TreatmentTab[] = [
   {
     key: "uploadHub",
     label: "Upload Center",
-    description: "Upload treatment records or treatment workflows."
+    description: "Upload treatment records or detailed treatments."
   },
   {
     key: "upload",
@@ -49,6 +49,11 @@ const adminOnlyTabs: TreatmentTab[] = [
     key: "uploadCases",
     label: "Upload Treatments",
     description: "Import detailed treatment workflows from CSV or JSON."
+  },
+  {
+    key: "chemicals",
+    label: "Chemical List",
+    description: "Manage chemical names, links, use cases, and warnings."
   },
   {
     key: "planner",
@@ -96,7 +101,7 @@ function getVisibleTabs(adminAccess: boolean): TreatmentTab[] {
     },
     {
       key: "cases",
-      label: "Treatment Workflows",
+      label: "Treatments",
       description: "Detailed treatment workflows and field guidance."
     }
   ];
@@ -120,7 +125,7 @@ export default function TreatmentPageTabs({
           <h2 className="panelTitle">Treatment Workspace</h2>
           <p className="brandSubtitle">
             {adminAccess
-              ? "Admin tools for managing treatment records, uploads, saved plans, and field guidance."
+              ? "Admin tools for managing treatments, chemicals, uploads, saved plans, and field guidance."
               : "Employee tools for approved treatment search, SH calculations, workflows, and field guidance."}
           </p>
         </div>
