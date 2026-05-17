@@ -1,155 +1,142 @@
 import React from "react";
-import type { PageKey } from "../types";
+import JobArrivalPhotoWorkflow from "../components/JobArrivalPhotoWorkflow";
+import LiveCalendarPanel from "../components/LiveCalendarPanel";
+import PhotoGalleryPanel from "../components/PhotoGalleryPanel";
+import ServiceStatusTracker from "../components/ServiceStatusTracker";
 
-export default function EmployeeDashboardPage({
-  onNavigate
-}: {
-  onNavigate: (page: PageKey) => void;
-}) {
+const employeeStats = [
+  {
+    title: "Assigned Jobs",
+    value: "0",
+    text: "Jobs currently assigned to you."
+  },
+  {
+    title: "Photos Needed",
+    value: "0",
+    text: "Jobs needing before/after photos."
+  },
+  {
+    title: "Hours Today",
+    value: "0",
+    text: "Clocked hours will appear here."
+  },
+  {
+    title: "Revenue Generated",
+    value: "$0",
+    text: "Personal generated revenue tracking."
+  }
+];
+
+const employeeActions = [
+  {
+    title: "Open Schedule",
+    text: "View your assigned jobs and admin-visible schedule.",
+    href: "/schedule"
+  },
+  {
+    title: "Job Photos",
+    text: "Upload before/after photos and document pre-existing damage.",
+    href: "/photos"
+  },
+  {
+    title: "Treatments",
+    text: "Search treatment guidance, SH calculator, safety notes, and field workflows.",
+    href: "/treatments"
+  },
+  {
+    title: "Chat",
+    text: "Message admins or use company chat for job communication.",
+    href: "/chat"
+  }
+];
+
+export default function EmployeeDashboardPage() {
   return (
     <div className="pageGrid">
-      <section className="panel">
-        <div className="panelHeader">
-          <div>
-            <h2 className="panelTitle">Employee Dashboard</h2>
-            <p className="brandSubtitle">
-              Field tools for schedule, time clock, treatments, notes, payments, and job workflow.
-            </p>
+      <section className="clientHeroPanel">
+        <div className="clientHeroContent">
+          <span className="clientEyebrow">Employee Portal</span>
+          <h1>Your schedule, jobs, treatments, and photo workflow.</h1>
+          <p>
+            Employees can view assigned jobs, update secure service status, upload
+            required before/after photos, document pre-existing damage, and access
+            approved treatment guidance.
+          </p>
+
+          <div className="clientHeroActions">
+            <a className="primaryButton" href="/schedule">
+              My Schedule
+            </a>
+            <a className="secondaryButton" href="/photos">
+              Job Photos
+            </a>
+            <a className="secondaryButton" href="/treatments">
+              Treatments
+            </a>
           </div>
         </div>
 
+        <div className="clientStatusCard">
+          <div className="statLabel">Field Rule</div>
+          <div className="clientStatusTitle">Before + after photos</div>
+          <p>
+            Each job should include before photos, after photos, and notes/photos for
+            pre-existing property damage before completion.
+          </p>
+        </div>
+      </section>
+
+      <section className="panel">
         <div className="statsGrid">
-          <div className="statCard">
-            <div className="statLabel">Today</div>
-            <div className="statValue">Ready</div>
-          </div>
+          {employeeStats.map((stat) => (
+            <div key={stat.title} className="statCard">
+              <div className="statLabel">{stat.title}</div>
+              <div className="statValue">{stat.value}</div>
+              <p className="cardLine">{stat.text}</p>
+            </div>
+          ))}
+        </div>
 
-          <div className="statCard">
-            <div className="statLabel">Schedule</div>
-            <div className="statValue">View</div>
-          </div>
+        <div className="cardsGrid" style={{ marginTop: 16 }}>
+          {employeeActions.map((action) => (
+            <article key={action.title} className="quoteCard">
+              <div className="quoteNumber">{action.title}</div>
+              <p className="cardLine">{action.text}</p>
 
-          <div className="statCard">
-            <div className="statLabel">Time Clock</div>
-            <div className="statValue">Open</div>
-          </div>
-
-          <div className="statCard">
-            <div className="statLabel">Guru</div>
-            <div className="statValue">Live</div>
-          </div>
+              <div className="buttonRow" style={{ marginTop: 12 }}>
+                <a className="secondaryButton" href={action.href}>
+                  Open
+                </a>
+              </div>
+            </article>
+          ))}
         </div>
       </section>
 
-      <section className="panel">
-        <div className="panelHeader">
-          <div>
-            <h2 className="panelTitle">Guru Field Shortcuts</h2>
-            <p className="brandSubtitle">
-              Fast access to the field pages employees use most while working jobs.
-            </p>
-          </div>
-        </div>
+      <ServiceStatusTracker
+        status="scheduled"
+        etaWindow="ETA will update when you mark On The Way"
+        serviceTitle="Assigned job preview"
+        serviceAddress="Service address appears after assignment"
+        assignedDisplayName="You"
+      />
 
-        <div className="cardsGrid">
-          <button
-            className="quoteCard"
-            type="button"
-            onClick={() => onNavigate("treatments")}
-            style={{ textAlign: "left", cursor: "pointer" }}
-          >
-            <div className="quoteTopRow">
-              <div className="quoteNumber">Treatments</div>
-              <span className="statusBadge status-approved">Guidance</span>
-            </div>
-            <div className="cardLine">
-              Open treatment options, chemical use cases, dilution guidance, safety notes, and surface-specific cleaning notes.
-            </div>
-          </button>
+      <JobArrivalPhotoWorkflow
+        role="employee"
+        jobId="sample-job-1"
+        clientName="Sample Client"
+        clientId="sample-client-1"
+        serviceAddress="123 Client Way, Orlando, FL"
+        uploadedByName="Employee"
+      />
 
-          <button
-            className="quoteCard"
-            type="button"
-            onClick={() => onNavigate("tips")}
-            style={{ textAlign: "left", cursor: "pointer" }}
-          >
-            <div className="quoteTopRow">
-              <div className="quoteNumber">Tips & Notes</div>
-              <span className="statusBadge status-paid">Best Practices</span>
-            </div>
-            <div className="cardLine">
-              Open workflow tips, efficiency notes, equipment usage, sales reminders, and field best practices.
-            </div>
-          </button>
+      <LiveCalendarPanel role="employee" currentEmployeeName="NMD Team Member" />
 
-          <button
-            className="quoteCard"
-            type="button"
-            onClick={() => onNavigate("pos")}
-            style={{ textAlign: "left", cursor: "pointer" }}
-          >
-            <div className="quoteTopRow">
-              <div className="quoteNumber">Collect Payment</div>
-              <span className="statusBadge status-pending_admin_approval">POS</span>
-            </div>
-            <div className="cardLine">
-              Record payment collection, cash proof, and customer payment notes for admin review.
-            </div>
-          </button>
-
-          <button
-            className="quoteCard"
-            type="button"
-            onClick={() => onNavigate("schedule")}
-            style={{ textAlign: "left", cursor: "pointer" }}
-          >
-            <div className="quoteTopRow">
-              <div className="quoteNumber">My Schedule</div>
-              <span className="statusBadge status-approved">Jobs</span>
-            </div>
-            <div className="cardLine">
-              View assigned work, schedule notes, job timing, and admin-visible schedule information.
-            </div>
-          </button>
-        </div>
-      </section>
-
-      <section className="panel">
-        <div className="panelHeader">
-          <div>
-            <h2 className="panelTitle">Employee Quick Actions</h2>
-            <p className="brandSubtitle">
-              Shortcuts for daily employee workflow.
-            </p>
-          </div>
-        </div>
-
-        <div className="buttonRow">
-          <button className="primaryButton" type="button" onClick={() => onNavigate("timeclock")}>
-            Time Clock
-          </button>
-
-          <button className="secondaryButton" type="button" onClick={() => onNavigate("schedule")}>
-            Schedule
-          </button>
-
-          <button className="secondaryButton" type="button" onClick={() => onNavigate("chat")}>
-            Chat
-          </button>
-
-          <button className="secondaryButton" type="button" onClick={() => onNavigate("availability")}>
-            Availability
-          </button>
-
-          <button className="secondaryButton" type="button" onClick={() => onNavigate("my-ledger")}>
-            My Ledger
-          </button>
-
-          <button className="secondaryButton" type="button" onClick={() => onNavigate("pos")}>
-            POS
-          </button>
-        </div>
-      </section>
+      <PhotoGalleryPanel
+        role="employee"
+        title="Assigned Job Photos"
+        subtitle="Employees can view photos and upload required before/after documentation, but cannot download client photo records."
+      />
     </div>
   );
 }
