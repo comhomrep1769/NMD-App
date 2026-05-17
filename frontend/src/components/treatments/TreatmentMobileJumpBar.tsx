@@ -1,7 +1,37 @@
 import React from "react";
 import type { TreatmentTabKey } from "../../types/treatmentUi";
 
-const mobileButtons: Array<{
+const employeeButtons: Array<{
+  key: TreatmentTabKey;
+  label: string;
+}> = [
+  {
+    key: "guru",
+    label: "Guru"
+  },
+  {
+    key: "field",
+    label: "Field"
+  },
+  {
+    key: "search",
+    label: "Treatments"
+  },
+  {
+    key: "details",
+    label: "Details"
+  },
+  {
+    key: "calculator",
+    label: "Calc"
+  },
+  {
+    key: "cases",
+    label: "Cases"
+  }
+];
+
+const adminButtons: Array<{
   key: TreatmentTabKey;
   label: string;
 }> = [
@@ -45,11 +75,15 @@ const mobileButtons: Array<{
 
 export default function TreatmentMobileJumpBar({
   activeTab,
+  adminAccess = false,
   onChange
 }: {
   activeTab: TreatmentTabKey;
+  adminAccess?: boolean;
   onChange: (tab: TreatmentTabKey) => void;
 }) {
+  const buttons = adminAccess ? adminButtons : employeeButtons;
+
   return (
     <div
       style={{
@@ -60,7 +94,7 @@ export default function TreatmentMobileJumpBar({
         WebkitOverflowScrolling: "touch"
       }}
     >
-      {mobileButtons.map((button) => (
+      {buttons.map((button) => (
         <button
           key={button.key}
           className={activeTab === button.key ? "primaryButton" : "secondaryButton"}
