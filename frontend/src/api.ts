@@ -3,44 +3,96 @@ const API_BASE_URL =
   import.meta.env.VITE_BACKEND_URL ||
   "";
 
+type StoredAuthObject = {
+  token?: string;
+  authToken?: string;
+  accessToken?: string;
+  jwt?: string;
+  user?: {
+    token?: string;
+    authToken?: string;
+    accessToken?: string;
+    jwt?: string;
+  };
+  data?: {
+    token?: string;
+    authToken?: string;
+    accessToken?: string;
+    jwt?: string;
+  };
+};
+
+function readStorageValue(key: string) {
+  return localStorage.getItem(key) || sessionStorage.getItem(key) || "";
+}
+
+function getTokenFromObject(rawValue: string) {
+  try {
+    const parsed = JSON.parse(rawValue) as StoredAuthObject;
+
+    return (
+      parsed.token ||
+      parsed.authToken ||
+      parsed.accessToken ||
+      parsed.jwt ||
+      parsed.user?.token ||
+      parsed.user?.authToken ||
+      parsed.user?.accessToken ||
+      parsed.user?.jwt ||
+      parsed.data?.token ||
+      parsed.data?.authToken ||
+      parsed.data?.accessToken ||
+      parsed.data?.jwt ||
+      ""
+    );
+  } catch {
+    return "";
+  }
+}
+
 function getStoredToken() {
-  const possibleKeys = [
+  const directTokenKeys = [
     "nmd_token",
+    "nmdToken",
+    "nmd_auth_token",
     "nmdAuthToken",
     "authToken",
+    "accessToken",
     "token",
-    "jwt",
-    "accessToken"
+    "jwt"
   ];
 
-  for (const key of possibleKeys) {
-    const value = localStorage.getItem(key);
+  for (const key of directTokenKeys) {
+    const value = readStorageValue(key);
 
-    if (value) {
+    if (value && !value.trim().startsWith("{")) {
       return value;
+    }
+
+    if (value && value.trim().startsWith("{")) {
+      const token = getTokenFromObject(value);
+      if (token) return token;
     }
   }
 
-  try {
-    const authRaw =
-      localStorage.getItem("nmd_auth") ||
-      localStorage.getItem("auth") ||
-      localStorage.getItem("user");
+  const objectKeys = [
+    "nmd_auth",
+    "nmdAuth",
+    "nmd_user",
+    "nmdUser",
+    "auth",
+    "user",
+    "currentUser",
+    "session"
+  ];
 
-    if (authRaw) {
-      const parsed = JSON.parse(authRaw);
+  for (const key of objectKeys) {
+    const value = readStorageValue(key);
 
-      return (
-        parsed.token ||
-        parsed.authToken ||
-        parsed.accessToken ||
-        parsed.jwt ||
-        parsed?.user?.token ||
-        ""
-      );
-    }
-  } catch {
-    return "";
+    if (!value) continue;
+
+    const token = getTokenFromObject(value);
+    if (token) return token;
   }
 
   return "";
@@ -84,11 +136,7 @@ function getErrorMessage(response: Response, body: unknown) {
       details?: unknown;
     };
 
-    const message =
-      data.message ||
-      data.error ||
-      data.detail ||
-      data.details;
+    const message = data.message || data.error || data.detail || data.details;
 
     if (message) {
       return String(message);
@@ -126,9 +174,7 @@ export async function apiFetch<T = unknown>(
   const body = await parseResponseBody(response);
 
   if (!response.ok) {
-    const message = getErrorMessage(response, body);
-
-    throw new Error(message);
+    throw new Error(getErrorMessage(response, body));
   }
 
   return body as T;
@@ -136,4 +182,8 @@ export async function apiFetch<T = unknown>(
 
 export function getApiBaseUrl() {
   return API_BASE_URL;
+}
+
+export function getCurrentAuthTokenForDebug() {
+  return getStoredToken();
 }
