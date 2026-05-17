@@ -114,7 +114,7 @@ function findUserDeep(value: unknown, depth = 0): StoredNmdUser | null {
     if (possibleUser && typeof possibleUser === "object") {
       const nested = possibleUser as Record<string, unknown>;
 
-      if (nested.email || nested.role || nested.id) {
+      if (nested.email || nested.role || nested.id || nested.userId || nested.sub) {
         return {
           id: String(nested.id || nested.userId || nested.sub || ""),
           email: String(nested.email || ""),
@@ -130,7 +130,7 @@ function findUserDeep(value: unknown, depth = 0): StoredNmdUser | null {
       if (deeper) return deeper;
     }
 
-    if (record.email || record.role || record.id) {
+    if (record.email || record.role || record.id || record.userId || record.sub) {
       return {
         id: String(record.id || record.userId || record.sub || ""),
         email: String(record.email || ""),
