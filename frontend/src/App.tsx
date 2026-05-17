@@ -1,316 +1,287 @@
 import React from "react";
-import type { AuthUser, Client, Invoice, PageKey, Quote, ThemeMode } from "./types";
 import Header from "./components/Header";
 import Sidebar from "./components/Sidebar";
 import MobileNav from "./components/MobileNav";
 import AppUpdateBanner from "./components/AppUpdateBanner";
 import GuruChat from "./components/GuruChat";
+
 import LandingPage from "./pages/LandingPage";
 import DashboardPage from "./pages/DashboardPage";
 import EmployeeDashboardPage from "./pages/EmployeeDashboardPage";
 import ClientDashboardPage from "./pages/ClientDashboardPage";
 import ClientRegisterPage from "./pages/ClientRegisterPage";
-import ClientsPage from "./pages/ClientsPage";
-import QuotesPage from "./pages/QuotesPage";
-import InvoicesPage from "./pages/InvoicesPage";
-import LoginPage from "./pages/LoginPage";
-import MyLedgerPage from "./pages/MyLedgerPage";
-import EmployeesPage from "./pages/EmployeesPage";
-import SchedulePage from "./pages/SchedulePage";
-import ChatPage from "./pages/ChatPage";
-import AvailabilityPage from "./pages/AvailabilityPage";
-import TipsPage from "./pages/TipsPage";
-import PayrollPage from "./pages/PayrollPage";
-import RequestsPage from "./pages/RequestsPage";
-import ServiceRequestPage from "./pages/ServiceRequestPage";
-import ExpensesPage from "./pages/ExpensesPage";
-import MileagePage from "./pages/MileagePage";
-import RecurringPage from "./pages/RecurringPage";
-import TimeClockPage from "./pages/TimeClockPage";
-import EquipmentPage from "./pages/EquipmentPage";
-import TreatmentsPage from "./pages/TreatmentsPage";
-import PricingPage from "./pages/PricingPage";
-import EmailTestPage from "./pages/EmailTestPage";
-import POSPage from "./pages/POSPage";
-import GuruEstimatesPage from "./pages/GuruEstimatesPage";
 import ClientEstimatesPage from "./pages/ClientEstimatesPage";
 import ClientQuotesPage from "./pages/ClientQuotesPage";
-import { apiFetch } from "./api";
-import { getPortalPathForRole, isAdminRole } from "./utils/roles";
+import ClientRequestsPage from "./pages/ClientRequestsPage";
+import ClientInvoicesPage from "./pages/ClientInvoicesPage";
+import ClientAppointmentsPage from "./pages/ClientAppointmentsPage";
+import ClientRecurringPage from "./pages/ClientRecurringPage";
+import ClientPhotosPage from "./pages/ClientPhotosPage";
+import ServiceRequestPage from "./pages/ServiceRequestPage";
+import AvailabilityPage from "./pages/AvailabilityPage";
 
-const demoClients: Client[] = [];
-const demoQuotes: Quote[] = [];
-const demoInvoices: Invoice[] = [];
+import ClientsPage from "./pages/ClientsPage";
+import EmployeesPage from "./pages/EmployeesPage";
+import RequestsPage from "./pages/RequestsPage";
+import QuotesPage from "./pages/QuotesPage";
+import InvoicesPage from "./pages/InvoicesPage";
+import SchedulePage from "./pages/SchedulePage";
+import RecurringPage from "./pages/RecurringPage";
+import TreatmentsPage from "./pages/TreatmentsPage";
+import JobPhotosPage from "./pages/JobPhotosPage";
 
-type PortalView = "public" | "admin" | "employee" | "register" | "service-request";
+import type { AuthUserRole } from "./types";
 
-function getInitialPortal(): PortalView {
-  const path = window.location.pathname.toLowerCase();
+type AppUser = {
+  id?: string;
+  email?: string;
+  displayName?: string;
+  role: AuthUserRole | "superadmin" | "admin" | "employee" | "client";
+};
 
-  if (path.startsWith("/admin")) return "admin";
-  if (path.startsWith("/employee")) return "employee";
-  if (path.startsWith("/register")) return "register";
-  if (path.startsWith("/service-request")) return "service-request";
+function normalizeRole(role?: string): AuthUserRole | "superadmin" | "admin" | "employee" | "client" {
+  const value = String(role || "").toLowerCase();
 
-  return "public";
+  if (value === "super_admin" || value === "super-admin" || value === "superadmin") {
+    return "superadmin";
+  }
+
+  if (value === "admin") return "admin";
+  if (value === "employee") return "employee";
+  if (value === "client") return "client";
+
+  return "admin";
 }
 
-function portalViewFromUser(user: AuthUser): PortalView {
-  if (user.role === "admin" || user.role === "superadmin") return "admin";
-  if (user.role === "employee") return "employee";
-  return "public";
-}
+function getStoredUser(): AppUser {
+  try {
+    const raw =
+      localStorage.getItem("nmd_auth") ||
+      localStorage.getItem("nmdAuth") ||
+      localStorage.getItem("auth");
 
-function replacePathForUser(user: AuthUser) {
-  window.history.replaceState({}, "", getPortalPathForRole(user.role));
-}
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const user = parsed.user || parsed;
 
-function pushPathForUser(user: AuthUser) {
-  window.history.pushState({}, "", getPortalPathForRole(user.role));
-}
-
-export default function App() {
-  const [portalView, setPortalView] = React.useState<PortalView>(getInitialPortal);
-  const [page, setPage] = React.useState<PageKey>("dashboard");
-
-  const [theme, setTheme] = React.useState<ThemeMode>(() => {
-    const saved = localStorage.getItem("nmd-theme");
-    return saved === "light" ? "light" : "dark";
-  });
-
-  const [user, setUser] = React.useState<AuthUser | null>(null);
-  const [authChecked, setAuthChecked] = React.useState(false);
-
-  const [clients] = React.useState<Client[]>(demoClients);
-  const [quotes] = React.useState<Quote[]>(demoQuotes);
-  const [invoices] = React.useState<Invoice[]>(demoInvoices);
-
-  React.useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
-    localStorage.setItem("nmd-theme", theme);
-  }, [theme]);
-
-  React.useEffect(() => {
-    const token = localStorage.getItem("nmd-token") || sessionStorage.getItem("nmd-token");
-
-    if (!token) {
-      setAuthChecked(true);
-      return;
+      return {
+        id: user.id || parsed.id || "local-user",
+        email: user.email || parsed.email || "admin@nmd.local",
+        displayName: user.displayName || user.name || parsed.displayName || "NMD Admin",
+        role: normalizeRole(user.role || parsed.role || "admin")
+      };
     }
+  } catch {
+    // fall through to local default
+  }
 
-    apiFetch<{ user: AuthUser }>("/api/auth/me")
-      .then((data) => {
-        setUser(data.user);
-        setPage("dashboard");
-        setPortalView(portalViewFromUser(data.user));
-        replacePathForUser(data.user);
-      })
-      .catch(() => {
-        localStorage.removeItem("nmd-token");
-        sessionStorage.removeItem("nmd-token");
-        setUser(null);
-      })
-      .finally(() => setAuthChecked(true));
+  return {
+    id: "local-admin",
+    email: "admin@nmd.local",
+    displayName: "NMD Admin",
+    role: "admin"
+  };
+}
+
+function getPath() {
+  return window.location.pathname.replace(/\/+$/, "") || "/";
+}
+
+function getHeaderCopy(path: string, role: string) {
+  if (path.startsWith("/client")) {
+    return {
+      title: "NMD Client Portal",
+      subtitle: "Requests, quotes, invoices, appointments, photos, and service updates"
+    };
+  }
+
+  if (role === "employee") {
+    return {
+      title: "NMD Employee Portal",
+      subtitle: "Assigned jobs, schedule, treatments, chat, and photo workflow"
+    };
+  }
+
+  if (role === "superadmin") {
+    return {
+      title: "NMD Super Admin Portal",
+      subtitle: "Full business operations, scheduling, clients, records, and Guru controls"
+    };
+  }
+
+  return {
+    title: "NMD Admin Portal",
+    subtitle: "Operations, quotes, invoices, scheduling, treatments, photos, and clients"
+  };
+}
+
+function getPageKey(path: string) {
+  const clean = path.replace(/^\//, "").replace(/\//g, "-");
+
+  if (!clean) return "landing";
+
+  return clean;
+}
+
+function App() {
+  const [path, setPath] = React.useState(getPath());
+  const [user, setUser] = React.useState<AppUser>(() => getStoredUser());
+
+  React.useEffect(() => {
+    const handlePopState = () => setPath(getPath());
+
+    window.addEventListener("popstate", handlePopState);
+
+    const clickHandler = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      const anchor = target?.closest("a");
+
+      if (!anchor) return;
+
+      const href = anchor.getAttribute("href");
+
+      if (!href || href.startsWith("http") || href.startsWith("mailto:") || href.startsWith("tel:")) {
+        return;
+      }
+
+      if (anchor.target === "_blank") return;
+
+      event.preventDefault();
+      window.history.pushState({}, "", href);
+      setPath(getPath());
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+
+    document.addEventListener("click", clickHandler);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      document.removeEventListener("click", clickHandler);
+    };
   }, []);
 
-  const safeNavigate = (nextPage: PageKey) => {
-    setPage(nextPage);
-  };
+  const role = normalizeRole(user.role);
+  const headerCopy = getHeaderCopy(path, role);
+  const showPortalShell = path !== "/" && path !== "/login" && path !== "/client/register";
 
-  const handleLogin = (token: string, loggedInUser: AuthUser) => {
-    const rememberedToken = localStorage.getItem("nmd-token");
-    const sessionToken = sessionStorage.getItem("nmd-token");
-
-    if (!rememberedToken && !sessionToken) {
-      localStorage.setItem("nmd-token", token);
-    }
-
-    setUser(loggedInUser);
-    setPage("dashboard");
-    setPortalView(portalViewFromUser(loggedInUser));
-    pushPathForUser(loggedInUser);
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem("nmd-token");
-    sessionStorage.removeItem("nmd-token");
-    setUser(null);
-    setPage("dashboard");
-
-    if (portalView === "admin") {
-      window.history.pushState({}, "", "/admin");
-    } else if (portalView === "employee") {
-      window.history.pushState({}, "", "/employee");
-    } else {
-      setPortalView("public");
-      window.history.pushState({}, "", "/");
-    }
-  };
-
-  const goPublic = () => {
-    setPortalView("public");
+  const onLogout = () => {
+    localStorage.removeItem("nmd_auth");
+    localStorage.removeItem("nmdAuth");
+    localStorage.removeItem("auth");
+    setUser({
+      id: "local-admin",
+      email: "admin@nmd.local",
+      displayName: "NMD Admin",
+      role: "admin"
+    });
     window.history.pushState({}, "", "/");
+    setPath("/");
   };
 
-  const goRegister = () => {
-    setPortalView("register");
-    window.history.pushState({}, "", "/register");
+  const renderPage = () => {
+    if (path === "/" || path === "/home") return <LandingPage />;
+
+    if (path === "/client/register") return <ClientRegisterPage />;
+
+    if (path === "/client" || path === "/client/dashboard") return <ClientDashboardPage />;
+    if (path === "/client/estimates") return <ClientEstimatesPage />;
+    if (path === "/client/quotes") return <ClientQuotesPage />;
+    if (path === "/client/requests") return <ClientRequestsPage />;
+    if (path === "/client/invoices") return <ClientInvoicesPage />;
+    if (path === "/client/appointments") return <ClientAppointmentsPage />;
+    if (path === "/client/recurring") return <ClientRecurringPage />;
+    if (path === "/client/photos") return <ClientPhotosPage />;
+    if (path === "/client/request-service") return <ServiceRequestPage />;
+    if (path === "/client/availability") return <AvailabilityPage />;
+
+    if (path === "/employee" || path === "/employee/dashboard") {
+      return <EmployeeDashboardPage />;
+    }
+
+    if (path === "/dashboard" || path === "/admin" || path === "/superadmin") {
+      return role === "employee" ? <EmployeeDashboardPage /> : <DashboardPage role={role} />;
+    }
+
+    if (path === "/clients") return <ClientsPage />;
+    if (path === "/employees") return <EmployeesPage />;
+    if (path === "/requests") return <RequestsPage />;
+    if (path === "/quotes") return <QuotesPage />;
+    if (path === "/invoices") return <InvoicesPage />;
+    if (path === "/schedule") return <SchedulePage role={role} />;
+    if (path === "/availability") return <AvailabilityPage />;
+    if (path === "/recurring") return <RecurringPage />;
+    if (path === "/treatments") return <TreatmentsPage role={role as AuthUserRole} />;
+    if (path === "/photos") return <JobPhotosPage role={role} />;
+
+    if (path === "/chat") {
+      return (
+        <section className="panel">
+          <h2 className="panelTitle">Chat</h2>
+          <p className="brandSubtitle">
+            Chat page shell is ready. Guru and role-based messages can connect here.
+          </p>
+          <div className="listCard">
+            Use the floating Guru chat for now. Full app chat with images, timestamps,
+            pinned company chat, and client/admin/employee permissions will connect in the chat phase.
+          </div>
+        </section>
+      );
+    }
+
+    return (
+      <section className="panel">
+        <h2 className="panelTitle">Page Not Found</h2>
+        <p className="brandSubtitle">The page you requested does not exist yet.</p>
+        <div className="buttonRow" style={{ marginTop: 16 }}>
+          <a className="primaryButton" href="/dashboard">
+            Go to Dashboard
+          </a>
+          <a className="secondaryButton" href="/client">
+            Go to Client Portal
+          </a>
+        </div>
+      </section>
+    );
   };
 
-  const goServiceRequest = () => {
-    setPortalView("service-request");
-    window.history.pushState({}, "", "/service-request");
-  };
-
-  if (!authChecked) {
+  if (!showPortalShell) {
     return (
       <>
         <AppUpdateBanner />
-        <div className="loadingScreen">Loading...</div>
+        <main className="publicShell">{renderPage()}</main>
+        <GuruChat />
       </>
     );
   }
-
-  if (!user && portalView === "service-request") {
-    return (
-      <>
-        <AppUpdateBanner />
-        <ServiceRequestPage />
-        <GuruChat user={null} />
-      </>
-    );
-  }
-
-  if (!user && portalView === "register") {
-    return (
-      <>
-        <AppUpdateBanner />
-        <ClientRegisterPage onRegistered={handleLogin} onBackToLogin={goPublic} />
-        <GuruChat user={null} />
-      </>
-    );
-  }
-
-  if (!user && portalView === "admin") {
-    return (
-      <>
-        <AppUpdateBanner />
-        <LoginPage
-          onLogin={handleLogin}
-          portalRole="admin"
-          title="NMD Admin Portal"
-          subtitle="Admin and Super Admin access only."
-        />
-      </>
-    );
-  }
-
-  if (!user && portalView === "employee") {
-    return (
-      <>
-        <AppUpdateBanner />
-        <LoginPage
-          onLogin={handleLogin}
-          portalRole="employee"
-          title="NMD Employee Portal"
-          subtitle="Employee schedule, time clock, chat, and job tools."
-        />
-      </>
-    );
-  }
-
-  if (!user) {
-    return (
-      <>
-        <AppUpdateBanner />
-        <LandingPage
-          onClientLogin={handleLogin}
-          onCreateAccount={goRegister}
-          onRequestService={goServiceRequest}
-        />
-        <GuruChat user={null} />
-      </>
-    );
-  }
-
-  const adminAccess = isAdminRole(user);
 
   return (
     <>
       <AppUpdateBanner />
 
       <div className="appShell">
-        <Sidebar currentPage={page} onNavigate={safeNavigate} role={user.role} />
+        <Sidebar
+          role={role}
+          user={user}
+          activePage={getPageKey(path)}
+        />
 
-        <div className="mainShell">
+        <div className="appMain">
           <Header
-            theme={theme}
-            onToggleTheme={() => setTheme((prev) => (prev === "dark" ? "light" : "dark"))}
+            title={headerCopy.title}
+            subtitle={headerCopy.subtitle}
+            role={role}
             user={user}
-            onLogout={handleLogout}
+            onLogout={onLogout}
           />
 
-          <main className="pageWrap">
-            {page === "dashboard" && adminAccess && (
-              <DashboardPage
-                quotes={quotes}
-                invoices={invoices}
-                onNavigate={safeNavigate}
-                role={user.role}
-              />
-            )}
-
-            {page === "dashboard" && user.role === "employee" && (
-              <EmployeeDashboardPage onNavigate={safeNavigate} />
-            )}
-
-            {page === "dashboard" && user.role === "client" && (
-              <ClientDashboardPage onNavigate={safeNavigate} />
-            )}
-
-            {page === "guru-estimates" && adminAccess && (
-              <GuruEstimatesPage onNavigate={safeNavigate} />
-            )}
-
-            {page === "client-estimates" && user.role === "client" && <ClientEstimatesPage />}
-
-            {page === "client-quotes" && user.role === "client" && <ClientQuotesPage />}
-
-            {page === "clients" && adminAccess && <ClientsPage />}
-            {page === "quotes" && adminAccess && <QuotesPage />}
-            {page === "invoices" && adminAccess && <InvoicesPage />}
-
-            {page === "schedule" && user.role !== "client" && <SchedulePage role={user.role} />}
-
-            {page === "employees" && adminAccess && <EmployeesPage />}
-            {page === "requests" && adminAccess && <RequestsPage />}
-            {page === "expenses" && adminAccess && <ExpensesPage />}
-            {page === "mileage" && adminAccess && <MileagePage />}
-            {page === "recurring" && adminAccess && <RecurringPage />}
-            {page === "equipment" && adminAccess && <EquipmentPage />}
-
-            {page === "treatments" && user.role !== "client" && <TreatmentsPage role={user.role} />}
-
-            {page === "pricing" && adminAccess && <PricingPage />}
-
-            {page === "timeclock" && user.role !== "client" && <TimeClockPage role={user.role} />}
-
-            {page === "email" && adminAccess && <EmailTestPage />}
-            {page === "pos" && user.role !== "client" && <POSPage role={user.role} />}
-            {page === "availability" && user.role !== "client" && <AvailabilityPage />}
-            {page === "chat" && <ChatPage currentUser={user} />}
-
-            {page === "tips" && user.role !== "client" && <TipsPage role={user.role} />}
-
-            {page === "payroll" && adminAccess && <PayrollPage />}
-            {page === "my-ledger" && user.role === "employee" && <MyLedgerPage />}
-          </main>
-
-          <MobileNav currentPage={page} onNavigate={safeNavigate} role={user.role} />
+          <div style={{ marginTop: 18 }}>{renderPage()}</div>
         </div>
       </div>
 
-      <GuruChat user={user} onNavigate={safeNavigate} />
+      <MobileNav role={role} activePage={getPageKey(path)} />
+      <GuruChat />
     </>
   );
 }
+
+export default App;
