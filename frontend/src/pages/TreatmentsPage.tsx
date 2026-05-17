@@ -34,11 +34,23 @@ import TreatmentUploadHubPanel from "../components/treatments/TreatmentUploadHub
 import type { TreatmentPlan } from "../types/treatmentPlans";
 import type { TreatmentTabKey } from "../types/treatmentUi";
 
+const adminOnlyTabs: TreatmentTabKey[] = [
+  "uploadHub",
+  "upload",
+  "uploadCases",
+  "planner",
+  "saved"
+];
+
+function isAdminOnlyTab(tab: TreatmentTabKey) {
+  return adminOnlyTabs.includes(tab);
+}
+
 export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
   const adminAccess = isAdminRole(role);
 
   const [treatments, setTreatments] = React.useState<TreatmentItem[]>([]);
-  const [activeTab, setActiveTab] = React.useState<TreatmentTabKey>("guru");
+  const [activeTab, setActiveTab] = React.useState<TreatmentTabKey>("search");
   const [search, setSearch] = React.useState("");
   const [categoryFilter, setCategoryFilter] = React.useState("all");
   const [riskFilter, setRiskFilter] = React.useState("all");
@@ -54,12 +66,31 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
   const [error, setError] = React.useState("");
   const [success, setSuccess] = React.useState("");
 
+  React.useEffect(() => {
+    if (!adminAccess && isAdminOnlyTab(activeTab)) {
+      setActiveTab("search");
+    }
+  }, [activeTab, adminAccess]);
+
   const loadTreatments = React.useCallback(async () => {
+    setLoading(true);
     setError("");
 
     try {
       const data = await apiFetch<{ treatments: TreatmentItem[] }>("/api/treatments");
-      setTreatments((data.treatments || []).map(normalizeTreatment));
+      const normalized = (data.treatments || []).map(normalizeTreatment);
+
+      setTreatments(normalized);
+
+      if (normalized.length > 0) {
+        setSelectedId((current) => {
+          if (current && normalized.some((item) => item.id === current)) {
+            return current;
+          }
+
+          return normalized[0].id;
+        });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load treatments.");
     } finally {
@@ -101,7 +132,23 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
     }));
   };
 
+  const changeTab = (tab: TreatmentTabKey) => {
+    if (!adminAccess && isAdminOnlyTab(tab)) {
+      setActiveTab("search");
+      setError("Only Admin or Super Admin can access upload tools, plan builder, and saved plans.");
+      return;
+    }
+
+    setError("");
+    setActiveTab(tab);
+  };
+
   const startCreate = () => {
+    if (!adminAccess) {
+      setError("Only Admin or Super Admin can add treatments.");
+      return;
+    }
+
     setForm(emptyTreatmentForm);
     setShowForm(true);
     setActiveTab("search");
@@ -110,6 +157,11 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
   };
 
   const startEdit = (treatment: TreatmentItem) => {
+    if (!adminAccess) {
+      setError("Only Admin or Super Admin can edit treatments.");
+      return;
+    }
+
     setForm(treatmentToForm(treatment));
     setShowForm(true);
     setActiveTab("details");
@@ -132,18 +184,30 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
     uploadedTreatments: TreatmentItem[],
     message: string
   ) => {
-    setTreatments(uploadedTreatments.map(normalizeTreatment));
+    const normalized = uploadedTreatments.map(normalizeTreatment);
+    setTreatments(normalized);
     setSuccess(message);
+    setError("");
     setActiveTab("search");
+
+    if (normalized.length > 0) {
+      setSelectedId(normalized[0].id);
+    }
   };
 
   const handleCasesUploaded = (message: string) => {
     setSuccess(message);
+    setError("");
     setCasesRefreshKey((prev) => prev + 1);
     setActiveTab("cases");
   };
 
   const seedTreatments = async () => {
+    if (!adminAccess) {
+      setError("Only Admin or Super Admin can seed treatment defaults.");
+      return;
+    }
+
     setError("");
     setSuccess("");
     setSeeding(true);
@@ -156,9 +220,16 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
         method: "POST"
       });
 
-      setTreatments((data.treatments || []).map(normalizeTreatment));
+      const normalized = (data.treatments || []).map(normalizeTreatment);
+
+      setTreatments(normalized);
       setCasesRefreshKey((prev) => prev + 1);
       setSuccess(data.message || "Treatment database seeded.");
+      setActiveTab("search");
+
+      if (normalized.length > 0) {
+        setSelectedId(normalized[0].id);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to seed treatments.");
     } finally {
@@ -223,6 +294,7 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
 
       setForm(emptyTreatmentForm);
       setShowForm(false);
+      setActiveTab("details");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save treatment.");
     } finally {
@@ -282,8 +354,9 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
           <div>
             <h2 className="panelTitle">Treatment Options & Cases</h2>
             <p className="brandSubtitle">
-              Search chemical usage, dilution ratios, safety notes, surfaces, cases,
-              saved plans, and field instructions.
+              {adminAccess
+                ? "Admin treatment workspace for managing treatment records, cases, uploads, plans, and field guidance."
+                : "Employee treatment workspace for searching approved treatment records, cases, SH calculations, and field guidance."}
             </p>
           </div>
 
@@ -294,7 +367,7 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
             onAddTreatment={startCreate}
             onSeedDefaults={seedTreatments}
             onExportVisible={() => exportTreatmentsToCsv(visibleTreatments)}
-            onTabChange={setActiveTab}
+            onTabChange={changeTab}
           />
         </div>
 
@@ -302,13 +375,24 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
 
         {success && <div className="listCard">{success}</div>}
 
+        {treatments.length === 0 && (
+          <div className="errorBox">
+            No treatment records are available yet. Admin or Super Admin must seed defaults
+            or upload treatment records before employees will see searchable data.
+          </div>
+        )}
+
         <TreatmentStatsPanel
           treatments={treatments}
           visibleTreatments={visibleTreatments}
           adminAccess={adminAccess}
         />
 
-        <TreatmentMobileJumpBar activeTab={activeTab} onChange={setActiveTab} />
+        <TreatmentMobileJumpBar
+          activeTab={activeTab}
+          adminAccess={adminAccess}
+          onChange={changeTab}
+        />
 
         <div className="buttonRow" style={{ marginTop: 12 }}>
           <button
@@ -331,10 +415,22 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
           >
             Clear Filters
           </button>
+
+          <button
+            className="secondaryButton"
+            type="button"
+            onClick={loadTreatments}
+          >
+            Refresh Treatments
+          </button>
         </div>
       </section>
 
-      <TreatmentPageTabs activeTab={activeTab} onChange={setActiveTab} />
+      <TreatmentPageTabs
+        activeTab={activeTab}
+        adminAccess={adminAccess}
+        onChange={changeTab}
+      />
 
       <TreatmentWorkspaceLayout
         showFilters={showFilters}
@@ -361,7 +457,7 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
 
           {activeTab === "guru" && <TreatmentGuruSearchPanel />}
 
-          {activeTab === "uploadHub" && (
+          {adminAccess && activeTab === "uploadHub" && (
             <TreatmentUploadHubPanel
               adminAccess={adminAccess}
               onOpenTreatmentUpload={() => setActiveTab("upload")}
@@ -369,14 +465,14 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
             />
           )}
 
-          {activeTab === "upload" && (
+          {adminAccess && activeTab === "upload" && (
             <TreatmentUploadPanel
               adminAccess={adminAccess}
               onUploaded={handleTreatmentsUploaded}
             />
           )}
 
-          {activeTab === "uploadCases" && (
+          {adminAccess && activeTab === "uploadCases" && (
             <TreatmentCaseUploadPanel
               adminAccess={adminAccess}
               onUploaded={handleCasesUploaded}
@@ -401,7 +497,10 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
               categories={categories}
               visibleTreatments={visibleTreatments}
               selectedTreatment={selectedTreatment}
-              setSelectedId={setSelectedId}
+              setSelectedId={(id) => {
+                setSelectedId(id);
+                setActiveTab("details");
+              }}
             />
           )}
 
@@ -417,7 +516,9 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
           {activeTab === "details" && !selectedTreatment && (
             <section className="panel">
               <h2 className="panelTitle">Treatment Details</h2>
-              <div className="listCard">Select a treatment first.</div>
+              <div className="listCard">
+                No treatment is selected. Open Search Treatments and choose a treatment.
+              </div>
             </section>
           )}
 
@@ -427,14 +528,14 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
 
           {activeTab === "cases" && (
             <TreatmentCasesPanel
-              key={`cases-${casesRefreshKey}`}
+              key={`cases-${casesRefreshKey}-${selectedTreatment?.id || "none"}`}
               treatments={treatments}
               selectedTreatmentId={selectedTreatment?.id || null}
               adminAccess={adminAccess}
             />
           )}
 
-          {activeTab === "planner" && (
+          {adminAccess && activeTab === "planner" && (
             <TreatmentPlanBuilder
               treatments={treatments}
               selectedTreatmentId={selectedTreatment?.id || null}
@@ -443,7 +544,7 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
             />
           )}
 
-          {activeTab === "saved" && (
+          {adminAccess && activeTab === "saved" && (
             <SavedTreatmentPlansPanel
               treatments={treatments}
               casesRefreshKey={plansRefreshKey + casesRefreshKey}
