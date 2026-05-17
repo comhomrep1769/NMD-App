@@ -30,6 +30,7 @@ import RecurringPage from "./pages/RecurringPage";
 import TreatmentsPage from "./pages/TreatmentsPage";
 import JobPhotosPage from "./pages/JobPhotosPage";
 import MileagePage from "./pages/MileagePage";
+import ChatPage from "./pages/ChatPage";
 
 import type { AuthUser, AuthUserRole } from "./types";
 
@@ -155,7 +156,10 @@ function getRequiredRole(path: string): NormalizedRole | "adminOrSuperadmin" | n
   return null;
 }
 
-function roleCanAccess(user: LocalAppUser | null, requiredRole: ReturnType<typeof getRequiredRole>) {
+function roleCanAccess(
+  user: LocalAppUser | null,
+  requiredRole: ReturnType<typeof getRequiredRole>
+) {
   if (!requiredRole) return true;
   if (!user) return false;
 
@@ -551,10 +555,7 @@ function App() {
       );
     }
 
-    if (
-      path === "/client" &&
-      !canAccessCurrentPortal
-    ) {
+    if (path === "/client" && !canAccessCurrentPortal) {
       return (
         <LoginPortalPage
           portal="client"
@@ -607,6 +608,7 @@ function App() {
     if (path === "/treatments") return <TreatmentsPage role={visualRole as AuthUserRole} />;
     if (path === "/photos") return <JobPhotosPage role={visualRole} />;
     if (path === "/mileage") return <MileagePage />;
+    if (path === "/chat") return <ChatPage role={visualRole} />;
 
     if (path === "/pricing") {
       return (
@@ -677,23 +679,6 @@ function App() {
             }
           ]}
         />
-      );
-    }
-
-    if (path === "/chat") {
-      return (
-        <section className="panel">
-          <h2 className="panelTitle">Chat</h2>
-          <p className="brandSubtitle">
-            Chat page shell is ready. Guru and role-based messages can connect here.
-          </p>
-
-          <div className="listCard">
-            Use the floating Guru chat for now. Full app chat with images, timestamps,
-            pinned company chat, and client/admin/employee permissions will connect in the
-            chat phase.
-          </div>
-        </section>
       );
     }
 
