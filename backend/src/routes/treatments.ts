@@ -14,6 +14,8 @@ const pool = new Pool({
       : undefined
 });
 
+const MAX_UPLOAD_ITEMS = 2000;
+
 type TreatmentRow = {
   id: string;
   name: string;
@@ -258,6 +260,72 @@ async function ensureTreatmentsTable() {
   `);
 
   await pool.query(`
+    ALTER TABLE treatments
+    ADD COLUMN IF NOT EXISTS name TEXT;
+  `);
+
+  await pool.query(`
+    ALTER TABLE treatments
+    ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'General';
+  `);
+
+  await pool.query(`
+    ALTER TABLE treatments
+    ADD COLUMN IF NOT EXISTS surface_types TEXT[] NOT NULL DEFAULT '{}';
+  `);
+
+  await pool.query(`
+    ALTER TABLE treatments
+    ADD COLUMN IF NOT EXISTS chemical TEXT NULL;
+  `);
+
+  await pool.query(`
+    ALTER TABLE treatments
+    ADD COLUMN IF NOT EXISTS dilution_ratio TEXT NULL;
+  `);
+
+  await pool.query(`
+    ALTER TABLE treatments
+    ADD COLUMN IF NOT EXISTS use_case TEXT NULL;
+  `);
+
+  await pool.query(`
+    ALTER TABLE treatments
+    ADD COLUMN IF NOT EXISTS safety_notes TEXT NULL;
+  `);
+
+  await pool.query(`
+    ALTER TABLE treatments
+    ADD COLUMN IF NOT EXISTS instructions TEXT NULL;
+  `);
+
+  await pool.query(`
+    ALTER TABLE treatments
+    ADD COLUMN IF NOT EXISTS purchase_link TEXT NULL;
+  `);
+
+  await pool.query(`
+    ALTER TABLE treatments
+    ADD COLUMN IF NOT EXISTS cost_reference TEXT NULL;
+  `);
+
+  await pool.query(`
+    ALTER TABLE treatments
+    ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+  `);
+
+  await pool.query(`
+    ALTER TABLE treatments
+    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+  `);
+
+  await pool.query(`
+    UPDATE treatments
+    SET category = 'General'
+    WHERE category IS NULL OR TRIM(category) = '';
+  `);
+
+  await pool.query(`
     CREATE UNIQUE INDEX IF NOT EXISTS treatments_name_category_unique_idx
     ON treatments ((LOWER(name)), (LOWER(category)));
   `);
@@ -291,6 +359,159 @@ async function ensureTreatmentsTable() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+  `);
+
+  await pool.query(`
+    ALTER TABLE treatment_cases
+    ADD COLUMN IF NOT EXISTS treatment_id UUID NULL;
+  `);
+
+  await pool.query(`
+    ALTER TABLE treatment_cases
+    ADD COLUMN IF NOT EXISTS title TEXT;
+  `);
+
+  await pool.query(`
+    ALTER TABLE treatment_cases
+    ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'Treatment';
+  `);
+
+  await pool.query(`
+    ALTER TABLE treatment_cases
+    ADD COLUMN IF NOT EXISTS stain_type TEXT DEFAULT 'General';
+  `);
+
+  await pool.query(`
+    ALTER TABLE treatment_cases
+    ADD COLUMN IF NOT EXISTS severity TEXT DEFAULT 'General';
+  `);
+
+  await pool.query(`
+    ALTER TABLE treatment_cases
+    ADD COLUMN IF NOT EXISTS surface_type TEXT NULL;
+  `);
+
+  await pool.query(`
+    ALTER TABLE treatment_cases
+    ADD COLUMN IF NOT EXISTS condition_level TEXT NULL;
+  `);
+
+  await pool.query(`
+    ALTER TABLE treatment_cases
+    ADD COLUMN IF NOT EXISTS problem_type TEXT NULL;
+  `);
+
+  await pool.query(`
+    ALTER TABLE treatment_cases
+    ADD COLUMN IF NOT EXISTS recommended_mix TEXT NULL;
+  `);
+
+  await pool.query(`
+    ALTER TABLE treatment_cases
+    ADD COLUMN IF NOT EXISTS dwell_time TEXT NULL;
+  `);
+
+  await pool.query(`
+    ALTER TABLE treatment_cases
+    ADD COLUMN IF NOT EXISTS tools_needed TEXT NULL;
+  `);
+
+  await pool.query(`
+    ALTER TABLE treatment_cases
+    ADD COLUMN IF NOT EXISTS step_by_step TEXT NULL;
+  `);
+
+  await pool.query(`
+    ALTER TABLE treatment_cases
+    ADD COLUMN IF NOT EXISTS safety_checklist TEXT NULL;
+  `);
+
+  await pool.query(`
+    ALTER TABLE treatment_cases
+    ADD COLUMN IF NOT EXISTS pricing_note TEXT NULL;
+  `);
+
+  await pool.query(`
+    ALTER TABLE treatment_cases
+    ADD COLUMN IF NOT EXISTS customer_expectation TEXT NULL;
+  `);
+
+  await pool.query(`
+    ALTER TABLE treatment_cases
+    ADD COLUMN IF NOT EXISTS risk_level TEXT NOT NULL DEFAULT 'Standard';
+  `);
+
+  await pool.query(`
+    ALTER TABLE treatment_cases
+    ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+  `);
+
+  await pool.query(`
+    ALTER TABLE treatment_cases
+    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+  `);
+
+  await pool.query(`
+    UPDATE treatment_cases
+    SET category = 'Treatment'
+    WHERE category IS NULL OR TRIM(category) = '';
+  `);
+
+  await pool.query(`
+    UPDATE treatment_cases
+    SET stain_type = 'General'
+    WHERE stain_type IS NULL OR TRIM(stain_type) = '';
+  `);
+
+  await pool.query(`
+    UPDATE treatment_cases
+    SET severity = 'General'
+    WHERE severity IS NULL OR TRIM(severity) = '';
+  `);
+
+  await pool.query(`
+    UPDATE treatment_cases
+    SET risk_level = 'Standard'
+    WHERE risk_level IS NULL OR TRIM(risk_level) = '';
+  `);
+
+  await pool.query(`
+    DO $$
+    DECLARE
+      r RECORD;
+    BEGIN
+      FOR r IN
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_name = 'treatment_cases'
+          AND table_schema = 'public'
+          AND is_nullable = 'NO'
+          AND column_name NOT IN ('id', 'title')
+      LOOP
+        EXECUTE format(
+          'ALTER TABLE treatment_cases ALTER COLUMN %I DROP NOT NULL',
+          r.column_name
+        );
+      END LOOP;
+    END $$;
+  `);
+
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1
+        FROM information_schema.table_constraints
+        WHERE constraint_name = 'treatment_cases_treatment_id_fkey'
+          AND table_name = 'treatment_cases'
+      ) THEN
+        ALTER TABLE treatment_cases
+        ADD CONSTRAINT treatment_cases_treatment_id_fkey
+        FOREIGN KEY (treatment_id)
+        REFERENCES treatments(id)
+        ON DELETE SET NULL;
+      END IF;
+    END $$;
   `);
 
   await pool.query(`
@@ -686,7 +907,7 @@ async function seedDefaultTreatments() {
       title: "Black Streaks On Asphalt Shingle Roof",
       surfaceType: "Asphalt shingles",
       conditionLevel: "Moderate to heavy organic staining",
-      problemType: "Gloeocapsa magma / black roof streaks / algae",
+      problemType: "Black roof streaks, algae, organic roof discoloration",
       recommendedMix: "Roof-safe SH mix based on severity. Avoid pressure washing shingles.",
       dwellTime: "Controlled dwell without allowing mix to dry. Reapply as needed.",
       toolsNeeded: "Soft wash system, PPE, plant protection, water source, ladder/fall safety equipment.",
@@ -699,66 +920,6 @@ async function seedDefaultTreatments() {
       customerExpectation:
         "Some stains may lighten after treatment and continue improving after rain/weathering.",
       riskLevel: "High Review"
-    },
-    {
-      treatmentName: "Oxidation-Sensitive Siding Wash",
-      treatmentId: null,
-      title: "Oxidized Siding Customer Expects Like-New Finish",
-      surfaceType: "Oxidized vinyl/aluminum/painted siding",
-      conditionLevel: "Moderate oxidation",
-      problemType: "Chalking, faded siding, oxidation streaking, uneven appearance after cleaning",
-      recommendedMix: "Mild soft wash mix only after test spot. Avoid aggressive pressure or brushing.",
-      dwellTime: "Short controlled dwell. Do not allow chemical to dry.",
-      toolsNeeded: "Soft wash applicator, test spot supplies, camera for documentation, PPE.",
-      stepByStep:
-        "1. Inspect and rub test for oxidation. 2. Photograph/document. 3. Explain limits to customer. 4. Test spot. 5. Soft wash gently. 6. Rinse thoroughly. 7. Do not promise oxidation restoration unless sold separately.",
-      safetyChecklist:
-        "Document pre-existing conditions, use waiver language, avoid scrubbing/pressure on oxidized surfaces, and escalate if customer expects restoration.",
-      pricingNote:
-        "Cleaning and oxidation restoration are separate scopes. Restoration should be priced higher and reviewed by Admin/Super Admin.",
-      customerExpectation:
-        "Cleaning removes dirt/organic growth but may not fix fading, chalking, or oxidation. Washing may reveal existing oxidation.",
-      riskLevel: "High Review"
-    },
-    {
-      treatmentName: "Concrete Surface Cleaning",
-      treatmentId: null,
-      title: "Surface Cleaner Stripes On Concrete",
-      surfaceType: "Concrete driveway / sidewalk",
-      conditionLevel: "Visible striping after cleaning",
-      problemType: "Uneven pass speed, weak pre/post treatment, surface cleaner mismatch, or surface condition",
-      recommendedMix: "Post-treat organic staining with appropriate SH mix. Degreaser if soil/oil related.",
-      dwellTime: "Allow controlled dwell, then rinse if needed. Do not let chemical dry.",
-      toolsNeeded: "Surface cleaner, pressure washer, SH/degreaser, rinse tools.",
-      stepByStep:
-        "1. Identify if stripes are cleaning marks, oxidation/coating, or remaining organic growth. 2. Re-clean evenly with correct pace if safe. 3. Apply post-treatment. 4. Rinse and inspect. 5. Escalate painted/coated concrete.",
-      safetyChecklist:
-        "Verify concrete is not painted/coated or too new/weak. Avoid excessive pressure and document pre-existing coating failures.",
-      pricingNote:
-        "Corrections may be included if caused by workflow; coated/painted concrete should be treated as a separate restoration issue.",
-      customerExpectation:
-        "Some stripes are workflow related, but painted/coated or damaged surfaces may need stripping/repainting instead of washing.",
-      riskLevel: "Moderate"
-    },
-    {
-      treatmentName: "Wood Fence Cleaning",
-      treatmentId: null,
-      title: "Gray Wood Fence With Organic Growth",
-      surfaceType: "Wood fence",
-      conditionLevel: "Moderate weathering and organic growth",
-      problemType: "Gray wood, algae/mildew, prep for stain/sealer",
-      recommendedMix: "Wood-safe cleaner such as sodium percarbonate; oxalic brightener if appropriate.",
-      dwellTime: "Follow product label and do not allow product to dry.",
-      toolsNeeded: "Pump sprayer or soft wash applicator, low-pressure rinse, PPE, brightener if needed.",
-      stepByStep:
-        "1. Pre-wet. 2. Apply wood cleaner. 3. Dwell. 4. Rinse gently with low pressure. 5. Brighten if needed. 6. Allow dry time before sealing/staining.",
-      safetyChecklist:
-        "Avoid high pressure, protect plants, explain possible fuzzing, test first, and avoid over-cleaning fragile boards.",
-      pricingNote:
-        "Wood cleaning/restoration should be priced above basic washing due to time, chemistry, and risk.",
-      customerExpectation:
-        "Wood color may vary after cleaning. Full restoration may require brightening, sanding, sealing, or staining.",
-      riskLevel: "Moderate"
     }
   ];
 
@@ -883,10 +1044,10 @@ router.get("/cases", requireAuth, async (req, res) => {
       cases: result.rows.map(mapTreatmentCase)
     });
   } catch (err) {
-    console.error("Get treatment cases error:", err);
+    console.error("Get treatment workflows error:", err);
 
     return res.status(500).json({
-      message: err instanceof Error ? err.message : "Failed to load treatment cases."
+      message: err instanceof Error ? err.message : "Failed to load treatments."
     });
   }
 });
@@ -967,7 +1128,7 @@ router.post("/seed", requireAdmin, async (_req, res) => {
     );
 
     return res.json({
-      message: "Treatment database and cases seeded successfully.",
+      message: "Treatment database seeded successfully.",
       treatments: treatmentsResult.rows.map(mapTreatment),
       cases: casesResult.rows.map(mapTreatmentCase)
     });
@@ -993,9 +1154,9 @@ router.post("/upload", requireAdmin, async (req, res) => {
       });
     }
 
-    if (items.length > 500) {
+    if (items.length > MAX_UPLOAD_ITEMS) {
       return res.status(400).json({
-        message: "Upload limit is 500 treatments at a time."
+        message: `Upload limit is ${MAX_UPLOAD_ITEMS.toLocaleString()} treatments at a time.`
       });
     }
 
@@ -1065,13 +1226,13 @@ router.post("/cases/upload", requireAdmin, async (req, res) => {
 
     if (items.length === 0) {
       return res.status(400).json({
-        message: "No treatment cases were provided for upload."
+        message: "No detailed treatments were provided for upload."
       });
     }
 
-    if (items.length > 500) {
+    if (items.length > MAX_UPLOAD_ITEMS) {
       return res.status(400).json({
-        message: "Upload limit is 500 treatment cases at a time."
+        message: `Upload limit is ${MAX_UPLOAD_ITEMS.toLocaleString()} treatments at a time.`
       });
     }
 
@@ -1082,7 +1243,7 @@ router.post("/cases/upload", requireAdmin, async (req, res) => {
       const normalized = normalizeCaseUploadItem(items[index]);
 
       if (!normalized.title) {
-        skipped.push({ index, reason: "Missing case title." });
+        skipped.push({ index, reason: "Missing treatment title." });
         continue;
       }
 
@@ -1126,17 +1287,17 @@ router.post("/cases/upload", requireAdmin, async (req, res) => {
     );
 
     return res.json({
-      message: `Treatment case upload complete. Imported ${imported.length}. Skipped ${skipped.length}.`,
+      message: `Treatment upload complete. Imported ${imported.length}. Skipped ${skipped.length}.`,
       importedCount: imported.length,
       skippedCount: skipped.length,
       skipped,
       cases: result.rows.map(mapTreatmentCase)
     });
   } catch (err) {
-    console.error("Upload treatment cases error:", err);
+    console.error("Upload detailed treatments error:", err);
 
     return res.status(500).json({
-      message: err instanceof Error ? err.message : "Failed to upload treatment cases."
+      message: err instanceof Error ? err.message : "Failed to upload treatments."
     });
   }
 });
@@ -1149,7 +1310,7 @@ router.post("/cases", requireAdmin, async (req, res) => {
 
     if (!normalized.title) {
       return res.status(400).json({
-        message: "Case title is required."
+        message: "Treatment title is required."
       });
     }
 
@@ -1160,10 +1321,10 @@ router.post("/cases", requireAdmin, async (req, res) => {
       case: joined ? mapTreatmentCase(joined) : mapTreatmentCase(saved)
     });
   } catch (err) {
-    console.error("Create treatment case error:", err);
+    console.error("Create treatment workflow error:", err);
 
     return res.status(500).json({
-      message: err instanceof Error ? err.message : "Failed to create treatment case."
+      message: err instanceof Error ? err.message : "Failed to create treatment."
     });
   }
 });
@@ -1177,13 +1338,13 @@ router.patch("/cases/:id", requireAdmin, async (req, res) => {
 
     if (!id) {
       return res.status(400).json({
-        message: "Case ID is required."
+        message: "Treatment ID is required."
       });
     }
 
     if (!normalized.title) {
       return res.status(400).json({
-        message: "Case title is required."
+        message: "Treatment title is required."
       });
     }
 
@@ -1231,7 +1392,7 @@ router.patch("/cases/:id", requireAdmin, async (req, res) => {
 
     if (result.rows.length === 0) {
       return res.status(404).json({
-        message: "Treatment case not found."
+        message: "Treatment not found."
       });
     }
 
@@ -1241,10 +1402,10 @@ router.patch("/cases/:id", requireAdmin, async (req, res) => {
       case: joined ? mapTreatmentCase(joined) : mapTreatmentCase(result.rows[0])
     });
   } catch (err) {
-    console.error("Update treatment case error:", err);
+    console.error("Update treatment workflow error:", err);
 
     return res.status(500).json({
-      message: err instanceof Error ? err.message : "Failed to update treatment case."
+      message: err instanceof Error ? err.message : "Failed to update treatment."
     });
   }
 });
@@ -1257,7 +1418,7 @@ router.delete("/cases/:id", requireAdmin, async (req, res) => {
 
     if (!id) {
       return res.status(400).json({
-        message: "Case ID is required."
+        message: "Treatment ID is required."
       });
     }
 
@@ -1272,18 +1433,18 @@ router.delete("/cases/:id", requireAdmin, async (req, res) => {
 
     if (result.rows.length === 0) {
       return res.status(404).json({
-        message: "Treatment case not found."
+        message: "Treatment not found."
       });
     }
 
     return res.json({
-      message: "Treatment case deleted."
+      message: "Treatment deleted."
     });
   } catch (err) {
-    console.error("Delete treatment case error:", err);
+    console.error("Delete treatment workflow error:", err);
 
     return res.status(500).json({
-      message: err instanceof Error ? err.message : "Failed to delete treatment case."
+      message: err instanceof Error ? err.message : "Failed to delete treatment."
     });
   }
 });
