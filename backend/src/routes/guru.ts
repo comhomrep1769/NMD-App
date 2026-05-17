@@ -1,6 +1,6 @@
 import express from "express";
 import { Pool } from "pg";
-import jwt from "jsonwebtoken";
+import { requireAuth, type AuthenticatedRequest } from "../middleware/authGuard.js";
 
 const router = express.Router();
 
@@ -15,12 +15,6 @@ const pool = new Pool({
 });
 
 type UserRole = "superadmin" | "admin" | "employee" | "client";
-
-type AuthPayload = {
-  id: string;
-  email: string;
-  role: UserRole;
-};
 
 type GuruMessageRow = {
   id: string;
@@ -79,34 +73,19 @@ type TreatmentSearchRow = {
   created_at: string;
 };
 
-function getJwtSecret() {
-  const secret = process.env.JWT_SECRET;
-
-  if (!secret) {
-    throw new Error("JWT_SECRET is missing from backend environment variables.");
+function getUser(req: AuthenticatedRequest) {
+  if (!req.authUser) {
+    throw new Error("Missing authenticated user.");
   }
 
-  return secret;
+  return req.authUser;
 }
 
-function getBearerToken(req: express.Request) {
-  const header = req.headers.authorization || "";
-
-  if (header.toLowerCase().startsWith("bearer ")) {
-    return header.slice(7).trim();
-  }
-
-  return "";
-}
-
-function requireUser(req: express.Request) {
-  const token = getBearerToken(req);
-
-  if (!token) {
-    throw new Error("Missing authorization token.");
-  }
-
-  return jwt.verify(token, getJwtSecret()) as AuthPayload;
+function normalizeRole(role: unknown): UserRole {
+  if (role === "superadmin") return "superadmin";
+  if (role === "admin") return "admin";
+  if (role === "employee") return "employee";
+  return "client";
 }
 
 function getRoleContext(role: UserRole): "admin" | "employee" | "client" {
@@ -317,28 +296,32 @@ function buildGuruReply(input: {
 }) {
   const lower = input.body.toLowerCase();
 
-  if (lower.includes("treatment") || lower.includes("chemical") || lower.includes("mix")) {
-    return "I can help with treatment guidance. Use the Treatments page to search the treatment database, cases, dilution calculator, saved plans, and field-ready plan builder. High-risk work should be reviewed by Admin or Super Admin before final method approval.";
+  if (
+    lower.includes("treatment") ||
+    lower.includes("chemical") ||
+    lower.includes("mix") ||
+    lower.includes("roof") ||
+    lower.includes("rust") ||
+    lower.includes("concrete") ||
+    lower.includes("oxidation")
+  ) {
+    return "I can help with treatment guidance. Open the Treatments page and use Guru Search, Treatment Cases, Field Mode, or the SH Calculator. Employees can view approved guidance only. Admin/Super Admin can seed or upload treatment records.";
   }
 
   if (lower.includes("estimate") || lower.includes("quote")) {
     if (input.role === "client") {
-      return "I can help start a preliminary estimate. Use Start Estimate and include service type, surface, condition, address, photos, and schedule preference. NMD will review before sending an official quote.";
+      return "I can help start a preliminary estimate. Please provide service type, surface, condition, address, photos if available, and preferred schedule. NMD will review before sending an official quote.";
     }
 
-    return "I can help review estimates, pricing notes, treatment risks, and quote workflow. Use Guru Review for submitted estimates and Treatments/Pricing for job-specific guidance.";
-  }
-
-  if (lower.includes("payment") || lower.includes("pos") || lower.includes("cash")) {
-    return "Use POS to record payments. Cash should include photo proof and admin approval where required. Stripe/card collection should stay tied to invoice/payment workflow.";
+    return "I can help review estimates, treatment risks, and quote workflow. Use Guru Review for submitted estimates and Treatments/Pricing for job-specific guidance.";
   }
 
   if (input.role === "employee") {
-    return "I can help with field workflow, treatments, tips, payment collection, schedule access, and safety reminders. For high-risk treatment decisions, escalate to Admin or Super Admin.";
+    return "I can help with field workflow, treatments, safety reminders, and service guidance. For high-risk treatment decisions, escalate to Admin or Super Admin.";
   }
 
   if (input.role === "superadmin") {
-    return "Owner mode is active. I can help with operations, estimates, quotes, treatments, pricing, payments, saved plans, employees, expenses, mileage, recurring services, and business analysis.";
+    return "Owner mode is active. I can help with operations, estimates, quotes, treatments, pricing, payments, employees, expenses, mileage, recurring services, and business analysis.";
   }
 
   if (input.role === "admin") {
@@ -348,11 +331,11 @@ function buildGuruReply(input: {
   return "I have this noted. For estimates, please provide the service type, surface, condition, address, photos if available, and preferred schedule.";
 }
 
-router.get("/messages", async (req, res) => {
+router.get("/messages", requireAuth, async (req: AuthenticatedRequest, res) => {
   try {
     await ensureGuruTables();
 
-    const user = requireUser(req);
+    const user = getUser(req);
 
     const result = await pool.query<GuruMessageRow>(
       `
@@ -369,17 +352,18 @@ router.get("/messages", async (req, res) => {
       messages: result.rows.map(mapMessage)
     });
   } catch (err) {
-    return res.status(401).json({
+    return res.status(500).json({
       message: err instanceof Error ? err.message : "Could not load Guru messages."
     });
   }
 });
 
-router.post("/messages", async (req, res) => {
+router.post("/messages", requireAuth, async (req: AuthenticatedRequest, res) => {
   try {
     await ensureGuruTables();
 
-    const user = requireUser(req);
+    const user = getUser(req);
+    const userRole = normalizeRole(user.role);
     const body = String(req.body?.body || "").trim();
 
     if (!body) {
@@ -388,9 +372,9 @@ router.post("/messages", async (req, res) => {
       });
     }
 
-    const roleContext = getRoleContext(user.role);
+    const roleContext = getRoleContext(userRole);
     const reply = buildGuruReply({
-      role: user.role,
+      role: userRole,
       body
     });
 
@@ -417,17 +401,17 @@ router.post("/messages", async (req, res) => {
       guruMessage: mapMessage(guruMessage.rows[0])
     });
   } catch (err) {
-    return res.status(401).json({
+    return res.status(500).json({
       message: err instanceof Error ? err.message : "Could not save Guru message."
     });
   }
 });
 
-router.delete("/messages", async (req, res) => {
+router.delete("/messages", requireAuth, async (req: AuthenticatedRequest, res) => {
   try {
     await ensureGuruTables();
 
-    const user = requireUser(req);
+    const user = getUser(req);
 
     await pool.query(
       `
@@ -441,47 +425,29 @@ router.delete("/messages", async (req, res) => {
       message: "Guru chat history cleared."
     });
   } catch (err) {
-    return res.status(401).json({
+    return res.status(500).json({
       message: err instanceof Error ? err.message : "Could not clear Guru messages."
     });
   }
 });
 
-router.get("/treatment-search", async (req, res) => {
+router.get("/treatment-search", requireAuth, async (req: AuthenticatedRequest, res) => {
   try {
     await ensureTreatmentSearchTables();
 
-    const user = requireUser(req);
+    const user = getUser(req);
+    const userRole = normalizeRole(user.role);
 
-    if (user.role === "client") {
+    if (userRole === "client") {
       return res.status(403).json({
-        message: "Treatment database search is for Admin, Super Admin, and Employee users."
+        message: "Treatment database search is for Super Admin, Admin, and Employee users."
       });
     }
 
     const search = String(req.query.search || "").trim();
-    const riskLevel = String(req.query.riskLevel || "all").trim();
-    const recordType = String(req.query.recordType || "all").trim();
-    const limit = Math.min(Math.max(Number(req.query.limit || 25), 1), 75);
-
-    const params: Array<string | number> = [];
-    const typeFilters: string[] = [];
-
-    params.push(search ? `%${search.toLowerCase()}%` : "%%");
-    const searchParamIndex = params.length;
-
-    params.push(riskLevel.toLowerCase());
-    const riskParamIndex = params.length;
-
-    params.push(recordType.toLowerCase());
-    const typeParamIndex = params.length;
-
-    params.push(limit);
-    const limitParamIndex = params.length;
-
-    if (recordType !== "all") {
-      typeFilters.push(`LOWER(record_type) = $${typeParamIndex}`);
-    }
+    const riskLevel = String(req.query.riskLevel || "all").trim().toLowerCase();
+    const recordType = String(req.query.recordType || "all").trim().toLowerCase();
+    const limit = Math.min(Math.max(Number(req.query.limit || 75), 1), 100);
 
     const result = await pool.query<TreatmentSearchRow>(
       `
@@ -496,15 +462,71 @@ router.get("/treatment-search", async (req, res) => {
             chemical,
             dilution_ratio,
             CASE
-              WHEN LOWER(name || ' ' || category || ' ' || COALESCE(chemical,'') || ' ' || COALESCE(safety_notes,'') || ' ' || COALESCE(instructions,'')) LIKE '%roof%'
-                OR LOWER(name || ' ' || category || ' ' || COALESCE(chemical,'') || ' ' || COALESCE(safety_notes,'') || ' ' || COALESCE(instructions,'')) LIKE '%rust%'
-                OR LOWER(name || ' ' || category || ' ' || COALESCE(chemical,'') || ' ' || COALESCE(safety_notes,'') || ' ' || COALESCE(instructions,'')) LIKE '%oxidation%'
-                OR LOWER(name || ' ' || category || ' ' || COALESCE(chemical,'') || ' ' || COALESCE(safety_notes,'') || ' ' || COALESCE(instructions,'')) LIKE '%painted%'
-                OR LOWER(name || ' ' || category || ' ' || COALESCE(chemical,'') || ' ' || COALESCE(safety_notes,'') || ' ' || COALESCE(instructions,'')) LIKE '%new concrete%'
+              WHEN LOWER(
+                name || ' ' ||
+                category || ' ' ||
+                COALESCE(chemical,'') || ' ' ||
+                COALESCE(safety_notes,'') || ' ' ||
+                COALESCE(instructions,'') || ' ' ||
+                COALESCE(use_case,'')
+              ) LIKE '%roof%'
+              OR LOWER(
+                name || ' ' ||
+                category || ' ' ||
+                COALESCE(chemical,'') || ' ' ||
+                COALESCE(safety_notes,'') || ' ' ||
+                COALESCE(instructions,'') || ' ' ||
+                COALESCE(use_case,'')
+              ) LIKE '%rust%'
+              OR LOWER(
+                name || ' ' ||
+                category || ' ' ||
+                COALESCE(chemical,'') || ' ' ||
+                COALESCE(safety_notes,'') || ' ' ||
+                COALESCE(instructions,'') || ' ' ||
+                COALESCE(use_case,'')
+              ) LIKE '%oxidation%'
+              OR LOWER(
+                name || ' ' ||
+                category || ' ' ||
+                COALESCE(chemical,'') || ' ' ||
+                COALESCE(safety_notes,'') || ' ' ||
+                COALESCE(instructions,'') || ' ' ||
+                COALESCE(use_case,'')
+              ) LIKE '%painted%'
+              OR LOWER(
+                name || ' ' ||
+                category || ' ' ||
+                COALESCE(chemical,'') || ' ' ||
+                COALESCE(safety_notes,'') || ' ' ||
+                COALESCE(instructions,'') || ' ' ||
+                COALESCE(use_case,'')
+              ) LIKE '%new concrete%'
               THEN 'High Review'
-              WHEN LOWER(name || ' ' || category || ' ' || COALESCE(chemical,'') || ' ' || COALESCE(safety_notes,'') || ' ' || COALESCE(instructions,'')) LIKE '%wood%'
-                OR LOWER(name || ' ' || category || ' ' || COALESCE(chemical,'') || ' ' || COALESCE(safety_notes,'') || ' ' || COALESCE(instructions,'')) LIKE '%paver%'
-                OR LOWER(name || ' ' || category || ' ' || COALESCE(chemical,'') || ' ' || COALESCE(safety_notes,'') || ' ' || COALESCE(instructions,'')) LIKE '%plant%'
+              WHEN LOWER(
+                name || ' ' ||
+                category || ' ' ||
+                COALESCE(chemical,'') || ' ' ||
+                COALESCE(safety_notes,'') || ' ' ||
+                COALESCE(instructions,'') || ' ' ||
+                COALESCE(use_case,'')
+              ) LIKE '%wood%'
+              OR LOWER(
+                name || ' ' ||
+                category || ' ' ||
+                COALESCE(chemical,'') || ' ' ||
+                COALESCE(safety_notes,'') || ' ' ||
+                COALESCE(instructions,'') || ' ' ||
+                COALESCE(use_case,'')
+              ) LIKE '%paver%'
+              OR LOWER(
+                name || ' ' ||
+                category || ' ' ||
+                COALESCE(chemical,'') || ' ' ||
+                COALESCE(safety_notes,'') || ' ' ||
+                COALESCE(instructions,'') || ' ' ||
+                COALESCE(use_case,'')
+              ) LIKE '%plant%'
               THEN 'Moderate'
               ELSE 'Standard'
             END AS risk_level,
@@ -522,17 +544,17 @@ router.get("/treatment-search", async (req, res) => {
             'case'::TEXT AS record_type,
             tc.id,
             tc.title,
-            t.category,
+            COALESCE(t.category, 'Treatment Case') AS category,
             tc.surface_type,
             tc.problem_type,
             tc.recommended_mix AS chemical,
             tc.dwell_time AS dilution_ratio,
-            tc.risk_level,
+            COALESCE(tc.risk_level, 'Standard') AS risk_level,
             tc.step_by_step AS instructions,
             tc.safety_checklist AS safety_notes,
             tc.pricing_note,
             tc.customer_expectation,
-            t.name AS source_name,
+            COALESCE(t.name, 'Treatment Case') AS source_name,
             tc.created_at
           FROM treatment_cases tc
           LEFT JOIN treatments t ON t.id = tc.treatment_id
@@ -561,34 +583,39 @@ router.get("/treatment-search", async (req, res) => {
         FROM combined
         WHERE
           (
-            LOWER(title) LIKE $${searchParamIndex}
-            OR LOWER(COALESCE(category, '')) LIKE $${searchParamIndex}
-            OR LOWER(COALESCE(surface_type, '')) LIKE $${searchParamIndex}
-            OR LOWER(COALESCE(problem_type, '')) LIKE $${searchParamIndex}
-            OR LOWER(COALESCE(chemical, '')) LIKE $${searchParamIndex}
-            OR LOWER(COALESCE(dilution_ratio, '')) LIKE $${searchParamIndex}
-            OR LOWER(COALESCE(instructions, '')) LIKE $${searchParamIndex}
-            OR LOWER(COALESCE(safety_notes, '')) LIKE $${searchParamIndex}
-            OR LOWER(COALESCE(pricing_note, '')) LIKE $${searchParamIndex}
-            OR LOWER(COALESCE(customer_expectation, '')) LIKE $${searchParamIndex}
-            OR LOWER(COALESCE(source_name, '')) LIKE $${searchParamIndex}
+            $1 = ''
+            OR LOWER(title) LIKE LOWER('%' || $1 || '%')
+            OR LOWER(COALESCE(category, '')) LIKE LOWER('%' || $1 || '%')
+            OR LOWER(COALESCE(surface_type, '')) LIKE LOWER('%' || $1 || '%')
+            OR LOWER(COALESCE(problem_type, '')) LIKE LOWER('%' || $1 || '%')
+            OR LOWER(COALESCE(chemical, '')) LIKE LOWER('%' || $1 || '%')
+            OR LOWER(COALESCE(dilution_ratio, '')) LIKE LOWER('%' || $1 || '%')
+            OR LOWER(COALESCE(instructions, '')) LIKE LOWER('%' || $1 || '%')
+            OR LOWER(COALESCE(safety_notes, '')) LIKE LOWER('%' || $1 || '%')
+            OR LOWER(COALESCE(pricing_note, '')) LIKE LOWER('%' || $1 || '%')
+            OR LOWER(COALESCE(customer_expectation, '')) LIKE LOWER('%' || $1 || '%')
+            OR LOWER(COALESCE(source_name, '')) LIKE LOWER('%' || $1 || '%')
           )
           AND (
-            $${riskParamIndex} = 'all'
-            OR LOWER(COALESCE(risk_level, 'standard')) = $${riskParamIndex}
+            $2 = 'all'
+            OR LOWER(COALESCE(risk_level, 'standard')) = $2
           )
-          ${typeFilters.length ? `AND ${typeFilters.join(" AND ")}` : ""}
+          AND (
+            $3 = 'all'
+            OR LOWER(record_type) = $3
+          )
         ORDER BY
           CASE
             WHEN LOWER(COALESCE(risk_level, 'standard')) = 'high review' THEN 1
             WHEN LOWER(COALESCE(risk_level, 'standard')) = 'moderate' THEN 2
-            ELSE 3
+            WHEN LOWER(COALESCE(risk_level, 'standard')) = 'saved plan' THEN 3
+            ELSE 4
           END,
           record_type ASC,
           title ASC
-        LIMIT $${limitParamIndex};
+        LIMIT $4;
       `,
-      params
+      [search, riskLevel, recordType, limit]
     );
 
     return res.json({
@@ -598,18 +625,22 @@ router.get("/treatment-search", async (req, res) => {
     console.error("Guru treatment search error:", err);
 
     return res.status(500).json({
-      message: err instanceof Error ? err.message : "Failed to search Guru treatment database."
+      message:
+        err instanceof Error
+          ? err.message
+          : "Failed to search Guru treatment database."
     });
   }
 });
 
-router.post("/estimate-intake", async (req, res) => {
+router.post("/estimate-intake", requireAuth, async (req: AuthenticatedRequest, res) => {
   try {
     await ensureGuruTables();
 
-    const user = requireUser(req);
+    const user = getUser(req);
+    const userRole = normalizeRole(user.role);
 
-    if (user.role !== "client") {
+    if (userRole !== "client") {
       return res.status(403).json({
         message: "Only client accounts can submit Guru estimates."
       });
@@ -700,13 +731,14 @@ router.post("/estimate-intake", async (req, res) => {
   }
 });
 
-router.get("/estimates", async (req, res) => {
+router.get("/estimates", requireAuth, async (req: AuthenticatedRequest, res) => {
   try {
     await ensureGuruTables();
 
-    const user = requireUser(req);
+    const user = getUser(req);
+    const userRole = normalizeRole(user.role);
 
-    if (!isAdminRole(user.role)) {
+    if (!isAdminRole(userRole)) {
       return res.status(403).json({
         message: "Only Admin or Super Admin can view all Guru estimates."
       });
@@ -732,11 +764,11 @@ router.get("/estimates", async (req, res) => {
   }
 });
 
-router.get("/my-estimates", async (req, res) => {
+router.get("/my-estimates", requireAuth, async (req: AuthenticatedRequest, res) => {
   try {
     await ensureGuruTables();
 
-    const user = requireUser(req);
+    const user = getUser(req);
 
     const result = await pool.query<GuruEstimateRow>(
       `
