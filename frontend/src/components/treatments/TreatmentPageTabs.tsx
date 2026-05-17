@@ -51,9 +51,19 @@ const adminOnlyTabs: TreatmentTab[] = [
     description: "Import detailed treatment workflows from CSV or JSON."
   },
   {
-    key: "chemicals",
-    label: "Chemical List",
-    description: "Manage chemical names, links, use cases, and warnings."
+    key: "chemicalUpload",
+    label: "Upload Chemicals",
+    description: "Upload chemical names and purchase links."
+  },
+  {
+    key: "chemicalView",
+    label: "View Chemicals",
+    description: "View chemical list, use cases, and warnings."
+  },
+  {
+    key: "chemicalAdd",
+    label: "Add Chemical",
+    description: "Manually add one chemical at a time."
   },
   {
     key: "planner",
