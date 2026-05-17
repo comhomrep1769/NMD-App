@@ -1,75 +1,113 @@
 import React from "react";
 import { apiFetch } from "../../api";
 import type { TreatmentItem } from "../../types";
-import {
-  buildTreatmentCaseSummary,
-  caseToForm,
-  emptyTreatmentCaseForm,
-  formToTreatmentCasePayload,
-  normalizeTreatmentCase,
-  treatmentCaseMatchesSearch,
-  treatmentCaseRiskBadgeClass,
-  type TreatmentCase,
-  type TreatmentCaseFormState
-} from "../../types/treatmentCases";
-import TreatmentCaseForm from "./TreatmentCaseForm";
+import type { TreatmentCase } from "../../types/treatmentCases";
+import { treatmentCaseRiskBadgeClass } from "../../types/treatmentCases";
 
-function exportCasesToCsv(cases: TreatmentCase[]) {
-  const headers = [
-    "Title",
-    "Treatment",
-    "Surface",
-    "Condition",
-    "Problem",
-    "Recommended Mix",
-    "Dwell Time",
-    "Tools",
-    "Steps",
-    "Safety",
-    "Pricing",
-    "Customer Expectation",
-    "Risk"
-  ];
+type CaseForm = {
+  id: string;
+  treatmentId: string;
+  title: string;
+  surfaceType: string;
+  conditionLevel: string;
+  problemType: string;
+  recommendedMix: string;
+  dwellTime: string;
+  toolsNeeded: string;
+  stepByStep: string;
+  safetyChecklist: string;
+  pricingNote: string;
+  customerExpectation: string;
+  riskLevel: string;
+};
 
-  const rows = cases.map((item) => [
+const emptyCaseForm: CaseForm = {
+  id: "",
+  treatmentId: "",
+  title: "",
+  surfaceType: "",
+  conditionLevel: "",
+  problemType: "",
+  recommendedMix: "",
+  dwellTime: "",
+  toolsNeeded: "",
+  stepByStep: "",
+  safetyChecklist: "",
+  pricingNote: "",
+  customerExpectation: "",
+  riskLevel: "Standard"
+};
+
+function caseToForm(item: TreatmentCase): CaseForm {
+  return {
+    id: item.id || "",
+    treatmentId: item.treatmentId || "",
+    title: item.title || "",
+    surfaceType: item.surfaceType || "",
+    conditionLevel: item.conditionLevel || "",
+    problemType: item.problemType || "",
+    recommendedMix: item.recommendedMix || "",
+    dwellTime: item.dwellTime || "",
+    toolsNeeded: item.toolsNeeded || "",
+    stepByStep: item.stepByStep || "",
+    safetyChecklist: item.safetyChecklist || "",
+    pricingNote: item.pricingNote || "",
+    customerExpectation: item.customerExpectation || "",
+    riskLevel: item.riskLevel || "Standard"
+  };
+}
+
+function formToPayload(form: CaseForm) {
+  return {
+    treatmentId: form.treatmentId || null,
+    title: form.title.trim(),
+    surfaceType: form.surfaceType.trim(),
+    conditionLevel: form.conditionLevel.trim(),
+    problemType: form.problemType.trim(),
+    recommendedMix: form.recommendedMix.trim(),
+    dwellTime: form.dwellTime.trim(),
+    toolsNeeded: form.toolsNeeded.trim(),
+    stepByStep: form.stepByStep.trim(),
+    safetyChecklist: form.safetyChecklist.trim(),
+    pricingNote: form.pricingNote.trim(),
+    customerExpectation: form.customerExpectation.trim(),
+    riskLevel: form.riskLevel || "Standard"
+  };
+}
+
+function caseMatchesSearch(item: TreatmentCase, search: string) {
+  const value = search.trim().toLowerCase();
+
+  if (!value) return true;
+
+  const haystack = [
     item.title,
-    item.treatmentName || "",
-    item.surfaceType || "",
-    item.conditionLevel || "",
-    item.problemType || "",
-    item.recommendedMix || "",
-    item.dwellTime || "",
-    item.toolsNeeded || "",
-    item.stepByStep || "",
-    item.safetyChecklist || "",
-    item.pricingNote || "",
-    item.customerExpectation || "",
-    item.riskLevel || "Standard"
-  ]);
+    item.treatmentName,
+    item.treatmentCategory,
+    item.surfaceType,
+    item.conditionLevel,
+    item.problemType,
+    item.recommendedMix,
+    item.dwellTime,
+    item.toolsNeeded,
+    item.stepByStep,
+    item.safetyChecklist,
+    item.pricingNote,
+    item.customerExpectation,
+    item.riskLevel
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
 
-  const csv = [headers, ...rows]
-    .map((row) =>
-      row
-        .map((cell) => {
-          const value = String(cell).replace(/"/g, '""');
-          return `"${value}"`;
-        })
-        .join(",")
-    )
-    .join("\n");
+  return haystack.includes(value);
+}
 
-  const blob = new Blob([csv], {
-    type: "text/csv;charset=utf-8"
-  });
+function getLinkedTreatmentName(item: TreatmentCase, treatments: TreatmentItem[]) {
+  if (item.treatmentName) return item.treatmentName;
 
-  const url = window.URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = `nmd-treatment-cases-${new Date().toISOString().slice(0, 10)}.csv`;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  window.URL.revokeObjectURL(url);
+  const treatment = treatments.find((entry) => entry.id === item.treatmentId);
+  return treatment?.name || "General / Not linked";
 }
 
 export default function TreatmentCasesPanel({
@@ -84,23 +122,29 @@ export default function TreatmentCasesPanel({
   const [cases, setCases] = React.useState<TreatmentCase[]>([]);
   const [search, setSearch] = React.useState("");
   const [riskFilter, setRiskFilter] = React.useState("all");
-  const [linkedOnly, setLinkedOnly] = React.useState(false);
+  const [treatmentFilter, setTreatmentFilter] = React.useState(selectedTreatmentId || "all");
+  const [expandedId, setExpandedId] = React.useState<string | null>(null);
   const [showForm, setShowForm] = React.useState(false);
-  const [form, setForm] = React.useState<TreatmentCaseFormState>(emptyTreatmentCaseForm);
-  const [expandedCaseId, setExpandedCaseId] = React.useState<string | null>(null);
+  const [form, setForm] = React.useState<CaseForm>(emptyCaseForm);
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState("");
   const [success, setSuccess] = React.useState("");
 
   const loadCases = React.useCallback(async () => {
+    setLoading(true);
     setError("");
 
     try {
       const data = await apiFetch<{ cases: TreatmentCase[] }>("/api/treatments/cases");
-      setCases((data.cases || []).map(normalizeTreatmentCase));
+      setCases(data.cases || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load treatment cases.");
+      setCases([]);
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to load treatment cases. Make sure treatment cases have been seeded or uploaded."
+      );
     } finally {
       setLoading(false);
     }
@@ -110,21 +154,33 @@ export default function TreatmentCasesPanel({
     loadCases();
   }, [loadCases]);
 
-  const visibleCases = cases.filter((item) => {
-    const matchesSearch = treatmentCaseMatchesSearch(item, search);
-    const matchesRisk = riskFilter === "all" || item.riskLevel === riskFilter;
-    const matchesTreatment =
-      !linkedOnly || !selectedTreatmentId || item.treatmentId === selectedTreatmentId;
+  React.useEffect(() => {
+    if (selectedTreatmentId && treatmentFilter === "all") {
+      setTreatmentFilter(selectedTreatmentId);
+    }
+  }, [selectedTreatmentId, treatmentFilter]);
 
-    return matchesSearch && matchesRisk && matchesTreatment;
+  const visibleCases = cases.filter((item) => {
+    const matchesTreatment =
+      treatmentFilter === "all" ||
+      item.treatmentId === treatmentFilter ||
+      (!item.treatmentId && treatmentFilter === "unlinked");
+
+    const matchesRisk =
+      riskFilter === "all" ||
+      String(item.riskLevel || "").toLowerCase() === riskFilter.toLowerCase();
+
+    return matchesTreatment && matchesRisk && caseMatchesSearch(item, search);
   });
 
-  const highReviewCount = cases.filter((item) => item.riskLevel === "High Review").length;
-  const linkedCount = cases.filter((item) => Boolean(item.treatmentId)).length;
-
   const startCreate = () => {
+    if (!adminAccess) {
+      setError("Only Admin or Super Admin can add treatment cases.");
+      return;
+    }
+
     setForm({
-      ...emptyTreatmentCaseForm,
+      ...emptyCaseForm,
       treatmentId: selectedTreatmentId || ""
     });
     setShowForm(true);
@@ -133,6 +189,11 @@ export default function TreatmentCasesPanel({
   };
 
   const startEdit = (item: TreatmentCase) => {
+    if (!adminAccess) {
+      setError("Only Admin or Super Admin can edit treatment cases.");
+      return;
+    }
+
     setForm(caseToForm(item));
     setShowForm(true);
     setError("");
@@ -140,12 +201,12 @@ export default function TreatmentCasesPanel({
   };
 
   const cancelForm = () => {
-    setForm(emptyTreatmentCaseForm);
+    setForm(emptyCaseForm);
     setShowForm(false);
     setError("");
   };
 
-  const updateForm = (field: keyof TreatmentCaseFormState, value: string) => {
+  const updateForm = (field: keyof CaseForm, value: string) => {
     setForm((prev) => ({
       ...prev,
       [field]: value
@@ -156,12 +217,12 @@ export default function TreatmentCasesPanel({
     event.preventDefault();
 
     if (!adminAccess) {
-      setError("Only Admin or Super Admin can manage treatment cases.");
+      setError("Only Admin or Super Admin can save treatment cases.");
       return;
     }
 
     if (!form.title.trim()) {
-      setError("Case title is required.");
+      setError("Treatment case title is required.");
       return;
     }
 
@@ -169,39 +230,34 @@ export default function TreatmentCasesPanel({
     setError("");
     setSuccess("");
 
-    const payload = formToTreatmentCasePayload(form);
-
     try {
       if (form.id) {
         const data = await apiFetch<{ case: TreatmentCase }>(
           `/api/treatments/cases/${form.id}`,
           {
             method: "PATCH",
-            body: JSON.stringify(payload)
+            body: JSON.stringify(formToPayload(form))
           }
         );
 
-        const updated = normalizeTreatmentCase(data.case);
+        setCases((prev) =>
+          prev.map((item) => (item.id === data.case.id ? data.case : item))
+        );
 
-        setCases((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
-        setExpandedCaseId(updated.id);
+        setExpandedId(data.case.id);
         setSuccess("Treatment case updated.");
       } else {
         const data = await apiFetch<{ case: TreatmentCase }>("/api/treatments/cases", {
           method: "POST",
-          body: JSON.stringify(payload)
+          body: JSON.stringify(formToPayload(form))
         });
 
-        const created = normalizeTreatmentCase(data.case);
-
-        setCases((prev) =>
-          [...prev, created].sort((a, b) => a.title.localeCompare(b.title))
-        );
-        setExpandedCaseId(created.id);
+        setCases((prev) => [data.case, ...prev]);
+        setExpandedId(data.case.id);
         setSuccess("Treatment case created.");
       }
 
-      setForm(emptyTreatmentCaseForm);
+      setForm(emptyCaseForm);
       setShowForm(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save treatment case.");
@@ -227,8 +283,8 @@ export default function TreatmentCasesPanel({
         method: "DELETE"
       });
 
-      setCases((prev) => prev.filter((caseItem) => caseItem.id !== item.id));
-      setExpandedCaseId(null);
+      setCases((prev) => prev.filter((entry) => entry.id !== item.id));
+      setExpandedId(null);
       setSuccess("Treatment case deleted.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete treatment case.");
@@ -236,13 +292,27 @@ export default function TreatmentCasesPanel({
   };
 
   const copyCase = async (item: TreatmentCase) => {
-    const summary = buildTreatmentCaseSummary(item);
+    const text = [
+      `Treatment Case: ${item.title}`,
+      `Linked Treatment: ${getLinkedTreatmentName(item, treatments)}`,
+      `Surface: ${item.surfaceType || "—"}`,
+      `Condition: ${item.conditionLevel || "—"}`,
+      `Problem: ${item.problemType || "—"}`,
+      `Recommended Mix: ${item.recommendedMix || "—"}`,
+      `Dwell Time: ${item.dwellTime || "—"}`,
+      `Tools Needed: ${item.toolsNeeded || "—"}`,
+      `Steps: ${item.stepByStep || "—"}`,
+      `Safety: ${item.safetyChecklist || "—"}`,
+      `Pricing Note: ${item.pricingNote || "—"}`,
+      `Customer Expectation: ${item.customerExpectation || "—"}`,
+      `Risk Level: ${item.riskLevel || "Standard"}`
+    ].join("\n");
 
     try {
-      await navigator.clipboard.writeText(summary);
-      setSuccess("Treatment case copied for Guru/job notes.");
+      await navigator.clipboard.writeText(text);
+      setSuccess("Treatment case copied.");
     } catch {
-      window.alert(summary);
+      window.alert(text);
     }
   };
 
@@ -256,78 +326,97 @@ export default function TreatmentCasesPanel({
   }
 
   return (
-    <>
-      {showForm && adminAccess && (
-        <TreatmentCaseForm
-          form={form}
-          treatments={treatments}
-          saving={saving}
-          onChange={updateForm}
-          onSubmit={saveCase}
-          onCancel={cancelForm}
-        />
+    <section className="panel">
+      <div className="panelHeader">
+        <div>
+          <h2 className="panelTitle">Treatment Cases</h2>
+          <p className="brandSubtitle">
+            Case-based workflows for surfaces, stains, chemistry, safety, customer expectations,
+            and field decisions.
+          </p>
+        </div>
+
+        <div className="buttonRow">
+          <button className="secondaryButton" type="button" onClick={loadCases}>
+            Refresh Cases
+          </button>
+
+          {adminAccess && (
+            <button className="primaryButton" type="button" onClick={startCreate}>
+              Add Case
+            </button>
+          )}
+        </div>
+      </div>
+
+      {error && <div className="errorBox">{error}</div>}
+      {success && <div className="listCard">{success}</div>}
+
+      {cases.length === 0 && (
+        <div className="errorBox">
+          No treatment cases are available yet. Admin or Super Admin needs to seed defaults
+          or upload treatment cases. Employees are read-only and cannot create case data.
+        </div>
       )}
 
-      <section className="panel">
-        <div className="panelHeader">
-          <div>
-            <h2 className="panelTitle">Treatment Cases</h2>
-            <p className="brandSubtitle">
-              Case-based field guidance for surfaces, conditions, problems, safety, pricing, and customer expectations.
-            </p>
-          </div>
+      <div className="statsGrid" style={{ marginTop: 16 }}>
+        <div className="statCard">
+          <div className="statLabel">Cases</div>
+          <div className="statValue">{cases.length}</div>
+        </div>
 
-          <div className="buttonRow">
-            {adminAccess && (
-              <button className="primaryButton" type="button" onClick={startCreate}>
-                Add Case
-              </button>
-            )}
+        <div className="statCard">
+          <div className="statLabel">Visible</div>
+          <div className="statValue">{visibleCases.length}</div>
+        </div>
 
-            <button
-              className="secondaryButton"
-              type="button"
-              onClick={() => exportCasesToCsv(visibleCases)}
-              disabled={visibleCases.length === 0}
-            >
-              Export Cases CSV
-            </button>
+        <div className="statCard">
+          <div className="statLabel">High Review</div>
+          <div className="statValue">
+            {
+              cases.filter(
+                (item) => String(item.riskLevel || "").toLowerCase() === "high review"
+              ).length
+            }
           </div>
         </div>
 
-        {error && <div className="errorBox">{error}</div>}
-        {success && <div className="listCard">{success}</div>}
-
-        <div className="statsGrid" style={{ marginTop: 16 }}>
-          <div className="statCard">
-            <div className="statLabel">Cases</div>
-            <div className="statValue">{cases.length}</div>
-          </div>
-
-          <div className="statCard">
-            <div className="statLabel">Visible</div>
-            <div className="statValue">{visibleCases.length}</div>
-          </div>
-
-          <div className="statCard">
-            <div className="statLabel">High Review</div>
-            <div className="statValue">{highReviewCount}</div>
-          </div>
-
-          <div className="statCard">
-            <div className="statLabel">Linked</div>
-            <div className="statValue">{linkedCount}</div>
-          </div>
+        <div className="statCard">
+          <div className="statLabel">Treatments</div>
+          <div className="statValue">{treatments.length}</div>
         </div>
+      </div>
 
-        <div className="formGrid" style={{ marginTop: 16 }}>
+      <div className="formGrid" style={{ marginTop: 16 }}>
+        <label className="fieldLabel">
+          Search Cases
           <input
             className="textInput"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search cases: rust, roof, wood, oil, oxidation, safety..."
+            placeholder="Search: rust, roof, painted driveway, oxidation, concrete..."
           />
+        </label>
 
+        <label className="fieldLabel">
+          Linked Treatment
+          <select
+            className="textInput"
+            value={treatmentFilter}
+            onChange={(e) => setTreatmentFilter(e.target.value)}
+          >
+            <option value="all">All Treatments</option>
+            <option value="unlinked">Unlinked / General</option>
+            {treatments.map((treatment) => (
+              <option key={treatment.id} value={treatment.id}>
+                {treatment.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="fieldLabel">
+          Risk Level
           <select
             className="textInput"
             value={riskFilter}
@@ -338,135 +427,281 @@ export default function TreatmentCasesPanel({
             <option value="Moderate">Moderate</option>
             <option value="High Review">High Review</option>
           </select>
+        </label>
+      </div>
 
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              color: "var(--muted)",
-              fontWeight: 800
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={linkedOnly}
-              onChange={(e) => setLinkedOnly(e.target.checked)}
-            />
-            Show only cases linked to selected treatment
+      {showForm && adminAccess && (
+        <form className="formGrid" onSubmit={saveCase} style={{ marginTop: 16 }}>
+          <label className="fieldLabel">
+            Linked Treatment
+            <select
+              className="textInput"
+              value={form.treatmentId}
+              onChange={(e) => updateForm("treatmentId", e.target.value)}
+            >
+              <option value="">General / Not Linked</option>
+              {treatments.map((treatment) => (
+                <option key={treatment.id} value={treatment.id}>
+                  {treatment.name}
+                </option>
+              ))}
+            </select>
           </label>
-        </div>
 
-        <div className="cardsGrid" style={{ marginTop: 16 }}>
-          {visibleCases.map((item) => {
-            const expanded = expandedCaseId === item.id;
+          <label className="fieldLabel">
+            Case Title
+            <input
+              className="textInput"
+              value={form.title}
+              onChange={(e) => updateForm("title", e.target.value)}
+              placeholder="Example: Heavy Irrigation Rust On Concrete"
+            />
+          </label>
 
-            return (
-              <div key={item.id} className="quoteCard">
-                <div className="quoteTopRow">
-                  <div className="quoteNumber">{item.title}</div>
-                  <span className={treatmentCaseRiskBadgeClass(item.riskLevel)}>
-                    {item.riskLevel || "Standard"}
-                  </span>
-                </div>
+          <label className="fieldLabel">
+            Risk Level
+            <select
+              className="textInput"
+              value={form.riskLevel}
+              onChange={(e) => updateForm("riskLevel", e.target.value)}
+            >
+              <option value="Standard">Standard</option>
+              <option value="Moderate">Moderate</option>
+              <option value="High Review">High Review</option>
+            </select>
+          </label>
 
-                <div className="cardLine">
-                  <strong>Treatment:</strong> {item.treatmentName || "Not linked"}
-                </div>
+          <label className="fieldLabel">
+            Surface Type
+            <input
+              className="textInput"
+              value={form.surfaceType}
+              onChange={(e) => updateForm("surfaceType", e.target.value)}
+              placeholder="Concrete, roof, vinyl, wood, pavers..."
+            />
+          </label>
 
-                <div className="cardLine">
-                  <strong>Surface:</strong> {item.surfaceType || "—"}
-                </div>
+          <label className="fieldLabel">
+            Condition Level
+            <input
+              className="textInput"
+              value={form.conditionLevel}
+              onChange={(e) => updateForm("conditionLevel", e.target.value)}
+              placeholder="Light, moderate, heavy, severe..."
+            />
+          </label>
 
-                <div className="cardLine">
-                  <strong>Problem:</strong> {item.problemType || "—"}
-                </div>
+          <label className="fieldLabel">
+            Problem Type
+            <input
+              className="textInput"
+              value={form.problemType}
+              onChange={(e) => updateForm("problemType", e.target.value)}
+              placeholder="Rust, organic growth, oxidation, stripes..."
+            />
+          </label>
 
-                <div className="buttonRow" style={{ marginTop: 12 }}>
-                  <button
-                    className="secondaryButton"
-                    type="button"
-                    onClick={() => setExpandedCaseId(expanded ? null : item.id)}
-                  >
-                    {expanded ? "Hide Details" : "View Details"}
-                  </button>
+          <label className="fieldLabel">
+            Recommended Mix
+            <textarea
+              className="textInput"
+              rows={3}
+              value={form.recommendedMix}
+              onChange={(e) => updateForm("recommendedMix", e.target.value)}
+            />
+          </label>
 
-                  <button
-                    className="secondaryButton"
-                    type="button"
-                    onClick={() => copyCase(item)}
-                  >
-                    Copy Summary
-                  </button>
+          <label className="fieldLabel">
+            Dwell Time
+            <textarea
+              className="textInput"
+              rows={3}
+              value={form.dwellTime}
+              onChange={(e) => updateForm("dwellTime", e.target.value)}
+            />
+          </label>
 
-                  {adminAccess && (
-                    <>
-                      <button
-                        className="primaryButton"
-                        type="button"
-                        onClick={() => startEdit(item)}
-                      >
-                        Edit
-                      </button>
+          <label className="fieldLabel">
+            Tools Needed
+            <textarea
+              className="textInput"
+              rows={3}
+              value={form.toolsNeeded}
+              onChange={(e) => updateForm("toolsNeeded", e.target.value)}
+            />
+          </label>
 
-                      <button
-                        className="secondaryButton"
-                        type="button"
-                        onClick={() => deleteCase(item)}
-                      >
-                        Delete
-                      </button>
-                    </>
-                  )}
-                </div>
+          <label className="fieldLabel">
+            Step-by-Step
+            <textarea
+              className="textInput"
+              rows={4}
+              value={form.stepByStep}
+              onChange={(e) => updateForm("stepByStep", e.target.value)}
+            />
+          </label>
 
-                {expanded && (
-                  <div style={{ marginTop: 14 }}>
-                    <div className="assignBox">
-                      <div className="assignTitle">Recommended Mix</div>
-                      <div className="cardLine">{item.recommendedMix || "—"}</div>
-                    </div>
+          <label className="fieldLabel">
+            Safety Checklist
+            <textarea
+              className="textInput"
+              rows={4}
+              value={form.safetyChecklist}
+              onChange={(e) => updateForm("safetyChecklist", e.target.value)}
+            />
+          </label>
 
-                    <div className="assignBox">
-                      <div className="assignTitle">Dwell Time</div>
-                      <div className="cardLine">{item.dwellTime || "—"}</div>
-                    </div>
+          <label className="fieldLabel">
+            Pricing Note
+            <textarea
+              className="textInput"
+              rows={3}
+              value={form.pricingNote}
+              onChange={(e) => updateForm("pricingNote", e.target.value)}
+            />
+          </label>
 
-                    <div className="assignBox">
-                      <div className="assignTitle">Tools Needed</div>
-                      <div className="cardLine">{item.toolsNeeded || "—"}</div>
-                    </div>
+          <label className="fieldLabel">
+            Customer Expectation
+            <textarea
+              className="textInput"
+              rows={3}
+              value={form.customerExpectation}
+              onChange={(e) => updateForm("customerExpectation", e.target.value)}
+            />
+          </label>
 
-                    <div className="assignBox">
-                      <div className="assignTitle">Step By Step</div>
-                      <div className="cardLine">{item.stepByStep || "—"}</div>
-                    </div>
+          <div className="buttonRow">
+            <button className="primaryButton" type="submit" disabled={saving}>
+              {saving ? "Saving..." : form.id ? "Save Case" : "Create Case"}
+            </button>
 
-                    <div className="assignBox">
-                      <div className="assignTitle">Safety Checklist</div>
-                      <div className="cardLine">{item.safetyChecklist || "—"}</div>
-                    </div>
+            <button className="secondaryButton" type="button" onClick={cancelForm}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
 
-                    <div className="assignBox">
-                      <div className="assignTitle">Pricing Note</div>
-                      <div className="cardLine">{item.pricingNote || "—"}</div>
-                    </div>
+      <div className="cardsGrid" style={{ marginTop: 16 }}>
+        {visibleCases.map((item) => {
+          const expanded = expandedId === item.id;
 
-                    <div className="assignBox">
-                      <div className="assignTitle">Customer Expectation</div>
-                      <div className="cardLine">{item.customerExpectation || "—"}</div>
-                    </div>
-                  </div>
+          return (
+            <div key={item.id} className="quoteCard">
+              <div className="quoteTopRow">
+                <div className="quoteNumber">{item.title}</div>
+                <span className={treatmentCaseRiskBadgeClass(item.riskLevel)}>
+                  {item.riskLevel || "Standard"}
+                </span>
+              </div>
+
+              <div className="cardLine">
+                <strong>Treatment:</strong> {getLinkedTreatmentName(item, treatments)}
+              </div>
+
+              <div className="cardLine">
+                <strong>Surface:</strong> {item.surfaceType || "—"}
+              </div>
+
+              <div className="cardLine">
+                <strong>Problem:</strong> {item.problemType || "—"}
+              </div>
+
+              <div className="cardLine">
+                <strong>Mix:</strong> {item.recommendedMix || "—"}
+              </div>
+
+              <div className="buttonRow" style={{ marginTop: 12 }}>
+                <button
+                  className="secondaryButton"
+                  type="button"
+                  onClick={() => setExpandedId(expanded ? null : item.id)}
+                >
+                  {expanded ? "Hide Details" : "View Details"}
+                </button>
+
+                <button
+                  className="primaryButton"
+                  type="button"
+                  onClick={() => copyCase(item)}
+                >
+                  Copy Case
+                </button>
+
+                {adminAccess && (
+                  <>
+                    <button
+                      className="secondaryButton"
+                      type="button"
+                      onClick={() => startEdit(item)}
+                    >
+                      Edit
+                    </button>
+
+                    <button
+                      className="dangerButton"
+                      type="button"
+                      onClick={() => deleteCase(item)}
+                    >
+                      Delete
+                    </button>
+                  </>
                 )}
               </div>
-            );
-          })}
 
-          {visibleCases.length === 0 && (
-            <div className="listCard">No treatment cases found.</div>
-          )}
-        </div>
-      </section>
-    </>
+              {expanded && (
+                <div style={{ marginTop: 14 }}>
+                  <div className="assignBox">
+                    <div className="assignTitle">Condition / Dwell</div>
+                    <div className="cardLine">
+                      <strong>Condition:</strong> {item.conditionLevel || "—"}
+                    </div>
+                    <div className="cardLine">
+                      <strong>Dwell:</strong> {item.dwellTime || "—"}
+                    </div>
+                  </div>
+
+                  <div className="assignBox">
+                    <div className="assignTitle">Tools Needed</div>
+                    <div className="cardLine">{item.toolsNeeded || "—"}</div>
+                  </div>
+
+                  <div className="assignBox">
+                    <div className="assignTitle">Step-by-Step</div>
+                    <div className="cardLine" style={{ whiteSpace: "pre-wrap" }}>
+                      {item.stepByStep || "—"}
+                    </div>
+                  </div>
+
+                  <div className="assignBox">
+                    <div className="assignTitle">Safety Checklist</div>
+                    <div className="cardLine" style={{ whiteSpace: "pre-wrap" }}>
+                      {item.safetyChecklist || "—"}
+                    </div>
+                  </div>
+
+                  <div className="assignBox">
+                    <div className="assignTitle">Pricing Note</div>
+                    <div className="cardLine">{item.pricingNote || "—"}</div>
+                  </div>
+
+                  <div className="assignBox">
+                    <div className="assignTitle">Customer Expectation</div>
+                    <div className="cardLine">{item.customerExpectation || "—"}</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {visibleCases.length === 0 && (
+          <div className="listCard">
+            No treatment cases match this filter. Clear filters, refresh cases, or have Admin/Super Admin seed/upload cases.
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
