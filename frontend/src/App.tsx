@@ -31,14 +31,15 @@ import TreatmentsPage from "./pages/TreatmentsPage";
 import JobPhotosPage from "./pages/JobPhotosPage";
 import MileagePage from "./pages/MileagePage";
 
-import type { AuthUserRole } from "./types";
+import type { AuthUser, AuthUserRole } from "./types";
 
 type NormalizedRole = "superadmin" | "admin" | "employee" | "client";
 
-type AppUser = {
+type LocalAppUser = {
   id?: string;
   email?: string;
   displayName?: string;
+  name?: string;
   role: NormalizedRole;
 };
 
@@ -56,7 +57,25 @@ function normalizeRole(role?: string): NormalizedRole {
   return "admin";
 }
 
-function getStoredUser(): AppUser {
+function toLocalUser(user: unknown): LocalAppUser {
+  const raw = user as {
+    id?: string;
+    email?: string;
+    displayName?: string;
+    name?: string;
+    role?: string;
+  };
+
+  return {
+    id: raw?.id || "local-user",
+    email: raw?.email || "admin@nmd.local",
+    displayName: raw?.displayName || raw?.name || "NMD Admin",
+    name: raw?.name || raw?.displayName || "NMD Admin",
+    role: normalizeRole(raw?.role || "admin")
+  };
+}
+
+function getStoredUser(): LocalAppUser {
   try {
     const raw =
       localStorage.getItem("nmd_auth") ||
@@ -65,14 +84,19 @@ function getStoredUser(): AppUser {
 
     if (raw) {
       const parsed = JSON.parse(raw);
-      const user = parsed.user || parsed;
+      const parsedUser = parsed.user || parsed;
 
-      return {
-        id: user.id || parsed.id || "local-user",
-        email: user.email || parsed.email || "admin@nmd.local",
-        displayName: user.displayName || user.name || parsed.displayName || "NMD Admin",
-        role: normalizeRole(user.role || parsed.role || "admin")
-      };
+      return toLocalUser({
+        id: parsedUser.id || parsed.id || "local-user",
+        email: parsedUser.email || parsed.email || "admin@nmd.local",
+        displayName:
+          parsedUser.displayName ||
+          parsedUser.name ||
+          parsed.displayName ||
+          "NMD Admin",
+        name: parsedUser.name || parsedUser.displayName || parsed.displayName || "NMD Admin",
+        role: parsedUser.role || parsed.role || "admin"
+      });
     }
   } catch {
     // Use local default below.
@@ -82,6 +106,7 @@ function getStoredUser(): AppUser {
     id: "local-admin",
     email: "admin@nmd.local",
     displayName: "NMD Admin",
+    name: "NMD Admin",
     role: "admin"
   };
 }
@@ -184,7 +209,7 @@ function PlaceholderPage({
 
 function App() {
   const [path, setPath] = React.useState(getPath());
-  const [user, setUser] = React.useState<AppUser>(() => getStoredUser());
+  const [user, setUser] = React.useState<LocalAppUser>(() => getStoredUser());
 
   React.useEffect(() => {
     const handlePopState = () => setPath(getPath());
@@ -232,6 +257,38 @@ function App() {
   const headerCopy = getHeaderCopy(path, role);
   const showPortalShell = path !== "/" && path !== "/login" && path !== "/client/register";
 
+  const navigateTo = (nextPath: string) => {
+    window.history.pushState({}, "", nextPath);
+    setPath(getPath());
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+  };
+
+  const handleClientRegistered = (token: string, registeredUser: AuthUser) => {
+    const localUser = toLocalUser(registeredUser);
+
+    localStorage.setItem(
+      "nmd_auth",
+      JSON.stringify({
+        token,
+        user: {
+          ...registeredUser,
+          ...localUser,
+          role: localUser.role
+        }
+      })
+    );
+
+    setUser(localUser);
+    navigateTo("/client");
+  };
+
+  const handleBackToLogin = () => {
+    navigateTo("/");
+  };
+
   const onLogout = () => {
     localStorage.removeItem("nmd_auth");
     localStorage.removeItem("nmdAuth");
@@ -241,17 +298,24 @@ function App() {
       id: "local-admin",
       email: "admin@nmd.local",
       displayName: "NMD Admin",
+      name: "NMD Admin",
       role: "admin"
     });
 
-    window.history.pushState({}, "", "/");
-    setPath("/");
+    navigateTo("/");
   };
 
   const renderPage = () => {
     if (path === "/" || path === "/home") return <LandingPage />;
 
-    if (path === "/client/register") return <ClientRegisterPage />;
+    if (path === "/client/register") {
+      return (
+        <ClientRegisterPage
+          onRegistered={handleClientRegistered}
+          onBackToLogin={handleBackToLogin}
+        />
+      );
+    }
 
     if (path === "/client" || path === "/client/dashboard") return <ClientDashboardPage />;
     if (path === "/client/estimates") return <ClientEstimatesPage />;
@@ -390,12 +454,14 @@ function App() {
     );
   };
 
+  const guruUser = user as unknown as AuthUser;
+
   if (!showPortalShell) {
     return (
       <>
         <AppUpdateBanner />
         <main className="publicShell">{renderPage()}</main>
-        <GuruChat />
+        <GuruChat user={guruUser} />
       </>
     );
   }
@@ -421,7 +487,7 @@ function App() {
       </div>
 
       <MobileNav role={role} activePage={getPageKey(path)} />
-      <GuruChat />
+      <GuruChat user={guruUser} />
     </>
   );
 }
