@@ -144,13 +144,13 @@ function mapTreatment(row: TreatmentRow) {
     name: row.name,
     category: row.category,
     surfaceTypes: row.surface_types || [],
-    chemical: row.chemical,
-    dilutionRatio: row.dilution_ratio,
-    useCase: row.use_case,
-    safetyNotes: row.safety_notes,
-    instructions: row.instructions,
-    purchaseLink: row.purchase_link,
-    costReference: row.cost_reference,
+    chemical: row.chemical || "",
+    dilutionRatio: row.dilution_ratio || "",
+    useCase: row.use_case || "",
+    safetyNotes: row.safety_notes || "",
+    instructions: row.instructions || "",
+    purchaseLink: row.purchase_link || "",
+    costReference: row.cost_reference || "",
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };
@@ -163,17 +163,17 @@ function mapTreatmentCase(row: TreatmentCaseRow) {
     treatmentName: row.treatment_name || null,
     treatmentCategory: row.treatment_category || null,
     title: row.title,
-    surfaceType: row.surface_type,
-    conditionLevel: row.condition_level,
-    problemType: row.problem_type,
-    recommendedMix: row.recommended_mix,
-    dwellTime: row.dwell_time,
-    toolsNeeded: row.tools_needed,
-    stepByStep: row.step_by_step,
-    safetyChecklist: row.safety_checklist,
-    pricingNote: row.pricing_note,
-    customerExpectation: row.customer_expectation,
-    riskLevel: row.risk_level,
+    surfaceType: row.surface_type || "",
+    conditionLevel: row.condition_level || "",
+    problemType: row.problem_type || "",
+    recommendedMix: row.recommended_mix || "",
+    dwellTime: row.dwell_time || "",
+    toolsNeeded: row.tools_needed || "",
+    stepByStep: row.step_by_step || "",
+    safetyChecklist: row.safety_checklist || "",
+    pricingNote: row.pricing_note || "",
+    customerExpectation: row.customer_expectation || "",
+    riskLevel: row.risk_level || "Standard",
     createdAt: row.created_at,
     updatedAt: row.updated_at
   };
@@ -235,9 +235,7 @@ function normalizeCaseUploadItem(item: TreatmentCaseUploadItem) {
 }
 
 async function ensureTreatmentsTable() {
-  await pool.query(`
-    CREATE EXTENSION IF NOT EXISTS pgcrypto;
-  `);
+  await pool.query(`CREATE EXTENSION IF NOT EXISTS pgcrypto;`);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS treatments (
@@ -323,11 +321,6 @@ async function ensureTreatmentsTable() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
-  `);
-
-  await pool.query(`
-    CREATE INDEX IF NOT EXISTS treatment_plans_job_name_idx
-    ON treatment_plans (LOWER(job_name));
   `);
 
   await pool.query(`
@@ -561,48 +554,105 @@ async function seedDefaultTreatments() {
       category: "Soft Washing",
       surfaceTypes: ["Vinyl siding", "Painted siding", "Exterior walls"],
       chemical: "SH mix with surfactant",
-      dilutionRatio: "Typically 0.5%–1.5% on surface depending on organic growth",
-      useCase:
-        "General exterior house washing for algae, mildew, light organic growth, and routine maintenance.",
+      dilutionRatio: "0.5%–1.5% on surface depending on organic growth",
+      useCase: "General house washing for algae, mildew, dirt, and routine maintenance.",
       safetyNotes:
-        "Pre-wet plants, protect outlets, avoid forcing water behind siding, rinse plants/windows thoroughly, and watch for oxidation.",
+        "Pre-wet plants, protect outlets, avoid forcing water behind siding, rinse plants/windows thoroughly, and watch oxidation.",
       instructions:
-        "Apply low-pressure soft wash mix in controlled sections, allow dwell time without drying, rinse thoroughly, and inspect oxidation-sensitive areas.",
+        "Apply low-pressure soft wash mix in controlled sections, allow dwell without drying, rinse thoroughly, and inspect oxidation-sensitive areas.",
       purchaseLink: "",
       costReference:
-        "Use NMD Job Pricing for house washing minimums, square footage, condition, height, access, and add-ons."
+        "Use house wash pricing minimums, square footage, condition, height, access, and add-ons."
     },
     {
       name: "Roof Cleaning Soft Wash",
       category: "Roof Cleaning",
       surfaceTypes: ["Asphalt shingles", "Tile roof", "Metal roof"],
       chemical: "SH roof mix",
-      dilutionRatio: "Often 3%–6% on surface depending on staining and roof material",
-      useCase:
-        "Organic roof stains, algae, black streaks, moss, and roof discoloration where pressure should not be used.",
+      dilutionRatio: "3%–6% on surface depending on staining and roof material",
+      useCase: "Organic roof stains, algae, black streaks, moss, and roof discoloration.",
       safetyNotes:
         "Use fall protection, protect plants, control runoff, avoid high pressure, watch overspray, and verify roof access/pitch.",
       instructions:
-        "Apply roof-safe soft wash mix, let dwell, reapply where needed, rinse only when appropriate for the roof/job scope, and protect landscaping before/during/after.",
+        "Apply roof-safe soft wash mix, dwell, reapply stubborn areas, rinse only when appropriate, and protect landscaping throughout.",
       purchaseLink: "",
       costReference:
         "Price separately from house wash. Account for roof pitch, size, access, moss load, plant protection, and chemical cost."
+    },
+    {
+      name: "Concrete Surface Cleaning",
+      category: "Flatwork",
+      surfaceTypes: ["Concrete", "Driveways", "Sidewalks", "Patios"],
+      chemical: "SH pre/post treatment or degreaser when needed",
+      dilutionRatio: "Post-treat commonly 1%–3% depending on organic staining",
+      useCase: "Driveway, sidewalk, patio, and flatwork cleaning.",
+      safetyNotes:
+        "Avoid damaging new concrete, verify GPM/surface cleaner size, prevent stripes, watch runoff, and test questionable surfaces.",
+      instructions:
+        "Pre-treat if needed, surface clean at proper pace, rinse thoroughly, post-treat organics, and avoid excessive pressure on weak/new concrete.",
+      purchaseLink: "",
+      costReference:
+        "Price by square foot with a minimum. Increase for heavy staining, drainage, oil, rust, or restoration work."
     },
     {
       name: "Rust Stain Removal",
       category: "Specialty Restoration",
       surfaceTypes: ["Concrete", "Pavers", "Stucco", "Stone", "Exterior walls"],
       chemical: "F9 BARC, oxalic acid, or compatible rust remover",
-      dilutionRatio: "Oxalic often 6–8 oz per gallon depending on use case; follow product label",
-      useCase:
-        "Rust stains from irrigation, metal furniture, battery stains, fertilizer stains, or orange staining.",
+      dilutionRatio: "Follow product label. Oxalic commonly 6–8 oz per gallon where appropriate.",
+      useCase: "Rust stains from irrigation, metal furniture, battery stains, fertilizer, or orange staining.",
       safetyNotes:
-        "Test spot first, protect surrounding surfaces, wear PPE, avoid glass/metal damage, and do not promise full removal without testing.",
+        "Test spot first, protect surrounding surfaces, wear PPE, avoid glass/metals, and do not promise full removal without testing.",
       instructions:
-        "Identify stain source, test small area, apply rust remover carefully, dwell as directed, agitate if safe, rinse thoroughly, and repeat if needed.",
+        "Identify stain source, test small area, apply carefully, dwell as directed, agitate if safe, rinse thoroughly, and repeat if needed.",
       purchaseLink: "",
       costReference:
-        "Price as specialty restoration. Small spots $50–$100, entry pads $125–$300, heavy irrigation stains $300–$800+."
+        "Specialty pricing. Small spots $50–$100, entry pads $125–$300, heavy irrigation stains $300–$800+."
+    },
+    {
+      name: "Painted Concrete Warning",
+      category: "Risk / Liability",
+      surfaceTypes: ["Painted concrete", "Coated concrete", "Decorative concrete"],
+      chemical: "Mild cleaner / soft wash only after test spot",
+      dilutionRatio: "Start mild. Avoid aggressive pressure.",
+      useCase: "Painted, coated, or sealed driveways/patios/pool decks.",
+      safetyNotes:
+        "Surface cleaner pressure can stripe, remove paint, or expose uneven coating. Confirm with client before cleaning.",
+      instructions:
+        "Test first. If painted/coated, avoid surface cleaner unless stripping/repainting is agreed. Soft wash and rinse carefully.",
+      purchaseLink: "",
+      costReference:
+        "Correction, stripping, or repainting is separate from standard flatwork cleaning."
+    },
+    {
+      name: "Plant Protection Workflow",
+      category: "Safety / Protection",
+      surfaceTypes: ["Landscaping", "Grass", "Plants", "Flower beds"],
+      chemical: "Water and neutralizer where appropriate",
+      dilutionRatio: "N/A",
+      useCase: "Protect landscaping during roof cleaning, house washing, and chemical restoration.",
+      safetyNotes:
+        "SH overspray/runoff can damage plants. Protect before, during, and after chemical application.",
+      instructions:
+        "Pre-wet plants, cover sensitive plants when needed, control runoff, rinse repeatedly during/after, and use neutralizer where appropriate.",
+      purchaseLink: "",
+      costReference:
+        "Include plant protection time and materials in roof cleaning and chemical restoration pricing."
+    },
+    {
+      name: "Wood Fence / Deck Cleaning",
+      category: "Wood Restoration",
+      surfaceTypes: ["Wood fence", "Deck", "Wood siding"],
+      chemical: "Sodium percarbonate, sodium hydroxide, oxalic acid brightener",
+      dilutionRatio: "Depends on wood condition and product label",
+      useCase: "Wood cleaning, gray wood restoration, fence/deck prep, and brightening.",
+      safetyNotes:
+        "Avoid high pressure, test first, manage fuzzing, protect plants, and set expectations on existing damage/color.",
+      instructions:
+        "Apply appropriate wood cleaner, dwell, rinse gently with low pressure, brighten with oxalic if needed, rinse, and dry.",
+      purchaseLink: "",
+      costReference:
+        "Wood is specialty work. Price by linear feet/square footage, condition, prep needs, and staining/sealing scope."
     }
   ];
 
@@ -610,765 +660,100 @@ async function seedDefaultTreatments() {
     await upsertTreatment(item);
   }
 
-  await upsertTreatmentCase({
-    treatmentName: "Rust Stain Removal",
-    treatmentId: null,
-    title: "Heavy Irrigation Rust On Concrete",
-    surfaceType: "Concrete / driveway / sidewalk",
-    conditionLevel: "Heavy",
-    problemType: "Orange irrigation rust staining",
-    recommendedMix: "F9 BARC or compatible rust remover per label. Oxalic acid may be used only where appropriate.",
-    dwellTime: "Follow product label; do not allow product to dry.",
-    toolsNeeded: "Pump sprayer, PPE, water source, brush for agitation if safe, test area supplies.",
-    stepByStep:
-      "1. Inspect stain source. 2. Test a small area. 3. Protect adjacent surfaces/plants. 4. Apply rust remover evenly. 5. Allow controlled dwell. 6. Agitate only if safe. 7. Rinse thoroughly. 8. Repeat only if surface tolerates it.",
-    safetyChecklist:
-      "Wear PPE, avoid glass/metal overspray, control runoff, protect plants, document pre-existing surface damage, and do not guarantee 100% removal before testing.",
-    pricingNote:
-      "Treat as specialty restoration. Heavy irrigation rust can be $300–$800+ depending on size, severity, chemical use, and repeat applications.",
-    customerExpectation:
-      "Explain that rust may need multiple applications and final results depend on stain depth, surface age, and previous chemical exposure.",
-    riskLevel: "High Review"
-  });
+  const defaultCases = [
+    {
+      treatmentName: "Rust Stain Removal",
+      treatmentId: null,
+      title: "Heavy Irrigation Rust On Concrete",
+      surfaceType: "Concrete / driveway / sidewalk",
+      conditionLevel: "Heavy",
+      problemType: "Orange irrigation rust staining",
+      recommendedMix: "F9 BARC or compatible rust remover per label. Oxalic acid where appropriate.",
+      dwellTime: "Follow product label; do not allow product to dry.",
+      toolsNeeded: "Pump sprayer, PPE, water source, brush for agitation if safe, test area supplies.",
+      stepByStep:
+        "Inspect stain source. Test a small area. Protect adjacent surfaces/plants. Apply rust remover evenly. Allow controlled dwell. Agitate only if safe. Rinse thoroughly. Repeat only if surface tolerates it.",
+      safetyChecklist:
+        "Wear PPE, avoid glass/metal overspray, control runoff, protect plants, document pre-existing damage, and do not guarantee 100% removal before testing.",
+      pricingNote:
+        "Treat as specialty restoration. Heavy irrigation rust can be $300–$800+ depending on size, severity, chemical use, and repeat applications.",
+      customerExpectation:
+        "Rust may need multiple applications. Final results depend on stain depth, surface age, and previous chemical exposure.",
+      riskLevel: "High Review"
+    },
+    {
+      treatmentName: "Painted Concrete Warning",
+      treatmentId: null,
+      title: "Painted Driveway With Surface Cleaner Stripes",
+      surfaceType: "Painted or coated concrete",
+      conditionLevel: "Damaged / striped",
+      problemType: "Pressure stripes or coating damage",
+      recommendedMix: "Do not continue aggressive pressure. Test mild soft wash only.",
+      dwellTime: "N/A unless soft washing with mild chemistry.",
+      toolsNeeded: "Camera, test spot supplies, mild cleaner, low-pressure rinse tools.",
+      stepByStep:
+        "Stop pressure cleaning. Document coating condition. Discuss with client. Test mild cleaning in a small area only. If coating is damaged, recommend repainting or stripping as a separate scope.",
+      safetyChecklist:
+        "Do not promise standard washing will fix coating damage. Avoid further pressure. Get client approval before correction attempts.",
+      pricingNote:
+        "Repaint/strip/coating correction is separate from standard flatwork cleaning.",
+      customerExpectation:
+        "Painted/coated surfaces can expose uneven coating or permanent striping under pressure.",
+      riskLevel: "High Review"
+    },
+    {
+      treatmentName: "Standard House Wash",
+      treatmentId: null,
+      title: "Basic Vinyl Siding Algae House Wash",
+      surfaceType: "Vinyl siding",
+      conditionLevel: "Light to moderate organic growth",
+      problemType: "Algae, mildew, dirt",
+      recommendedMix: "0.5%–1.5% SH on surface with surfactant depending on growth.",
+      dwellTime: "5–10 minutes controlled dwell; do not let dry.",
+      toolsNeeded: "Soft wash system, hose, plant protection, brush for trouble spots.",
+      stepByStep:
+        "Inspect siding/oxidation. Pre-wet plants. Apply mix in controlled sections. Let dwell without drying. Rinse thoroughly. Rinse plants/windows again.",
+      safetyChecklist:
+        "Protect outlets, cameras, doorbells, plants, windows, and avoid forcing water behind siding.",
+      pricingNote:
+        "Use house wash pricing minimums and increase for height, heavy growth, access, oxidation, or detached structures.",
+      customerExpectation:
+        "Standard wash removes organic growth and dirt but does not restore oxidation or faded siding.",
+      riskLevel: "Standard"
+    },
+    {
+      treatmentName: "Roof Cleaning Soft Wash",
+      treatmentId: null,
+      title: "Black Streak Asphalt Shingle Roof",
+      surfaceType: "Asphalt shingles",
+      conditionLevel: "Moderate to heavy organic staining",
+      problemType: "Black streaks / algae",
+      recommendedMix: "3%–6% roof mix depending on staining, roof material, and company policy.",
+      dwellTime: "Controlled dwell; reapply as needed.",
+      toolsNeeded: "Soft wash system, PPE, fall protection, plant protection, runoff control, ladder/stabilizer.",
+      stepByStep:
+        "Inspect roof and access. Protect plants and control runoff. Apply roof mix from safe position. Allow dwell. Reapply stubborn areas. Rinse only if job scope requires. Final plant rinse/protection.",
+      safetyChecklist:
+        "Fall protection, ladder safety, overspray control, plant protection, runoff control, roof material verification.",
+      pricingNote:
+        "Price separately from house wash. Consider pitch, access, roof size, moss load, chemical cost, and plant protection labor.",
+      customerExpectation:
+        "Some roof treatments continue working after service. Moss/lichen may take time to fully release.",
+      riskLevel: "High Review"
+    }
+  ];
+
+  for (const item of defaultCases) {
+    await upsertTreatmentCase(item);
+  }
 }
 
-router.get("/", requireAuth, async (req, res) => {
-  try {
-    await ensureTreatmentsTable();
-
-    const search = String(req.query.search || "").trim();
-    const category = String(req.query.category || "").trim();
-
-    const params: string[] = [];
-    const where: string[] = [];
-
-    if (search) {
-      params.push(`%${search.toLowerCase()}%`);
-      where.push(`
-        (
-          LOWER(name) LIKE $${params.length}
-          OR LOWER(category) LIKE $${params.length}
-          OR LOWER(COALESCE(chemical, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(dilution_ratio, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(use_case, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(safety_notes, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(instructions, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(cost_reference, '')) LIKE $${params.length}
-        )
-      `);
-    }
-
-    if (category && category !== "all") {
-      params.push(category.toLowerCase());
-      where.push(`LOWER(category) = $${params.length}`);
-    }
-
-    const result = await pool.query<TreatmentRow>(
-      `
-        SELECT *
-        FROM treatments
-        ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
-        ORDER BY category ASC, name ASC;
-      `,
-      params
-    );
-
-    return res.json({
-      treatments: result.rows.map(mapTreatment)
-    });
-  } catch (err) {
-    console.error("Get treatments error:", err);
-
-    return res.status(500).json({
-      message: err instanceof Error ? err.message : "Failed to load treatments."
-    });
-  }
-});
-
-router.get("/cases", requireAuth, async (req, res) => {
-  try {
-    await ensureTreatmentsTable();
-
-    const search = String(req.query.search || "").trim();
-    const treatmentId = String(req.query.treatmentId || "").trim();
-    const riskLevel = String(req.query.riskLevel || "").trim();
-
-    const params: string[] = [];
-    const where: string[] = [];
-
-    if (search) {
-      params.push(`%${search.toLowerCase()}%`);
-      where.push(`
-        (
-          LOWER(tc.title) LIKE $${params.length}
-          OR LOWER(COALESCE(tc.surface_type, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(tc.condition_level, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(tc.problem_type, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(tc.recommended_mix, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(tc.step_by_step, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(tc.safety_checklist, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(tc.pricing_note, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(tc.customer_expectation, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(t.name, '')) LIKE $${params.length}
-        )
-      `);
-    }
-
-    if (treatmentId && treatmentId !== "all") {
-      params.push(treatmentId);
-      where.push(`tc.treatment_id = $${params.length}`);
-    }
-
-    if (riskLevel && riskLevel !== "all") {
-      params.push(riskLevel.toLowerCase());
-      where.push(`LOWER(tc.risk_level) = $${params.length}`);
-    }
-
-    const result = await pool.query<TreatmentCaseRow>(
-      `
-        SELECT
-          tc.*,
-          t.name AS treatment_name,
-          t.category AS treatment_category
-        FROM treatment_cases tc
-        LEFT JOIN treatments t ON t.id = tc.treatment_id
-        ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
-        ORDER BY
-          CASE
-            WHEN LOWER(tc.risk_level) = 'high review' THEN 1
-            WHEN LOWER(tc.risk_level) = 'moderate' THEN 2
-            ELSE 3
-          END,
-          tc.title ASC;
-      `,
-      params
-    );
-
-    return res.json({
-      cases: result.rows.map(mapTreatmentCase)
-    });
-  } catch (err) {
-    console.error("Get treatment cases error:", err);
-
-    return res.status(500).json({
-      message: err instanceof Error ? err.message : "Failed to load treatment cases."
-    });
-  }
-});
-
-router.get("/plans", requireAuth, async (req, res) => {
-  try {
-    await ensureTreatmentsTable();
-
-    const search = String(req.query.search || "").trim();
-    const params: string[] = [];
-    const where: string[] = [];
-
-    if (search) {
-      params.push(`%${search.toLowerCase()}%`);
-      where.push(`
-        (
-          LOWER(job_name) LIKE $${params.length}
-          OR LOWER(COALESCE(client_name, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(service_address, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(surface_type, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(condition_level, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(notes, '')) LIKE $${params.length}
-          OR LOWER(COALESCE(plan_text, '')) LIKE $${params.length}
-        )
-      `);
-    }
-
-    const result = await pool.query<TreatmentPlanRow>(
-      `
-        SELECT *
-        FROM treatment_plans
-        ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
-        ORDER BY created_at DESC;
-      `,
-      params
-    );
-
-    return res.json({
-      plans: result.rows.map(mapTreatmentPlan)
-    });
-  } catch (err) {
-    console.error("Get treatment plans error:", err);
-
-    return res.status(500).json({
-      message: err instanceof Error ? err.message : "Failed to load treatment plans."
-    });
-  }
-});
-
-router.post("/seed", requireAdmin, async (_req, res) => {
-  try {
-    await seedDefaultTreatments();
-
-    const treatmentsResult = await pool.query<TreatmentRow>(
-      `
-        SELECT *
-        FROM treatments
-        ORDER BY category ASC, name ASC;
-      `
-    );
-
-    const casesResult = await pool.query<TreatmentCaseRow>(
-      `
-        SELECT
-          tc.*,
-          t.name AS treatment_name,
-          t.category AS treatment_category
-        FROM treatment_cases tc
-        LEFT JOIN treatments t ON t.id = tc.treatment_id
-        ORDER BY tc.title ASC;
-      `
-    );
-
-    return res.json({
-      message: "Treatment database and cases seeded successfully.",
-      treatments: treatmentsResult.rows.map(mapTreatment),
-      cases: casesResult.rows.map(mapTreatmentCase)
-    });
-  } catch (err) {
-    console.error("Seed treatments error:", err);
-
-    return res.status(500).json({
-      message: err instanceof Error ? err.message : "Failed to seed treatments."
-    });
-  }
-});
-
-router.post("/upload", requireAdmin, async (req, res) => {
-  try {
-    await ensureTreatmentsTable();
-
-    const mode = String(req.body?.mode || "upsert").trim();
-    const items = Array.isArray(req.body?.treatments) ? req.body.treatments : [];
-
-    if (items.length === 0) {
-      return res.status(400).json({
-        message: "No treatments were provided for upload."
-      });
-    }
-
-    if (items.length > 500) {
-      return res.status(400).json({
-        message: "Upload limit is 500 treatments at a time."
-      });
-    }
-
-    const imported: TreatmentRow[] = [];
-    const skipped: Array<{ index: number; reason: string }> = [];
-
-    for (let index = 0; index < items.length; index += 1) {
-      const normalized = normalizeUploadItem(items[index]);
-
-      if (!normalized.name) {
-        skipped.push({ index, reason: "Missing treatment name." });
-        continue;
-      }
-
-      if (mode === "create-only") {
-        const exists = await pool.query<{ id: string }>(
-          `
-            SELECT id
-            FROM treatments
-            WHERE LOWER(name) = LOWER($1)
-              AND LOWER(category) = LOWER($2)
-            LIMIT 1;
-          `,
-          [normalized.name, normalized.category]
-        );
-
-        if (exists.rows.length > 0) {
-          skipped.push({ index, reason: `Duplicate skipped: ${normalized.name}` });
-          continue;
-        }
-      }
-
-      const saved = await upsertTreatment(normalized);
-      imported.push(saved);
-    }
-
-    const result = await pool.query<TreatmentRow>(
-      `
-        SELECT *
-        FROM treatments
-        ORDER BY category ASC, name ASC;
-      `
-    );
-
-    return res.json({
-      message: `Treatment upload complete. Imported ${imported.length}. Skipped ${skipped.length}.`,
-      importedCount: imported.length,
-      skippedCount: skipped.length,
-      skipped,
-      treatments: result.rows.map(mapTreatment)
-    });
-  } catch (err) {
-    console.error("Upload treatments error:", err);
-
-    return res.status(500).json({
-      message: err instanceof Error ? err.message : "Failed to upload treatments."
-    });
-  }
-});
-
-router.post("/cases/upload", requireAdmin, async (req, res) => {
-  try {
-    await ensureTreatmentsTable();
-
-    const mode = String(req.body?.mode || "upsert").trim();
-    const items = Array.isArray(req.body?.cases) ? req.body.cases : [];
-
-    if (items.length === 0) {
-      return res.status(400).json({
-        message: "No treatment cases were provided for upload."
-      });
-    }
-
-    if (items.length > 500) {
-      return res.status(400).json({
-        message: "Upload limit is 500 treatment cases at a time."
-      });
-    }
-
-    const imported: TreatmentCaseRow[] = [];
-    const skipped: Array<{ index: number; reason: string }> = [];
-
-    for (let index = 0; index < items.length; index += 1) {
-      const normalized = normalizeCaseUploadItem(items[index]);
-
-      if (!normalized.title) {
-        skipped.push({ index, reason: "Missing case title." });
-        continue;
-      }
-
-      if (mode === "create-only") {
-        const exists = await pool.query<{ id: string }>(
-          `
-            SELECT id
-            FROM treatment_cases
-            WHERE LOWER(title) = LOWER($1)
-            LIMIT 1;
-          `,
-          [normalized.title]
-        );
-
-        if (exists.rows.length > 0) {
-          skipped.push({ index, reason: `Duplicate skipped: ${normalized.title}` });
-          continue;
-        }
-      }
-
-      const saved = await upsertTreatmentCase(normalized);
-      imported.push(saved);
-    }
-
-    const result = await pool.query<TreatmentCaseRow>(
-      `
-        SELECT
-          tc.*,
-          t.name AS treatment_name,
-          t.category AS treatment_category
-        FROM treatment_cases tc
-        LEFT JOIN treatments t ON t.id = tc.treatment_id
-        ORDER BY
-          CASE
-            WHEN LOWER(tc.risk_level) = 'high review' THEN 1
-            WHEN LOWER(tc.risk_level) = 'moderate' THEN 2
-            ELSE 3
-          END,
-          tc.title ASC;
-      `
-    );
-
-    return res.json({
-      message: `Treatment case upload complete. Imported ${imported.length}. Skipped ${skipped.length}.`,
-      importedCount: imported.length,
-      skippedCount: skipped.length,
-      skipped,
-      cases: result.rows.map(mapTreatmentCase)
-    });
-  } catch (err) {
-    console.error("Upload treatment cases error:", err);
-
-    return res.status(500).json({
-      message: err instanceof Error ? err.message : "Failed to upload treatment cases."
-    });
-  }
-});
-
-router.post("/cases", requireAdmin, async (req, res) => {
-  try {
-    await ensureTreatmentsTable();
-
-    const normalized = normalizeCaseUploadItem(req.body || {});
-
-    if (!normalized.title) {
-      return res.status(400).json({
-        message: "Case title is required."
-      });
-    }
-
-    const saved = await upsertTreatmentCase(normalized);
-    const joined = await getJoinedCaseById(saved.id);
-
-    return res.status(201).json({
-      case: joined ? mapTreatmentCase(joined) : mapTreatmentCase(saved)
-    });
-  } catch (err) {
-    console.error("Create treatment case error:", err);
-
-    return res.status(500).json({
-      message: err instanceof Error ? err.message : "Failed to create treatment case."
-    });
-  }
-});
-
-router.patch("/cases/:id", requireAdmin, async (req, res) => {
-  try {
-    await ensureTreatmentsTable();
-
-    const id = String(req.params.id || "").trim();
-    const normalized = normalizeCaseUploadItem(req.body || {});
-
-    if (!id) {
-      return res.status(400).json({
-        message: "Case ID is required."
-      });
-    }
-
-    if (!normalized.title) {
-      return res.status(400).json({
-        message: "Case title is required."
-      });
-    }
-
-    const treatmentId =
-      normalized.treatmentId || (await getTreatmentIdByName(normalized.treatmentName || ""));
-
-    const result = await pool.query<TreatmentCaseRow>(
-      `
-        UPDATE treatment_cases
-        SET
-          treatment_id = $2,
-          title = $3,
-          surface_type = $4,
-          condition_level = $5,
-          problem_type = $6,
-          recommended_mix = $7,
-          dwell_time = $8,
-          tools_needed = $9,
-          step_by_step = $10,
-          safety_checklist = $11,
-          pricing_note = $12,
-          customer_expectation = $13,
-          risk_level = $14,
-          updated_at = NOW()
-        WHERE id = $1
-        RETURNING *;
-      `,
-      [
-        id,
-        treatmentId,
-        normalized.title,
-        normalized.surfaceType,
-        normalized.conditionLevel,
-        normalized.problemType,
-        normalized.recommendedMix,
-        normalized.dwellTime,
-        normalized.toolsNeeded,
-        normalized.stepByStep,
-        normalized.safetyChecklist,
-        normalized.pricingNote,
-        normalized.customerExpectation,
-        normalized.riskLevel
-      ]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        message: "Treatment case not found."
-      });
-    }
-
-    const joined = await getJoinedCaseById(id);
-
-    return res.json({
-      case: joined ? mapTreatmentCase(joined) : mapTreatmentCase(result.rows[0])
-    });
-  } catch (err) {
-    console.error("Update treatment case error:", err);
-
-    return res.status(500).json({
-      message: err instanceof Error ? err.message : "Failed to update treatment case."
-    });
-  }
-});
-
-router.delete("/cases/:id", requireAdmin, async (req, res) => {
-  try {
-    await ensureTreatmentsTable();
-
-    const id = String(req.params.id || "").trim();
-
-    if (!id) {
-      return res.status(400).json({
-        message: "Case ID is required."
-      });
-    }
-
-    const result = await pool.query(
-      `
-        DELETE FROM treatment_cases
-        WHERE id = $1
-        RETURNING id;
-      `,
-      [id]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        message: "Treatment case not found."
-      });
-    }
-
-    return res.json({
-      message: "Treatment case deleted."
-    });
-  } catch (err) {
-    console.error("Delete treatment case error:", err);
-
-    return res.status(500).json({
-      message: err instanceof Error ? err.message : "Failed to delete treatment case."
-    });
-  }
-});
-
-router.post("/plans", requireAuth, async (req, res) => {
-  try {
-    await ensureTreatmentsTable();
-
-    const jobName = String(req.body?.jobName || "").trim();
-
-    if (!jobName) {
-      return res.status(400).json({
-        message: "Job name is required."
-      });
-    }
-
-    const selectedTreatmentIds = Array.isArray(req.body?.selectedTreatmentIds)
-      ? req.body.selectedTreatmentIds.map((id: unknown) => String(id)).filter(Boolean)
-      : [];
-
-    const selectedCaseIds = Array.isArray(req.body?.selectedCaseIds)
-      ? req.body.selectedCaseIds.map((id: unknown) => String(id)).filter(Boolean)
-      : [];
-
-    const result = await pool.query<TreatmentPlanRow>(
-      `
-        INSERT INTO treatment_plans (
-          job_name,
-          client_name,
-          service_address,
-          surface_type,
-          condition_level,
-          selected_treatment_ids,
-          selected_case_ids,
-          notes,
-          plan_text,
-          updated_at
-        )
-        VALUES ($1,$2,$3,$4,$5,$6::uuid[],$7::uuid[],$8,$9,NOW())
-        RETURNING *;
-      `,
-      [
-        jobName,
-        String(req.body?.clientName || "").trim() || null,
-        String(req.body?.serviceAddress || "").trim() || null,
-        String(req.body?.surfaceType || "").trim() || null,
-        String(req.body?.conditionLevel || "").trim() || null,
-        selectedTreatmentIds,
-        selectedCaseIds,
-        String(req.body?.notes || "").trim() || null,
-        String(req.body?.planText || "").trim() || null
-      ]
-    );
-
-    return res.status(201).json({
-      plan: mapTreatmentPlan(result.rows[0])
-    });
-  } catch (err) {
-    console.error("Create treatment plan error:", err);
-
-    return res.status(500).json({
-      message: err instanceof Error ? err.message : "Failed to create treatment plan."
-    });
-  }
-});
-
-router.delete("/plans/:id", requireAdmin, async (req, res) => {
-  try {
-    await ensureTreatmentsTable();
-
-    const id = String(req.params.id || "").trim();
-
-    const result = await pool.query(
-      `
-        DELETE FROM treatment_plans
-        WHERE id = $1
-        RETURNING id;
-      `,
-      [id]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        message: "Treatment plan not found."
-      });
-    }
-
-    return res.json({
-      message: "Treatment plan deleted."
-    });
-  } catch (err) {
-    console.error("Delete treatment plan error:", err);
-
-    return res.status(500).json({
-      message: err instanceof Error ? err.message : "Failed to delete treatment plan."
-    });
-  }
-});
-
-router.post("/", requireAdmin, async (req, res) => {
-  try {
-    await ensureTreatmentsTable();
-
-    const normalized = normalizeUploadItem(req.body || {});
-
-    if (!normalized.name) {
-      return res.status(400).json({
-        message: "Treatment name is required."
-      });
-    }
-
-    const saved = await upsertTreatment(normalized);
-
-    return res.status(201).json({
-      treatment: mapTreatment(saved)
-    });
-  } catch (err) {
-    console.error("Create treatment error:", err);
-
-    return res.status(500).json({
-      message: err instanceof Error ? err.message : "Failed to create treatment."
-    });
-  }
-});
-
-router.patch("/:id", requireAdmin, async (req, res) => {
-  try {
-    await ensureTreatmentsTable();
-
-    const id = String(req.params.id || "").trim();
-    const normalized = normalizeUploadItem(req.body || {});
-
-    if (!id) {
-      return res.status(400).json({
-        message: "Treatment ID is required."
-      });
-    }
-
-    if (!normalized.name) {
-      return res.status(400).json({
-        message: "Treatment name is required."
-      });
-    }
-
-    const result = await pool.query<TreatmentRow>(
-      `
-        UPDATE treatments
-        SET
-          name = $2,
-          category = $3,
-          surface_types = $4,
-          chemical = $5,
-          dilution_ratio = $6,
-          use_case = $7,
-          safety_notes = $8,
-          instructions = $9,
-          purchase_link = $10,
-          cost_reference = $11,
-          updated_at = NOW()
-        WHERE id = $1
-        RETURNING *;
-      `,
-      [
-        id,
-        normalized.name,
-        normalized.category,
-        normalized.surfaceTypes,
-        normalized.chemical,
-        normalized.dilutionRatio,
-        normalized.useCase,
-        normalized.safetyNotes,
-        normalized.instructions,
-        normalized.purchaseLink,
-        normalized.costReference
-      ]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        message: "Treatment not found."
-      });
-    }
-
-    return res.json({
-      treatment: mapTreatment(result.rows[0])
-    });
-  } catch (err) {
-    console.error("Update treatment error:", err);
-
-    return res.status(500).json({
-      message: err instanceof Error ? err.message : "Failed to update treatment."
-    });
-  }
-});
-
-router.delete("/:id", requireAdmin, async (req, res) => {
-  try {
-    await ensureTreatmentsTable();
-
-    const id = String(req.params.id || "").trim();
-
-    const result = await pool.query(
-      `
-        DELETE FROM treatments
-        WHERE id = $1
-        RETURNING id;
-      `,
-      [id]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        message: "Treatment not found."
-      });
-    }
-
-    return res.json({
-      message: "Treatment deleted."
-    });
-  } catch (err) {
-    console.error("Delete treatment error:", err);
-
-    return res.status(500).json({
-      message: err instanceof Error ? err.message : "Failed to delete treatment."
-    });
-  }
-});
-
-export default router;
+async function seedIfEmpty() {
+  await ensureTreatmentsTable();
+
+  const result = await pool.query<{ count: string }>(`
+    SELECT COUNT(*) AS count
+    FROM treatments;
+  `);
+
+  if (Number(result.rows[0]?.
