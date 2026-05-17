@@ -1,7 +1,7 @@
 import React from "react";
 import { apiFetch } from "../api";
 import { saveNmdAuth } from "../utils/authStorage";
-import type { AuthUserRole } from "../types";
+import type { AuthUser, AuthUserRole } from "../types";
 
 type LoginResponseUser = {
   id?: string;
@@ -17,6 +17,23 @@ type LoginResponse = {
   message?: string;
 };
 
+type LoginPageProps = {
+  onLogin?: (token: string, loggedInUser: AuthUser) => void;
+  portalRole?: string;
+  title?: string;
+  subtitle?: string;
+};
+
+function normalizeRole(value: string): AuthUserRole {
+  const role = value.toLowerCase();
+
+  if (role === "superadmin") return "superadmin" as AuthUserRole;
+  if (role === "admin") return "admin" as AuthUserRole;
+  if (role === "employee") return "employee" as AuthUserRole;
+
+  return "client" as AuthUserRole;
+}
+
 function getPortalPath(role: string) {
   const normalized = role.toLowerCase();
 
@@ -31,7 +48,23 @@ function getPortalPath(role: string) {
   return "/client";
 }
 
-export default function LoginPage() {
+function buildAuthUser(user: LoginResponseUser | null | undefined): AuthUser {
+  const role = normalizeRole(String(user?.role || "client"));
+
+  return {
+    id: String(user?.id || ""),
+    email: String(user?.email || ""),
+    displayName: String(user?.displayName || user?.name || user?.email || ""),
+    role
+  } as AuthUser;
+}
+
+export default function LoginPage({
+  onLogin,
+  portalRole = "",
+  title = "NMD Login",
+  subtitle = "Sign in to access your NMD portal."
+}: LoginPageProps) {
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [rememberMe, setRememberMe] = React.useState(true);
@@ -52,16 +85,27 @@ export default function LoginPage() {
         body: JSON.stringify({
           email,
           password,
-          rememberMe
+          rememberMe,
+          portalRole
         })
       });
 
       const auth = saveNmdAuth(data);
-      const role = String(auth.user?.role || data.user?.role || "client");
+      const loggedInUser = buildAuthUser(auth.user || data.user);
+      const token = auth.token || data.token || "";
+
+      if (!token) {
+        throw new Error("Login succeeded, but no authorization token was saved.");
+      }
 
       setSuccess("Login successful. Redirecting...");
 
-      window.location.href = getPortalPath(role);
+      if (onLogin) {
+        onLogin(token, loggedInUser);
+        return;
+      }
+
+      window.location.href = getPortalPath(String(loggedInUser.role || portalRole || "client"));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed.");
     } finally {
@@ -74,10 +118,8 @@ export default function LoginPage() {
       <section className="panel loginPanel">
         <div className="panelHeader">
           <div>
-            <h1 className="panelTitle">NMD Login</h1>
-            <p className="brandSubtitle">
-              Sign in to access your NMD portal.
-            </p>
+            <h1 className="panelTitle">{title}</h1>
+            <p className="brandSubtitle">{subtitle}</p>
           </div>
         </div>
 
