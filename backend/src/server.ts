@@ -1,26 +1,31 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
+
 import authRoutes from "./routes/auth.js";
 import guruRoutes from "./routes/guru.js";
 import paymentsRoutes from "./routes/payments.js";
 import posRoutes from "./routes/pos.js";
 import treatmentsRoutes from "./routes/treatments.js";
-
-dotenv.config();
+import chatRoutes from "./routes/chat.js";
+import emailTestRoutes from "./routes/email-test.js";
+import employeesRoutes from "./routes/employees.js";
+import jobsRoutes from "./routes/jobs.js";
+import quotesRoutes from "./routes/quotes.js";
+import recurringRoutes from "./routes/recurring.js";
+import requestsRoutes from "./routes/requests.js";
 
 const app = express();
 
 const PORT = Number(process.env.PORT || 10000);
-const FRONTEND_URL = process.env.FRONTEND_URL || "";
 
 const allowedOrigins = [
-  FRONTEND_URL,
+  process.env.FRONTEND_URL,
+  process.env.CLIENT_URL,
   "http://localhost:5173",
-  "http://localhost:3000",
-  "https://nmdpowash.com",
-  "https://www.nmdpowash.com"
-].filter(Boolean);
+  "http://localhost:5174",
+  "http://localhost:3000"
+].filter(Boolean) as string[];
 
 app.use(
   cors({
@@ -30,7 +35,7 @@ app.use(
         return;
       }
 
-      if (allowedOrigins.includes(origin)) {
+      if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
         callback(null, true);
         return;
       }
@@ -41,20 +46,26 @@ app.use(
   })
 );
 
-app.use("/api/payments/stripe-webhook", express.raw({ type: "application/json" }));
-
 app.use(
   express.json({
-    limit: "3mb"
+    limit: "25mb"
   })
 );
 
 app.use(
   express.urlencoded({
     extended: true,
-    limit: "3mb"
+    limit: "25mb"
   })
 );
+
+app.get("/", (_req, res) => {
+  res.json({
+    ok: true,
+    service: "NMD backend",
+    message: "NMD backend is running."
+  });
+});
 
 app.get("/api/health", (_req, res) => {
   res.json({
@@ -69,10 +80,17 @@ app.use("/api/guru", guruRoutes);
 app.use("/api/payments", paymentsRoutes);
 app.use("/api/pos", posRoutes);
 app.use("/api/treatments", treatmentsRoutes);
+app.use("/api/chat", chatRoutes);
+app.use("/api/email-test", emailTestRoutes);
+app.use("/api/employees", employeesRoutes);
+app.use("/api/jobs", jobsRoutes);
+app.use("/api/quotes", quotesRoutes);
+app.use("/api/recurring", recurringRoutes);
+app.use("/api/requests", requestsRoutes);
 
 app.use((req, res) => {
   res.status(404).json({
-    message: `Cannot ${req.method} ${req.path}`
+    message: `Route not found: ${req.method} ${req.originalUrl}`
   });
 });
 
@@ -85,8 +103,18 @@ app.use(
   ) => {
     console.error("Unhandled backend error:", err);
 
-    res.status(500).json({
-      message: err instanceof Error ? err.message : "Internal server error"
+    const message =
+      err instanceof Error ? err.message : "Unexpected backend server error.";
+
+    if (message.toLowerCase().includes("request entity too large")) {
+      return res.status(413).json({
+        message:
+          "Upload file is too large for the backend request limit. The backend limit has been increased to 25mb, redeploy and try again."
+      });
+    }
+
+    return res.status(500).json({
+      message
     });
   }
 );
