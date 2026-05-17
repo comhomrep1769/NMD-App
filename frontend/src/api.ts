@@ -3,51 +3,79 @@ const API_BASE_URL =
   import.meta.env.VITE_BACKEND_URL ||
   "";
 
-type StoredAuthObject = {
-  token?: string;
-  authToken?: string;
-  accessToken?: string;
-  jwt?: string;
-  user?: {
-    token?: string;
-    authToken?: string;
-    accessToken?: string;
-    jwt?: string;
-  };
-  data?: {
-    token?: string;
-    authToken?: string;
-    accessToken?: string;
-    jwt?: string;
-  };
-};
+type UnknownRecord = Record<string, unknown>;
+
+const JWT_PATTERN = /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/;
 
 function readStorageValue(key: string) {
   return localStorage.getItem(key) || sessionStorage.getItem(key) || "";
 }
 
-function getTokenFromObject(rawValue: string) {
-  try {
-    const parsed = JSON.parse(rawValue) as StoredAuthObject;
+function isJwtLike(value: unknown) {
+  if (typeof value !== "string") return false;
+  return JWT_PATTERN.test(value.trim());
+}
 
-    return (
-      parsed.token ||
-      parsed.authToken ||
-      parsed.accessToken ||
-      parsed.jwt ||
-      parsed.user?.token ||
-      parsed.user?.authToken ||
-      parsed.user?.accessToken ||
-      parsed.user?.jwt ||
-      parsed.data?.token ||
-      parsed.data?.authToken ||
-      parsed.data?.accessToken ||
-      parsed.data?.jwt ||
-      ""
-    );
-  } catch {
+function findJwtDeep(value: unknown, depth = 0): string {
+  if (depth > 5 || value === null || value === undefined) return "";
+
+  if (isJwtLike(value)) {
+    return String(value).trim();
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+
+    if (isJwtLike(trimmed)) return trimmed;
+
+    if (
+      (trimmed.startsWith("{") && trimmed.endsWith("}")) ||
+      (trimmed.startsWith("[") && trimmed.endsWith("]"))
+    ) {
+      try {
+        return findJwtDeep(JSON.parse(trimmed), depth + 1);
+      } catch {
+        return "";
+      }
+    }
+
     return "";
   }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = findJwtDeep(item, depth + 1);
+      if (found) return found;
+    }
+
+    return "";
+  }
+
+  if (typeof value === "object") {
+    const objectValue = value as UnknownRecord;
+
+    const likelyTokenKeys = [
+      "token",
+      "authToken",
+      "accessToken",
+      "jwt",
+      "idToken",
+      "bearerToken",
+      "sessionToken"
+    ];
+
+    for (const key of likelyTokenKeys) {
+      const found = findJwtDeep(objectValue[key], depth + 1);
+      if (found) return found;
+    }
+
+    for (const nestedValue of Object.values(objectValue)) {
+      const found = findJwtDeep(nestedValue, depth + 1);
+      if (found) return found;
+    }
+  }
+
+  return "";
 }
 
 function getStoredToken() {
@@ -56,23 +84,22 @@ function getStoredToken() {
     "nmdToken",
     "nmd_auth_token",
     "nmdAuthToken",
+    "auth_token",
     "authToken",
+    "access_token",
     "accessToken",
     "token",
-    "jwt"
+    "jwt",
+    "idToken",
+    "bearerToken",
+    "sessionToken"
   ];
 
   for (const key of directTokenKeys) {
     const value = readStorageValue(key);
+    const token = findJwtDeep(value);
 
-    if (value && !value.trim().startsWith("{")) {
-      return value;
-    }
-
-    if (value && value.trim().startsWith("{")) {
-      const token = getTokenFromObject(value);
-      if (token) return token;
-    }
+    if (token) return token;
   }
 
   const objectKeys = [
@@ -80,18 +107,40 @@ function getStoredToken() {
     "nmdAuth",
     "nmd_user",
     "nmdUser",
+    "nmd_session",
+    "nmdSession",
     "auth",
     "user",
     "currentUser",
-    "session"
+    "session",
+    "profile",
+    "account"
   ];
 
   for (const key of objectKeys) {
     const value = readStorageValue(key);
+    const token = findJwtDeep(value);
 
-    if (!value) continue;
+    if (token) return token;
+  }
 
-    const token = getTokenFromObject(value);
+  for (let index = 0; index < localStorage.length; index += 1) {
+    const key = localStorage.key(index);
+    if (!key) continue;
+
+    const value = localStorage.getItem(key);
+    const token = findJwtDeep(value);
+
+    if (token) return token;
+  }
+
+  for (let index = 0; index < sessionStorage.length; index += 1) {
+    const key = sessionStorage.key(index);
+    if (!key) continue;
+
+    const value = sessionStorage.getItem(key);
+    const token = findJwtDeep(value);
+
     if (token) return token;
   }
 
