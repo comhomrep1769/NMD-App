@@ -61,7 +61,9 @@ function findJwtDeep(value: unknown, depth = 0): string {
       "jwt",
       "idToken",
       "bearerToken",
-      "sessionToken"
+      "sessionToken",
+      "nmdToken",
+      "nmd_token"
     ];
 
     for (const key of likelyTokenKeys) {
@@ -213,10 +215,12 @@ export async function apiFetch<T = unknown>(
 
   if (token && !headers.has("Authorization")) {
     headers.set("Authorization", `Bearer ${token}`);
+    headers.set("X-Auth-Token", token);
   }
 
   const response = await fetch(normalizeApiPath(path), {
     ...options,
+    credentials: "include",
     headers
   });
 
