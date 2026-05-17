@@ -19,7 +19,7 @@ const employeeTabs: TreatmentTab[] = [
   },
   {
     key: "details",
-    label: "Details",
+    label: "Treatment Details",
     description: "View the selected treatment."
   },
   {
@@ -29,8 +29,8 @@ const employeeTabs: TreatmentTab[] = [
   },
   {
     key: "cases",
-    label: "Treatment Cases",
-    description: "Case-based treatment workflows."
+    label: "Treatment Workflows",
+    description: "Detailed treatment workflows and field guidance."
   }
 ];
 
@@ -38,17 +38,17 @@ const adminOnlyTabs: TreatmentTab[] = [
   {
     key: "uploadHub",
     label: "Upload Center",
-    description: "Choose treatment or case upload."
+    description: "Upload treatment records or treatment workflows."
   },
   {
     key: "upload",
-    label: "Upload Treatments",
-    description: "Import treatments from CSV or JSON."
+    label: "Upload Records",
+    description: "Import treatment records from CSV or JSON."
   },
   {
     key: "uploadCases",
-    label: "Upload Cases",
-    description: "Import treatment cases from CSV or JSON."
+    label: "Upload Treatments",
+    description: "Import detailed treatment workflows from CSV or JSON."
   },
   {
     key: "planner",
@@ -71,7 +71,7 @@ function getVisibleTabs(adminAccess: boolean): TreatmentTab[] {
     {
       key: "guru",
       label: "Guru Search",
-      description: "Search treatments, cases, and saved plans."
+      description: "Search treatments and saved plans."
     },
     ...adminOnlyTabs,
     {
@@ -86,7 +86,7 @@ function getVisibleTabs(adminAccess: boolean): TreatmentTab[] {
     },
     {
       key: "details",
-      label: "Details",
+      label: "Treatment Details",
       description: "View selected treatment information."
     },
     {
@@ -96,8 +96,8 @@ function getVisibleTabs(adminAccess: boolean): TreatmentTab[] {
     },
     {
       key: "cases",
-      label: "Treatment Cases",
-      description: "Case-based treatment workflows."
+      label: "Treatment Workflows",
+      description: "Detailed treatment workflows and field guidance."
     }
   ];
 }
@@ -120,8 +120,8 @@ export default function TreatmentPageTabs({
           <h2 className="panelTitle">Treatment Workspace</h2>
           <p className="brandSubtitle">
             {adminAccess
-              ? "Admin tools for managing treatments, cases, uploads, saved plans, and field guidance."
-              : "Employee tools for approved treatment search, cases, SH calculations, and field guidance."}
+              ? "Admin tools for managing treatment records, uploads, saved plans, and field guidance."
+              : "Employee tools for approved treatment search, SH calculations, workflows, and field guidance."}
           </p>
         </div>
       </div>
