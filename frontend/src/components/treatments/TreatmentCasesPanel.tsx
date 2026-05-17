@@ -4,7 +4,7 @@ import type { TreatmentItem } from "../../types";
 import type { TreatmentCase } from "../../types/treatmentCases";
 import { treatmentCaseRiskBadgeClass } from "../../types/treatmentCases";
 
-type CaseForm = {
+type TreatmentWorkflowForm = {
   id: string;
   treatmentId: string;
   title: string;
@@ -21,7 +21,7 @@ type CaseForm = {
   riskLevel: string;
 };
 
-const emptyCaseForm: CaseForm = {
+const emptyWorkflowForm: TreatmentWorkflowForm = {
   id: "",
   treatmentId: "",
   title: "",
@@ -38,7 +38,7 @@ const emptyCaseForm: CaseForm = {
   riskLevel: "Standard"
 };
 
-function caseToForm(item: TreatmentCase): CaseForm {
+function workflowToForm(item: TreatmentCase): TreatmentWorkflowForm {
   return {
     id: item.id || "",
     treatmentId: item.treatmentId || "",
@@ -57,7 +57,7 @@ function caseToForm(item: TreatmentCase): CaseForm {
   };
 }
 
-function formToPayload(form: CaseForm) {
+function formToPayload(form: TreatmentWorkflowForm) {
   return {
     treatmentId: form.treatmentId || null,
     title: form.title.trim(),
@@ -75,7 +75,7 @@ function formToPayload(form: CaseForm) {
   };
 }
 
-function caseMatchesSearch(item: TreatmentCase, search: string) {
+function workflowMatchesSearch(item: TreatmentCase, search: string) {
   const value = search.trim().toLowerCase();
 
   if (!value) return true;
@@ -119,31 +119,31 @@ export default function TreatmentCasesPanel({
   selectedTreatmentId: string | null;
   adminAccess: boolean;
 }) {
-  const [cases, setCases] = React.useState<TreatmentCase[]>([]);
+  const [workflows, setWorkflows] = React.useState<TreatmentCase[]>([]);
   const [search, setSearch] = React.useState("");
   const [riskFilter, setRiskFilter] = React.useState("all");
-  const [treatmentFilter, setTreatmentFilter] = React.useState(selectedTreatmentId || "all");
+  const [treatmentFilter, setTreatmentFilter] = React.useState("all");
   const [expandedId, setExpandedId] = React.useState<string | null>(null);
   const [showForm, setShowForm] = React.useState(false);
-  const [form, setForm] = React.useState<CaseForm>(emptyCaseForm);
+  const [form, setForm] = React.useState<TreatmentWorkflowForm>(emptyWorkflowForm);
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState("");
   const [success, setSuccess] = React.useState("");
 
-  const loadCases = React.useCallback(async () => {
+  const loadWorkflows = React.useCallback(async () => {
     setLoading(true);
     setError("");
 
     try {
       const data = await apiFetch<{ cases: TreatmentCase[] }>("/api/treatments/cases");
-      setCases(data.cases || []);
+      setWorkflows(data.cases || []);
     } catch (err) {
-      setCases([]);
+      setWorkflows([]);
       setError(
         err instanceof Error
           ? err.message
-          : "Failed to load treatment cases. Make sure treatment cases have been seeded or uploaded."
+          : "Failed to load treatments. Make sure treatments have been uploaded."
       );
     } finally {
       setLoading(false);
@@ -151,16 +151,10 @@ export default function TreatmentCasesPanel({
   }, []);
 
   React.useEffect(() => {
-    loadCases();
-  }, [loadCases]);
+    loadWorkflows();
+  }, [loadWorkflows]);
 
-  React.useEffect(() => {
-    if (selectedTreatmentId && treatmentFilter === "all") {
-      setTreatmentFilter(selectedTreatmentId);
-    }
-  }, [selectedTreatmentId, treatmentFilter]);
-
-  const visibleCases = cases.filter((item) => {
+  const visibleWorkflows = workflows.filter((item) => {
     const matchesTreatment =
       treatmentFilter === "all" ||
       item.treatmentId === treatmentFilter ||
@@ -170,17 +164,17 @@ export default function TreatmentCasesPanel({
       riskFilter === "all" ||
       String(item.riskLevel || "").toLowerCase() === riskFilter.toLowerCase();
 
-    return matchesTreatment && matchesRisk && caseMatchesSearch(item, search);
+    return matchesTreatment && matchesRisk && workflowMatchesSearch(item, search);
   });
 
   const startCreate = () => {
     if (!adminAccess) {
-      setError("Only Admin or Super Admin can add treatment cases.");
+      setError("Only Admin or Super Admin can add treatments.");
       return;
     }
 
     setForm({
-      ...emptyCaseForm,
+      ...emptyWorkflowForm,
       treatmentId: selectedTreatmentId || ""
     });
     setShowForm(true);
@@ -190,39 +184,39 @@ export default function TreatmentCasesPanel({
 
   const startEdit = (item: TreatmentCase) => {
     if (!adminAccess) {
-      setError("Only Admin or Super Admin can edit treatment cases.");
+      setError("Only Admin or Super Admin can edit treatments.");
       return;
     }
 
-    setForm(caseToForm(item));
+    setForm(workflowToForm(item));
     setShowForm(true);
     setError("");
     setSuccess("");
   };
 
   const cancelForm = () => {
-    setForm(emptyCaseForm);
+    setForm(emptyWorkflowForm);
     setShowForm(false);
     setError("");
   };
 
-  const updateForm = (field: keyof CaseForm, value: string) => {
+  const updateForm = (field: keyof TreatmentWorkflowForm, value: string) => {
     setForm((prev) => ({
       ...prev,
       [field]: value
     }));
   };
 
-  const saveCase = async (event: React.FormEvent) => {
+  const saveWorkflow = async (event: React.FormEvent) => {
     event.preventDefault();
 
     if (!adminAccess) {
-      setError("Only Admin or Super Admin can save treatment cases.");
+      setError("Only Admin or Super Admin can save treatments.");
       return;
     }
 
     if (!form.title.trim()) {
-      setError("Treatment case title is required.");
+      setError("Treatment title is required.");
       return;
     }
 
@@ -240,39 +234,39 @@ export default function TreatmentCasesPanel({
           }
         );
 
-        setCases((prev) =>
+        setWorkflows((prev) =>
           prev.map((item) => (item.id === data.case.id ? data.case : item))
         );
 
         setExpandedId(data.case.id);
-        setSuccess("Treatment case updated.");
+        setSuccess("Treatment updated.");
       } else {
         const data = await apiFetch<{ case: TreatmentCase }>("/api/treatments/cases", {
           method: "POST",
           body: JSON.stringify(formToPayload(form))
         });
 
-        setCases((prev) => [data.case, ...prev]);
+        setWorkflows((prev) => [data.case, ...prev]);
         setExpandedId(data.case.id);
-        setSuccess("Treatment case created.");
+        setSuccess("Treatment created.");
       }
 
-      setForm(emptyCaseForm);
+      setForm(emptyWorkflowForm);
       setShowForm(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save treatment case.");
+      setError(err instanceof Error ? err.message : "Failed to save treatment.");
     } finally {
       setSaving(false);
     }
   };
 
-  const deleteCase = async (item: TreatmentCase) => {
+  const deleteWorkflow = async (item: TreatmentCase) => {
     if (!adminAccess) {
-      setError("Only Admin or Super Admin can delete treatment cases.");
+      setError("Only Admin or Super Admin can delete treatments.");
       return;
     }
 
-    const ok = window.confirm(`Delete treatment case "${item.title}"?`);
+    const ok = window.confirm(`Delete treatment "${item.title}"?`);
     if (!ok) return;
 
     setError("");
@@ -283,18 +277,18 @@ export default function TreatmentCasesPanel({
         method: "DELETE"
       });
 
-      setCases((prev) => prev.filter((entry) => entry.id !== item.id));
+      setWorkflows((prev) => prev.filter((entry) => entry.id !== item.id));
       setExpandedId(null);
-      setSuccess("Treatment case deleted.");
+      setSuccess("Treatment deleted.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete treatment case.");
+      setError(err instanceof Error ? err.message : "Failed to delete treatment.");
     }
   };
 
-  const copyCase = async (item: TreatmentCase) => {
+  const copyWorkflow = async (item: TreatmentCase) => {
     const text = [
-      `Treatment Case: ${item.title}`,
-      `Linked Treatment: ${getLinkedTreatmentName(item, treatments)}`,
+      `Treatment: ${item.title}`,
+      `Linked Treatment Type: ${getLinkedTreatmentName(item, treatments)}`,
       `Surface: ${item.surfaceType || "—"}`,
       `Condition: ${item.conditionLevel || "—"}`,
       `Problem: ${item.problemType || "—"}`,
@@ -310,7 +304,7 @@ export default function TreatmentCasesPanel({
 
     try {
       await navigator.clipboard.writeText(text);
-      setSuccess("Treatment case copied.");
+      setSuccess("Treatment copied.");
     } catch {
       window.alert(text);
     }
@@ -319,8 +313,8 @@ export default function TreatmentCasesPanel({
   if (loading) {
     return (
       <section className="panel">
-        <h2 className="panelTitle">Treatment Cases</h2>
-        <div className="listCard">Loading treatment cases...</div>
+        <h2 className="panelTitle">Treatments</h2>
+        <div className="listCard">Loading treatments...</div>
       </section>
     );
   }
@@ -329,21 +323,21 @@ export default function TreatmentCasesPanel({
     <section className="panel">
       <div className="panelHeader">
         <div>
-          <h2 className="panelTitle">Treatment Cases</h2>
+          <h2 className="panelTitle">Treatments</h2>
           <p className="brandSubtitle">
-            Case-based workflows for surfaces, stains, chemistry, safety, customer expectations,
-            and field decisions.
+            Detailed treatment workflows for surfaces, stains, chemistry, safety, customer
+            expectations, and field decisions.
           </p>
         </div>
 
         <div className="buttonRow">
-          <button className="secondaryButton" type="button" onClick={loadCases}>
-            Refresh Cases
+          <button className="secondaryButton" type="button" onClick={loadWorkflows}>
+            Refresh Treatments
           </button>
 
           {adminAccess && (
             <button className="primaryButton" type="button" onClick={startCreate}>
-              Add Case
+              Add Treatment
             </button>
           )}
         </div>
@@ -352,29 +346,29 @@ export default function TreatmentCasesPanel({
       {error && <div className="errorBox">{error}</div>}
       {success && <div className="listCard">{success}</div>}
 
-      {cases.length === 0 && (
+      {workflows.length === 0 && (
         <div className="errorBox">
-          No treatment cases are available yet. Admin or Super Admin needs to seed defaults
-          or upload treatment cases. Employees are read-only and cannot create case data.
+          No treatments are available yet. Admin or Super Admin needs to seed defaults
+          or upload treatments. Employees are read-only and cannot create treatment data.
         </div>
       )}
 
       <div className="statsGrid" style={{ marginTop: 16 }}>
         <div className="statCard">
-          <div className="statLabel">Cases</div>
-          <div className="statValue">{cases.length}</div>
+          <div className="statLabel">Treatments</div>
+          <div className="statValue">{workflows.length}</div>
         </div>
 
         <div className="statCard">
           <div className="statLabel">Visible</div>
-          <div className="statValue">{visibleCases.length}</div>
+          <div className="statValue">{visibleWorkflows.length}</div>
         </div>
 
         <div className="statCard">
           <div className="statLabel">High Review</div>
           <div className="statValue">
             {
-              cases.filter(
+              workflows.filter(
                 (item) => String(item.riskLevel || "").toLowerCase() === "high review"
               ).length
             }
@@ -382,14 +376,14 @@ export default function TreatmentCasesPanel({
         </div>
 
         <div className="statCard">
-          <div className="statLabel">Treatments</div>
+          <div className="statLabel">Treatment Types</div>
           <div className="statValue">{treatments.length}</div>
         </div>
       </div>
 
       <div className="formGrid" style={{ marginTop: 16 }}>
         <label className="fieldLabel">
-          Search Cases
+          Search Treatments
           <input
             className="textInput"
             value={search}
@@ -399,7 +393,7 @@ export default function TreatmentCasesPanel({
         </label>
 
         <label className="fieldLabel">
-          Linked Treatment
+          Treatment Type
           <select
             className="textInput"
             value={treatmentFilter}
@@ -431,9 +425,9 @@ export default function TreatmentCasesPanel({
       </div>
 
       {showForm && adminAccess && (
-        <form className="formGrid" onSubmit={saveCase} style={{ marginTop: 16 }}>
+        <form className="formGrid" onSubmit={saveWorkflow} style={{ marginTop: 16 }}>
           <label className="fieldLabel">
-            Linked Treatment
+            Treatment Type
             <select
               className="textInput"
               value={form.treatmentId}
@@ -449,7 +443,7 @@ export default function TreatmentCasesPanel({
           </label>
 
           <label className="fieldLabel">
-            Case Title
+            Treatment Title
             <input
               className="textInput"
               value={form.title}
@@ -573,7 +567,7 @@ export default function TreatmentCasesPanel({
 
           <div className="buttonRow">
             <button className="primaryButton" type="submit" disabled={saving}>
-              {saving ? "Saving..." : form.id ? "Save Case" : "Create Case"}
+              {saving ? "Saving..." : form.id ? "Save Treatment" : "Create Treatment"}
             </button>
 
             <button className="secondaryButton" type="button" onClick={cancelForm}>
@@ -584,7 +578,7 @@ export default function TreatmentCasesPanel({
       )}
 
       <div className="cardsGrid" style={{ marginTop: 16 }}>
-        {visibleCases.map((item) => {
+        {visibleWorkflows.map((item) => {
           const expanded = expandedId === item.id;
 
           return (
@@ -597,7 +591,7 @@ export default function TreatmentCasesPanel({
               </div>
 
               <div className="cardLine">
-                <strong>Treatment:</strong> {getLinkedTreatmentName(item, treatments)}
+                <strong>Treatment Type:</strong> {getLinkedTreatmentName(item, treatments)}
               </div>
 
               <div className="cardLine">
@@ -624,9 +618,9 @@ export default function TreatmentCasesPanel({
                 <button
                   className="primaryButton"
                   type="button"
-                  onClick={() => copyCase(item)}
+                  onClick={() => copyWorkflow(item)}
                 >
-                  Copy Case
+                  Copy Treatment
                 </button>
 
                 {adminAccess && (
@@ -642,7 +636,7 @@ export default function TreatmentCasesPanel({
                     <button
                       className="dangerButton"
                       type="button"
-                      onClick={() => deleteCase(item)}
+                      onClick={() => deleteWorkflow(item)}
                     >
                       Delete
                     </button>
@@ -696,9 +690,9 @@ export default function TreatmentCasesPanel({
           );
         })}
 
-        {visibleCases.length === 0 && (
+        {visibleWorkflows.length === 0 && (
           <div className="listCard">
-            No treatment cases match this filter. Clear filters, refresh cases, or have Admin/Super Admin seed/upload cases.
+            No treatments match this filter. Clear filters, refresh treatments, or upload treatment records.
           </div>
         )}
       </div>
