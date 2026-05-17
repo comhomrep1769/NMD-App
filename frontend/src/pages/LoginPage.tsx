@@ -1,247 +1,101 @@
 import React from "react";
 import { apiFetch } from "../api";
-import type { AuthUser } from "../types";
-import { getRoleLabel, isRoleAllowedInPortal } from "../utils/roles";
+import { saveNmdAuth } from "../utils/authStorage";
+import type { AuthUserRole } from "../types";
 
-type LoginPortalRole = "admin" | "employee" | "client";
-
-type SeedUser = {
-  role: string;
-  email: string;
-  password: string;
+type LoginResponseUser = {
+  id?: string;
+  email?: string;
+  displayName?: string;
+  name?: string;
+  role?: AuthUserRole | string;
 };
 
-type SeedResponse = {
+type LoginResponse = {
+  token?: string;
+  user?: LoginResponseUser;
   message?: string;
-  users?: SeedUser[];
 };
 
-function getAllowedRoleText(portalRole: LoginPortalRole) {
-  if (portalRole === "admin") return "Admin or Super Admin";
-  if (portalRole === "employee") return "Employee";
-  return "Client";
-}
+function getPortalPath(role: string) {
+  const normalized = role.toLowerCase();
 
-function getPortalHint(portalRole: LoginPortalRole) {
-  if (portalRole === "admin") return "Use your Admin or Super Admin credentials.";
-  if (portalRole === "employee") return "Use your Employee credentials.";
-  return "Use your Client account credentials.";
-}
-
-function getDefaultTestCredentials(portalRole: LoginPortalRole) {
-  if (portalRole === "admin") {
-    return [
-      {
-        role: "Super Admin",
-        email: "testsuperadmin@nmd.local",
-        password: "TestSuperAdmin123!"
-      },
-      {
-        role: "Admin",
-        email: "testadmin@nmd.local",
-        password: "TestAdmin123!"
-      }
-    ];
+  if (normalized === "superadmin" || normalized === "admin") {
+    return "/admin";
   }
 
-  if (portalRole === "employee") {
-    return [
-      {
-        role: "Employee",
-        email: "testemployee@nmd.local",
-        password: "TestEmployee123!"
-      }
-    ];
+  if (normalized === "employee") {
+    return "/employee";
   }
 
-  return [
-    {
-      role: "Client",
-      email: "testclient@nmd.local",
-      password: "TestClient123!"
-    }
-  ];
+  return "/client";
 }
 
-function getSeedKeyFromEnv() {
-  const value = import.meta.env.VITE_TEST_SEED_KEY;
-
-  if (typeof value === "string" && value.trim()) {
-    return value.trim();
-  }
-
-  return "";
-}
-
-export default function LoginPage({
-  onLogin,
-  portalRole,
-  title,
-  subtitle
-}: {
-  onLogin: (token: string, user: AuthUser) => void;
-  portalRole: LoginPortalRole;
-  title: string;
-  subtitle: string;
-}) {
+export default function LoginPage() {
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [rememberMe, setRememberMe] = React.useState(true);
   const [loading, setLoading] = React.useState(false);
-  const [seeding, setSeeding] = React.useState(false);
   const [error, setError] = React.useState("");
-  const [seedMessage, setSeedMessage] = React.useState("");
-  const [seedUsers, setSeedUsers] = React.useState<SeedUser[]>([]);
-  const [seedKey, setSeedKey] = React.useState(getSeedKeyFromEnv);
+  const [success, setSuccess] = React.useState("");
 
-  const defaultTestCredentials = getDefaultTestCredentials(portalRole);
-
-  const submitLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setSeedMessage("");
-
-    if (!email.trim() || !password.trim()) {
-      setError("Please enter your email and password.");
-      return;
-    }
+  const handleLogin = async (event: React.FormEvent) => {
+    event.preventDefault();
 
     setLoading(true);
+    setError("");
+    setSuccess("");
 
     try {
-      const data = await apiFetch<{ token: string; user: AuthUser }>("/api/auth/login", {
+      const data = await apiFetch<LoginResponse>("/api/auth/login", {
         method: "POST",
         body: JSON.stringify({
-          email: email.trim(),
+          email,
           password,
           rememberMe
         })
       });
 
-      if (!isRoleAllowedInPortal(data.user.role, portalRole)) {
-        setError(
-          `This login belongs to a ${getRoleLabel(
-            data.user
-          )} account. This portal only allows ${getAllowedRoleText(portalRole)} access.`
-        );
+      const auth = saveNmdAuth(data);
+      const role = String(auth.user?.role || data.user?.role || "client");
 
-        localStorage.removeItem("nmd-token");
-        sessionStorage.removeItem("nmd-token");
-        return;
-      }
+      setSuccess("Login successful. Redirecting...");
 
-      if (rememberMe) {
-        localStorage.setItem("nmd-token", data.token);
-        sessionStorage.removeItem("nmd-token");
-      } else {
-        sessionStorage.setItem("nmd-token", data.token);
-        localStorage.removeItem("nmd-token");
-      }
-
-      onLogin(data.token, data.user);
+      window.location.href = getPortalPath(role);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed. Please try again.");
+      setError(err instanceof Error ? err.message : "Login failed.");
     } finally {
       setLoading(false);
     }
   };
 
-  const seedTestUsers = async () => {
-    setError("");
-    setSeedMessage("");
-    setSeeding(true);
-
-    try {
-      const data = await apiFetch<SeedResponse>("/api/auth/seed-test-users", {
-        method: "POST",
-        headers: seedKey
-          ? {
-              "x-test-seed-key": seedKey
-            }
-          : undefined,
-        body: JSON.stringify({
-          seedKey
-        })
-      });
-
-      setSeedMessage(data.message || "Test users checked/created.");
-
-      if (Array.isArray(data.users) && data.users.length > 0) {
-        setSeedUsers(data.users);
-      } else {
-        setSeedUsers(defaultTestCredentials);
-      }
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? `Could not seed test users: ${err.message}`
-          : "Could not seed test users."
-      );
-
-      setSeedUsers(defaultTestCredentials);
-    } finally {
-      setSeeding(false);
-    }
-  };
-
-  const useCredential = (credential: SeedUser) => {
-    setEmail(credential.email);
-    setPassword(credential.password);
-    setError("");
-    setSeedMessage(`Loaded ${credential.role} test credentials.`);
-  };
-
-  const filteredSeedUsers =
-    seedUsers.length > 0
-      ? seedUsers.filter((seedUser) => {
-          const role = seedUser.role.toLowerCase().replace(/\s+/g, "");
-
-          if (portalRole === "admin") {
-            return role === "admin" || role === "superadmin";
-          }
-
-          if (portalRole === "employee") {
-            return role === "employee";
-          }
-
-          return role === "client";
-        })
-      : defaultTestCredentials;
-
   return (
-    <div className="authPage">
-      <section className="authCard">
-        <div className="authBrand">
-          <div className="authLogo">NMD</div>
-
+    <div className="loginPage">
+      <section className="panel loginPanel">
+        <div className="panelHeader">
           <div>
-            <h1 className="authTitle">{title}</h1>
-            <p className="brandSubtitle">{subtitle}</p>
+            <h1 className="panelTitle">NMD Login</h1>
+            <p className="brandSubtitle">
+              Sign in to access your NMD portal.
+            </p>
           </div>
-        </div>
-
-        <div className="listCard" style={{ marginBottom: 16 }}>
-          {getPortalHint(portalRole)}
         </div>
 
         {error && <div className="errorBox">{error}</div>}
 
-        {seedMessage && (
-          <div className="listCard" style={{ marginBottom: 16 }}>
-            {seedMessage}
-          </div>
-        )}
+        {success && <div className="listCard">{success}</div>}
 
-        <form className="formGrid" onSubmit={submitLogin}>
+        <form className="formGrid" onSubmit={handleLogin}>
           <label className="fieldLabel">
             Email
             <input
               className="textInput"
               type="email"
-              autoComplete="email"
-              placeholder="email@example.com"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="you@example.com"
+              required
             />
           </label>
 
@@ -250,98 +104,37 @@ export default function LoginPage({
             <input
               className="textInput"
               type="password"
-              autoComplete="current-password"
-              placeholder="Password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="Enter your password"
+              required
             />
           </label>
 
           <label
+            className="fieldLabel"
             style={{
               display: "flex",
               alignItems: "center",
               gap: 10,
-              color: "var(--muted)",
-              fontSize: 14,
-              fontWeight: 700
+              flexDirection: "row"
             }}
           >
             <input
               type="checkbox"
               checked={rememberMe}
-              onChange={(e) => setRememberMe(e.target.checked)}
+              onChange={(event) => setRememberMe(event.target.checked)}
             />
-            Keep me logged in on this device
+            Keep me logged in
           </label>
 
-          <button className="primaryButton" type="submit" disabled={loading}>
-            {loading ? "Signing In..." : "Sign In"}
-          </button>
-        </form>
-
-        <div className="assignBox" style={{ marginTop: 16 }}>
-          <div className="assignTitle">Test Account Helper</div>
-
-          <div className="cardLine">
-            This is only for testing the app while building. Admin, Super Admin, and Employee
-            accounts should still be manually controlled before production.
-          </div>
-
-          <label className="fieldLabel" style={{ marginTop: 12 }}>
-            Test Seed Key
-            <input
-              className="textInput"
-              type="password"
-              placeholder="Enter TEST_SEED_KEY if backend requires it"
-              value={seedKey}
-              onChange={(e) => setSeedKey(e.target.value)}
-            />
-          </label>
-
-          <div className="buttonRow" style={{ marginTop: 12 }}>
-            <button
-              className="secondaryButton"
-              type="button"
-              onClick={seedTestUsers}
-              disabled={seeding}
-            >
-              {seeding ? "Checking Test Users..." : "Create / Check Test Users"}
+          <div className="buttonRow">
+            <button className="primaryButton" type="submit" disabled={loading}>
+              {loading ? "Signing In..." : "Login"}
             </button>
           </div>
-
-          <div className="cardsGrid" style={{ marginTop: 12 }}>
-            {filteredSeedUsers.map((credential) => (
-              <button
-                key={`${credential.role}-${credential.email}`}
-                className="quoteCard"
-                type="button"
-                onClick={() => useCredential(credential)}
-                style={{ textAlign: "left", cursor: "pointer" }}
-              >
-                <div className="quoteTopRow">
-                  <div className="quoteNumber">{credential.role}</div>
-                  <span className="statusBadge status-approved">Test</span>
-                </div>
-
-                <div className="cardLine">
-                  <strong>Email:</strong> {credential.email}
-                </div>
-
-                <div className="cardLine">
-                  <strong>Password:</strong> {credential.password}
-                </div>
-
-                <div className="cardLine">Click this card to load the credentials.</div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="listCard" style={{ marginTop: 16 }}>
-          Public signup should only create Client accounts. Admin, Super Admin, and Employee
-          accounts should not be created from the public client registration page.
-        </div>
+        </form>
       </section>
     </div>
   );
