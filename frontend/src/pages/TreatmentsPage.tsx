@@ -31,6 +31,7 @@ import TreatmentWorkspaceLayout from "../components/treatments/TreatmentWorkspac
 import TreatmentUploadPanel from "../components/treatments/TreatmentUploadPanel";
 import TreatmentCaseUploadPanel from "../components/treatments/TreatmentCaseUploadPanel";
 import TreatmentUploadHubPanel from "../components/treatments/TreatmentUploadHubPanel";
+import ChemicalListAdminPanel from "../components/treatments/ChemicalListAdminPanel";
 import type { TreatmentPlan } from "../types/treatmentPlans";
 import type { TreatmentTabKey } from "../types/treatmentUi";
 
@@ -38,6 +39,7 @@ const adminOnlyTabs: TreatmentTabKey[] = [
   "uploadHub",
   "upload",
   "uploadCases",
+  "chemicals",
   "planner",
   "saved"
 ];
@@ -135,7 +137,7 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
   const changeTab = (tab: TreatmentTabKey) => {
     if (!adminAccess && isAdminOnlyTab(tab)) {
       setActiveTab("search");
-      setError("Only Admin or Super Admin can access upload tools, plan builder, and saved plans.");
+      setError("Only Admin or Super Admin can access upload tools, chemicals, plan builder, and saved plans.");
       return;
     }
 
@@ -355,8 +357,8 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
             <h2 className="panelTitle">Treatment Options & Cases</h2>
             <p className="brandSubtitle">
               {adminAccess
-                ? "Admin treatment workspace for managing treatment records, cases, uploads, plans, and field guidance."
-                : "Employee treatment workspace for searching approved treatment records, cases, SH calculations, and field guidance."}
+                ? "Admin treatment workspace for managing treatment records, detailed treatments, chemical list, uploads, plans, and field guidance."
+                : "Employee treatment workspace for searching approved treatment records, detailed treatments, SH calculations, and field guidance."}
             </p>
           </div>
 
@@ -457,6 +459,8 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
 
           {activeTab === "guru" && <TreatmentGuruSearchPanel />}
 
+          {adminAccess && activeTab === "chemicals" && <ChemicalListAdminPanel />}
+
           {adminAccess && activeTab === "uploadHub" && (
             <TreatmentUploadHubPanel
               adminAccess={adminAccess}
@@ -528,7 +532,7 @@ export default function TreatmentsPage({ role }: { role: AuthUserRole }) {
 
           {activeTab === "cases" && (
             <TreatmentCasesPanel
-              key={`cases-${casesRefreshKey}-${selectedTreatment?.id || "none"}`}
+              key={`treatments-${casesRefreshKey}-${selectedTreatment?.id || "none"}`}
               treatments={treatments}
               selectedTreatmentId={selectedTreatment?.id || null}
               adminAccess={adminAccess}
