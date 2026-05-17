@@ -74,7 +74,7 @@ export default function TreatmentQuickActions({
         type="button"
         onClick={() => onTabChange("cases")}
       >
-        Treatment Cases
+        Treatment Workflows
       </button>
 
       <button
