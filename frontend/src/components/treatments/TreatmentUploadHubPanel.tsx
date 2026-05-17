@@ -42,12 +42,12 @@ export default function TreatmentUploadHubPanel({
           }}
         >
           <div className="quoteTopRow">
-            <div className="quoteNumber">Upload Treatments</div>
+            <div className="quoteNumber">Upload Treatment Records</div>
             <span className="statusBadge status-approved">CSV / JSON</span>
           </div>
 
           <div className="cardLine">
-            Upload chemical/treatment records such as house wash, roof wash, rust removal,
+            Upload basic treatment records such as house wash, roof wash, rust removal,
             concrete cleaning, wood restoration, plant protection, oxidation warnings, and more.
           </div>
 
@@ -70,14 +70,14 @@ export default function TreatmentUploadHubPanel({
           }}
         >
           <div className="quoteTopRow">
-            <div className="quoteNumber">Upload Treatment Cases</div>
+            <div className="quoteNumber">Upload Detailed Treatments</div>
             <span className="statusBadge status-pending_admin_approval">
-              Case Workflows
+              Workflows
             </span>
           </div>
 
           <div className="cardLine">
-            Upload detailed case-based guidance such as “Heavy Irrigation Rust On Concrete,”
+            Upload detailed treatment workflows such as “Heavy Irrigation Rust On Concrete,”
             “Painted Driveway With Stripes,” or “Black Streak Asphalt Shingle Roof.”
           </div>
 
