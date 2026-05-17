@@ -15,7 +15,7 @@ const employeeButtons: Array<{
   },
   {
     key: "search",
-    label: "Treatments"
+    label: "Search"
   },
   {
     key: "details",
@@ -27,7 +27,7 @@ const employeeButtons: Array<{
   },
   {
     key: "cases",
-    label: "Cases"
+    label: "Treatments"
   }
 ];
 
@@ -49,7 +49,7 @@ const adminButtons: Array<{
   },
   {
     key: "search",
-    label: "Treatments"
+    label: "Search"
   },
   {
     key: "details",
@@ -61,7 +61,7 @@ const adminButtons: Array<{
   },
   {
     key: "cases",
-    label: "Cases"
+    label: "Treatments"
   },
   {
     key: "planner",
