@@ -44,6 +44,10 @@ const adminButtons: Array<{
     label: "Upload"
   },
   {
+    key: "chemicals",
+    label: "Chemicals"
+  },
+  {
     key: "field",
     label: "Field"
   },
