@@ -1,440 +1,74 @@
 import React from "react";
-import { apiFetch } from "../api";
-import type {
-  Client,
-  RecurringFrequency,
-  RecurringService,
-  RecurringStatus
-} from "../types";
 
-type RecurringServiceWithStripe = RecurringService & {
-  stripeCheckoutSessionId?: string | null;
-  stripeSubscriptionId?: string | null;
-  stripeCustomerId?: string | null;
-  stripePaymentStatus?: string | null;
-  stripeCheckoutUrl?: string | null;
-};
-
-const frequencies: RecurringFrequency[] = ["weekly", "biweekly", "monthly", "quarterly"];
-const statuses: RecurringStatus[] = ["active", "paused", "cancelled"];
+const recurringOptions = [
+  {
+    title: "Trash Can Cleaning",
+    price: "$10/month starting target",
+    text: "Recurring trash/garbage can cleaning subscription. Final pricing can be adjusted after market review."
+  },
+  {
+    title: "Monthly Exterior Maintenance",
+    price: "Custom",
+    text: "Recurring house, driveway, walkway, storefront, HOA, or commercial maintenance."
+  },
+  {
+    title: "Commercial Maintenance",
+    price: "Custom",
+    text: "Scheduled cleaning for storefronts, sidewalks, dumpster pads, drive-thrus, and property managers."
+  }
+];
 
 export default function RecurringPage() {
-  const [services, setServices] = React.useState<RecurringServiceWithStripe[]>([]);
-  const [clients, setClients] = React.useState<Client[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState("");
-  const [success, setSuccess] = React.useState("");
-
-  const [editingId, setEditingId] = React.useState<string | null>(null);
-  const [clientId, setClientId] = React.useState("");
-  const [clientName, setClientName] = React.useState("");
-  const [phone, setPhone] = React.useState("");
-  const [email, setEmail] = React.useState("");
-  const [address, setAddress] = React.useState("");
-  const [serviceType, setServiceType] = React.useState("Trash Can Cleaning");
-  const [frequency, setFrequency] = React.useState<RecurringFrequency>("monthly");
-  const [price, setPrice] = React.useState("10");
-  const [status, setStatus] = React.useState<RecurringStatus>("active");
-  const [nextServiceDate, setNextServiceDate] = React.useState("");
-  const [notes, setNotes] = React.useState("");
-
-  const loadData = React.useCallback(async () => {
-    setLoading(true);
-    setError("");
-
-    try {
-      const [recurringData, clientData] = await Promise.all([
-        apiFetch<{ recurringServices: RecurringServiceWithStripe[] }>("/api/recurring"),
-        apiFetch<{ clients: Client[] }>("/api/clients")
-      ]);
-
-      setServices(recurringData.recurringServices);
-      setClients(clientData.clients);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load recurring services");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  const resetForm = () => {
-    setEditingId(null);
-    setClientId("");
-    setClientName("");
-    setPhone("");
-    setEmail("");
-    setAddress("");
-    setServiceType("Trash Can Cleaning");
-    setFrequency("monthly");
-    setPrice("10");
-    setStatus("active");
-    setNextServiceDate("");
-    setNotes("");
-  };
-
-  const handleClientSelect = (value: string) => {
-    setClientId(value);
-    const selected = clients.find((client) => client.id === value);
-
-    if (selected) {
-      setClientName(`${selected.firstName} ${selected.lastName}`);
-      setPhone(selected.phone || "");
-      setEmail(selected.email || "");
-      setAddress(selected.address || "");
-    }
-  };
-
-  const startEdit = (service: RecurringServiceWithStripe) => {
-    setEditingId(service.id);
-    setClientId(service.clientId || "");
-    setClientName(service.clientName);
-    setPhone(service.phone || "");
-    setEmail(service.email || "");
-    setAddress(service.address);
-    setServiceType(service.serviceType);
-    setFrequency(service.frequency);
-    setPrice(String(service.price));
-    setStatus(service.status);
-    setNextServiceDate(service.nextServiceDate ? String(service.nextServiceDate).slice(0, 10) : "");
-    setNotes(service.notes || "");
-  };
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setSuccess("");
-
-    const payload = {
-      clientId: clientId || null,
-      clientName,
-      phone,
-      email,
-      address,
-      serviceType,
-      frequency,
-      price: Number(price) || 0,
-      status,
-      nextServiceDate: nextServiceDate || null,
-      notes
-    };
-
-    try {
-      if (editingId) {
-        await apiFetch(`/api/recurring/${editingId}`, {
-          method: "PATCH",
-          body: JSON.stringify(payload)
-        });
-        setSuccess("Recurring service updated.");
-      } else {
-        await apiFetch("/api/recurring", {
-          method: "POST",
-          body: JSON.stringify(payload)
-        });
-        setSuccess("Recurring service added.");
-      }
-
-      resetForm();
-      await loadData();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save recurring service");
-    }
-  };
-
-  const updateStatus = async (id: string, newStatus: RecurringStatus) => {
-    setError("");
-    setSuccess("");
-
-    try {
-      await apiFetch(`/api/recurring/${id}/status`, {
-        method: "PATCH",
-        body: JSON.stringify({ status: newStatus })
-      });
-
-      setSuccess(`Recurring service marked ${newStatus}.`);
-      await loadData();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update status");
-    }
-  };
-
-  const createNextJob = async (id: string) => {
-    setError("");
-    setSuccess("");
-
-    try {
-      await apiFetch(`/api/recurring/${id}/create-next-job`, {
-        method: "POST"
-      });
-
-      setSuccess("Scheduled job created from recurring service.");
-      await loadData();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create scheduled job");
-    }
-  };
-
-  const sendReminder = async (id: string) => {
-    setError("");
-    setSuccess("");
-
-    try {
-      await apiFetch(`/api/recurring/${id}/send-reminder`, {
-        method: "POST"
-      });
-
-      setSuccess("Reminder email sent.");
-      await loadData();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to send reminder");
-    }
-  };
-
-  const scanReminders = async () => {
-    setError("");
-    setSuccess("");
-
-    try {
-      const data = await apiFetch<{
-        scanned: number;
-        sent: number;
-        skipped: { id: string; clientName: string; reason: string }[];
-      }>("/api/recurring/scan-reminders", {
-        method: "POST"
-      });
-
-      setSuccess(
-        `Reminder scan complete. Scanned ${data.scanned}. Sent ${data.sent}. Skipped ${data.skipped.length}.`
-      );
-
-      await loadData();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to scan reminders");
-    }
-  };
-
-  const createStripeSubscription = async (id: string) => {
-    setError("");
-    setSuccess("");
-
-    try {
-      const data = await apiFetch<{ recurringService: RecurringServiceWithStripe }>(
-        `/api/recurring/${id}/create-stripe-subscription`,
-        {
-          method: "POST"
-        }
-      );
-
-      setSuccess("Stripe subscription checkout created and emailed to client.");
-
-      if (data.recurringService.stripeCheckoutUrl) {
-        window.open(data.recurringService.stripeCheckoutUrl, "_blank");
-      }
-
-      await loadData();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create Stripe subscription");
-    }
-  };
-
-  const deleteService = async (id: string) => {
-    const ok = window.confirm("Delete this recurring service?");
-    if (!ok) return;
-
-    setError("");
-    setSuccess("");
-
-    try {
-      await apiFetch(`/api/recurring/${id}`, {
-        method: "DELETE"
-      });
-
-      setSuccess("Recurring service deleted.");
-      await loadData();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete recurring service");
-    }
-  };
-
-  const activeServices = services.filter((service) => service.status === "active");
-  const monthlyRevenue = activeServices.reduce((sum, service) => {
-    if (service.frequency === "weekly") return sum + service.price * 4;
-    if (service.frequency === "biweekly") return sum + service.price * 2;
-    if (service.frequency === "monthly") return sum + service.price;
-    if (service.frequency === "quarterly") return sum + service.price / 3;
-    return sum;
-  }, 0);
-
   return (
     <div className="pageGrid">
-      <section className="panel">
-        <div className="panelHeader">
-          <h2 className="panelTitle">
-            {editingId ? "Edit Recurring Service" : "New Recurring Service"}
-          </h2>
+      <section className="clientHeroPanel">
+        <div className="clientHeroContent">
+          <span className="clientEyebrow">Recurring Services</span>
+          <h1>Keep your property on a cleaning schedule.</h1>
+          <p>
+            Recurring services help clients avoid buildup, keep curb appeal, and schedule
+            cleaning before surfaces become heavily stained.
+          </p>
+
+          <div className="clientHeroActions">
+            <a className="primaryButton" href="/client/request-service">
+              Request Recurring Service
+            </a>
+            <a className="secondaryButton" href="/client">
+              Client Portal
+            </a>
+          </div>
         </div>
 
-        {error && <div className="errorBox">{error}</div>}
-        {success && <div className="listCard">{success}</div>}
-
-        <form className="formGrid" onSubmit={submit}>
-          <select
-            className="textInput"
-            value={clientId}
-            onChange={(e) => handleClientSelect(e.target.value)}
-          >
-            <option value="">Select saved client optional</option>
-            {clients.map((client) => (
-              <option key={client.id} value={client.id}>
-                {client.firstName} {client.lastName}
-              </option>
-            ))}
-          </select>
-
-          <input className="textInput" placeholder="Client name" value={clientName} onChange={(e) => setClientName(e.target.value)} />
-          <input className="textInput" placeholder="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
-          <input className="textInput" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-          <input className="textInput" placeholder="Service address" value={address} onChange={(e) => setAddress(e.target.value)} />
-
-          <select className="textInput" value={serviceType} onChange={(e) => setServiceType(e.target.value)}>
-            <option value="Trash Can Cleaning">Trash Can Cleaning</option>
-            <option value="Driveway Cleaning">Driveway Cleaning</option>
-            <option value="Sidewalk Cleaning">Sidewalk Cleaning</option>
-            <option value="House Wash">House Wash</option>
-            <option value="Commercial Cleaning">Commercial Cleaning</option>
-            <option value="Other">Other</option>
-          </select>
-
-          <select className="textInput" value={frequency} onChange={(e) => setFrequency(e.target.value as RecurringFrequency)}>
-            {frequencies.map((item) => (
-              <option key={item} value={item}>{item}</option>
-            ))}
-          </select>
-
-          <input className="textInput" placeholder="Price" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} />
-
-          <select className="textInput" value={status} onChange={(e) => setStatus(e.target.value as RecurringStatus)}>
-            {statuses.map((item) => (
-              <option key={item} value={item}>{item}</option>
-            ))}
-          </select>
-
-          <input className="textInput" type="date" value={nextServiceDate} onChange={(e) => setNextServiceDate(e.target.value)} />
-
-          <textarea className="textInput" placeholder="Notes" rows={4} value={notes} onChange={(e) => setNotes(e.target.value)} />
-
-          <div className="buttonRow">
-            <button className="primaryButton" type="submit">
-              {editingId ? "Save Recurring Service" : "Add Recurring Service"}
-            </button>
-
-            {editingId && (
-              <button className="secondaryButton" type="button" onClick={resetForm}>
-                Cancel
-              </button>
-            )}
-          </div>
-        </form>
+        <div className="clientStatusCard">
+          <div className="statLabel">Subscription Control</div>
+          <div className="clientStatusTitle">Opt in or out</div>
+          <p>
+            Clients should be able to opt into automatic scheduling and billing, with
+            the ability to opt out at any time.
+          </p>
+        </div>
       </section>
 
       <section className="panel">
-        <div className="panelHeader">
-          <h2 className="panelTitle">Recurring Services</h2>
-        </div>
-
-        <div className="buttonRow" style={{ marginBottom: 16 }}>
-          <button className="primaryButton" onClick={scanReminders}>
-            Scan & Send Due Reminders
-          </button>
-        </div>
-
-        <div className="statsGrid" style={{ marginBottom: 16 }}>
-          <div className="statCard">
-            <div className="statLabel">Active Recurring Services</div>
-            <div className="statValue">{activeServices.length}</div>
-          </div>
-
-          <div className="statCard">
-            <div className="statLabel">Estimated Monthly Revenue</div>
-            <div className="statValue">${monthlyRevenue.toFixed(2)}</div>
-          </div>
-        </div>
-
-        {loading && <div className="listCard">Loading recurring services...</div>}
-
-        {!loading && (
-          <div className="cardsGrid">
-            {services.map((service) => (
-              <div key={service.id} className="quoteCard">
-                <div className="quoteTopRow">
-                  <div className="quoteNumber">{service.clientName}</div>
-                  <span className={`statusBadge status-${service.status}`}>
-                    {service.status}
-                  </span>
-                </div>
-
-                <div className="cardLine"><strong>Service:</strong> {service.serviceType}</div>
-                <div className="cardLine"><strong>Frequency:</strong> {service.frequency}</div>
-                <div className="cardLine"><strong>Price:</strong> ${service.price.toFixed(2)}</div>
-                <div className="cardLine">
-                  <strong>Stripe:</strong> {service.stripePaymentStatus || "not_started"}
-                </div>
-                <div className="cardLine">
-                  <strong>Subscription:</strong> {service.stripeSubscriptionId || "—"}
-                </div>
-                <div className="cardLine">
-                  <strong>Next Service:</strong>{" "}
-                  {service.nextServiceDate ? new Date(service.nextServiceDate).toLocaleDateString() : "—"}
-                </div>
-                <div className="cardLine"><strong>Address:</strong> {service.address}</div>
-                <div className="cardLine"><strong>Email:</strong> {service.email || "—"}</div>
-
-                <div className="buttonRow">
-                  <button className="secondaryButton" onClick={() => startEdit(service)}>Edit</button>
-                  <button className="secondaryButton" onClick={() => sendReminder(service.id)}>Send Reminder</button>
-
-                  <button className="primaryButton" onClick={() => createStripeSubscription(service.id)}>
-                    Create Stripe Subscription
-                  </button>
-
-                  {service.stripeCheckoutUrl && (
-                    <a
-                      className="secondaryButton"
-                      href={service.stripeCheckoutUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      style={{ textDecoration: "none" }}
-                    >
-                      Open Checkout
-                    </a>
-                  )}
-
-                  {service.status !== "active" && (
-                    <button className="secondaryButton" onClick={() => updateStatus(service.id, "active")}>Activate</button>
-                  )}
-
-                  {service.status === "active" && (
-                    <button className="secondaryButton" onClick={() => updateStatus(service.id, "paused")}>Pause</button>
-                  )}
-
-                  {service.status !== "cancelled" && (
-                    <button className="secondaryButton" onClick={() => updateStatus(service.id, "cancelled")}>Cancel</button>
-                  )}
-
-                  <button className="primaryButton" onClick={() => createNextJob(service.id)}>Create Next Job</button>
-                  <button className="secondaryButton" onClick={() => deleteService(service.id)}>Delete</button>
-                </div>
+        <div className="cardsGrid">
+          {recurringOptions.map((item) => (
+            <article key={item.title} className="quoteCard">
+              <div className="quoteTopRow">
+                <div className="quoteNumber">{item.title}</div>
+                <span className="statusBadge status-approved">{item.price}</span>
               </div>
-            ))}
 
-            {services.length === 0 && (
-              <div className="listCard">No recurring services yet.</div>
-            )}
-          </div>
-        )}
+              <p className="cardLine">{item.text}</p>
+
+              <div className="buttonRow" style={{ marginTop: 12 }}>
+                <a className="secondaryButton" href="/client/request-service">
+                  Request Option
+                </a>
+              </div>
+            </article>
+          ))}
+        </div>
       </section>
     </div>
   );
