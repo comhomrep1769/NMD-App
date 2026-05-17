@@ -37,6 +37,14 @@ export default function TreatmentQuickActions({
           <button
             className="secondaryButton"
             type="button"
+            onClick={() => onTabChange("chemicals")}
+          >
+            Chemical List
+          </button>
+
+          <button
+            className="secondaryButton"
+            type="button"
             onClick={onSeedDefaults}
             disabled={seeding}
           >
@@ -74,7 +82,7 @@ export default function TreatmentQuickActions({
         type="button"
         onClick={() => onTabChange("cases")}
       >
-        Treatment Workflows
+        Treatments
       </button>
 
       <button
