@@ -1,425 +1,69 @@
 import React from "react";
-import { apiFetch } from "../api";
-import type { GuruEstimate, GuruEstimateStatus } from "../types";
 
-function statusLabel(status: GuruEstimateStatus) {
-  if (status === "needs_review") return "Waiting For Review";
-  if (status === "reviewed") return "Reviewed By NMD";
-  if (status === "converted_to_quote") return "Quote Being Prepared";
-  if (status === "declined") return "Declined";
-  if (status === "archived") return "Archived";
-
-  return String(status).replace(/_/g, " ");
-}
-
-function statusClass(status: GuruEstimateStatus) {
-  if (status === "needs_review") return "status-pending_admin_approval";
-  if (status === "reviewed") return "status-approved";
-  if (status === "converted_to_quote") return "status-paid";
-  if (status === "declined") return "status-rejected";
-  if (status === "archived") return "status-archived";
-
-  return "status-pending_admin_approval";
-}
-
-function statusMessage(status: GuruEstimateStatus) {
-  if (status === "needs_review") {
-    return "Your estimate request has been received. NMD still needs to review it before confirming official pricing.";
+const estimateStatuses = [
+  {
+    title: "Draft Estimate",
+    text: "Client requests and Guru-assisted estimates will appear here before admin review.",
+    value: "0"
+  },
+  {
+    title: "Needs Review",
+    text: "Estimates waiting for Admin or Super Admin approval.",
+    value: "0"
+  },
+  {
+    title: "Converted to Quote",
+    text: "Approved estimates converted into formal quotes.",
+    value: "0"
   }
-
-  if (status === "reviewed") {
-    return "NMD has reviewed this estimate. An official quote may be prepared next.";
-  }
-
-  if (status === "converted_to_quote") {
-    return "This estimate has been moved into the quote workflow. NMD will send an official quote when ready.";
-  }
-
-  if (status === "declined") {
-    return "This request was declined or could not be quoted as submitted.";
-  }
-
-  if (status === "archived") {
-    return "This estimate is archived.";
-  }
-
-  return "This estimate is being processed.";
-}
-
-function buildGuruEstimateExplanation(estimate: GuruEstimate) {
-  const low = Number(estimate.preliminaryEstimateLow || 0).toFixed(2);
-  const high = Number(estimate.preliminaryEstimateHigh || 0).toFixed(2);
-
-  const details: string[] = [];
-
-  if (estimate.serviceType) details.push(`service type is ${estimate.serviceType}`);
-  if (estimate.propertyArea) details.push(`area is ${estimate.propertyArea}`);
-  if (estimate.surfaceType) details.push(`surface is ${estimate.surfaceType}`);
-  if (estimate.conditionLevel) details.push(`condition is ${estimate.conditionLevel}`);
-  if (estimate.squareFootage) details.push(`size/dimensions listed as ${estimate.squareFootage}`);
-  if (estimate.specialConcerns) details.push(`special concerns include ${estimate.specialConcerns}`);
-  if (estimate.photoDataUrl) details.push("a photo was uploaded for NMD to review");
-
-  const detailSentence =
-    details.length > 0
-      ? `Guru considered that the ${details.join(", ")}.`
-      : "Guru did not receive many details, so the estimate is based on a broad preliminary range.";
-
-  if (estimate.status === "needs_review") {
-    return `${detailSentence} The preliminary estimate range is $${low} - $${high}. This is not a final quote yet. NMD still needs to review the request, photos, property access, surface condition, safety concerns, and any treatment needs before confirming official pricing.`;
-  }
-
-  if (estimate.status === "reviewed") {
-    return `${detailSentence} NMD has reviewed this estimate. The preliminary range is $${low} - $${high}. This means your request has moved forward, but it still may need an official quote before final approval.`;
-  }
-
-  if (estimate.status === "converted_to_quote") {
-    const quoteText = estimate.quoteNumber
-      ? ` It has been connected to Quote #${estimate.quoteNumber}.`
-      : " It has been moved into the quote workflow.";
-
-    return `${detailSentence} The original preliminary range was $${low} - $${high}.${quoteText} The quote total/status shown below is the more important number to review once NMD prepares or sends it.`;
-  }
-
-  if (estimate.status === "declined") {
-    return `${detailSentence} NMD could not approve or quote this request as submitted. You may need to provide updated details, better photos, a different service scope, or contact NMD directly for clarification.`;
-  }
-
-  if (estimate.status === "archived") {
-    return `${detailSentence} This estimate has been archived. Archived estimates are no longer active unless NMD reopens or recreates the request.`;
-  }
-
-  return `${detailSentence} The preliminary estimate range is $${low} - $${high}. This is informational only until NMD confirms official pricing.`;
-}
+];
 
 export default function ClientEstimatesPage() {
-  const [estimates, setEstimates] = React.useState<GuruEstimate[]>([]);
-  const [filter, setFilter] = React.useState<
-    "all" | "needs_review" | "reviewed" | "converted_to_quote" | "declined" | "archived"
-  >("all");
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState("");
-  const [expandedPhotoId, setExpandedPhotoId] = React.useState<string | null>(null);
-  const [explanationEstimateId, setExplanationEstimateId] = React.useState<string | null>(null);
-
-  const loadEstimates = React.useCallback(async () => {
-    setError("");
-
-    try {
-      const data = await apiFetch<{ estimates: GuruEstimate[] }>("/api/guru/my-estimates");
-      setEstimates(data.estimates);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load your estimates");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    loadEstimates();
-  }, [loadEstimates]);
-
-  const visibleEstimates = estimates.filter((estimate) => {
-    if (filter === "all") return true;
-    return estimate.status === filter;
-  });
-
-  const waiting = estimates.filter((estimate) => estimate.status === "needs_review");
-  const reviewed = estimates.filter((estimate) => estimate.status === "reviewed");
-  const quotePrep = estimates.filter((estimate) => estimate.status === "converted_to_quote");
-  const withPhotos = estimates.filter((estimate) => Boolean(estimate.photoDataUrl));
-
-  const expandedPhotoEstimate = estimates.find((estimate) => estimate.id === expandedPhotoId);
-
-  if (loading) {
-    return (
-      <section className="panel">
-        <h2 className="panelTitle">My Estimates</h2>
-        <div className="listCard">Loading your estimates...</div>
-      </section>
-    );
-  }
-
   return (
     <div className="pageGrid">
-      {expandedPhotoEstimate?.photoDataUrl && (
-        <section className="panel">
-          <div className="panelHeader">
-            <div>
-              <h2 className="panelTitle">Submitted Estimate Photo</h2>
-              <p className="brandSubtitle">
-                {expandedPhotoEstimate.serviceType || "Estimate"} •{" "}
-                {expandedPhotoEstimate.address || "NMD"}
-              </p>
-            </div>
+      <section className="clientHeroPanel">
+        <div className="clientHeroContent">
+          <span className="clientEyebrow">Client Estimates</span>
+          <h1>Preliminary estimates before official quotes.</h1>
+          <p>
+            Estimates help NMD understand the service, surface, staining, access,
+            photos, and scheduling needs before creating an official quote.
+          </p>
 
-            <button
-              className="secondaryButton"
-              type="button"
-              onClick={() => setExpandedPhotoId(null)}
-            >
-              Close Photo
-            </button>
-          </div>
-
-          <img
-            src={expandedPhotoEstimate.photoDataUrl}
-            alt="Submitted estimate"
-            style={{
-              width: "100%",
-              maxHeight: "72vh",
-              objectFit: "contain",
-              borderRadius: 18,
-              border: "1px solid var(--border)",
-              background: "rgba(0,0,0,0.2)"
-            }}
-          />
-
-          <div className="listCard" style={{ marginTop: 12 }}>
-            <strong>Photo Note:</strong>{" "}
-            {expandedPhotoEstimate.photoNote || "No photo note provided."}
-          </div>
-        </section>
-      )}
-
-      <section className="panel">
-        <div className="panelHeader">
-          <div>
-            <h2 className="panelTitle">My Estimates</h2>
-            <p className="brandSubtitle">
-              View your Guru estimate requests, uploaded photos, and current review status.
-            </p>
+          <div className="clientHeroActions">
+            <a className="primaryButton" href="/client/request-service">
+              Request New Estimate
+            </a>
+            <a className="secondaryButton" href="/client">
+              Back to Client Portal
+            </a>
           </div>
         </div>
 
-        {error && <div className="errorBox">{error}</div>}
-
-        <div className="listCard">
-          Guru estimates are preliminary only. Official pricing is not final until NMD reviews and sends a confirmed quote.
-        </div>
-
-        <div className="statsGrid" style={{ marginTop: 16 }}>
-          <div className="statCard">
-            <div className="statLabel">Total Estimates</div>
-            <div className="statValue">{estimates.length}</div>
-          </div>
-
-          <div className="statCard">
-            <div className="statLabel">Waiting Review</div>
-            <div className="statValue">{waiting.length}</div>
-          </div>
-
-          <div className="statCard">
-            <div className="statLabel">Reviewed</div>
-            <div className="statValue">{reviewed.length}</div>
-          </div>
-
-          <div className="statCard">
-            <div className="statLabel">Quote Prep</div>
-            <div className="statValue">{quotePrep.length}</div>
-          </div>
-
-          <div className="statCard">
-            <div className="statLabel">With Photos</div>
-            <div className="statValue">{withPhotos.length}</div>
-          </div>
+        <div className="clientStatusCard">
+          <div className="statLabel">Important</div>
+          <div className="clientStatusTitle">Estimates are preliminary</div>
+          <p>
+            Final pricing is confirmed after admin review, quote approval, photos,
+            site details, and any required waiver acknowledgments.
+          </p>
         </div>
       </section>
 
       <section className="panel">
-        <div className="panelHeader">
-          <div>
-            <h2 className="panelTitle">Estimate History</h2>
-            <p className="brandSubtitle">
-              Tap Guru in the corner to start another estimate.
-            </p>
-          </div>
+        <div className="statsGrid">
+          {estimateStatuses.map((item) => (
+            <div key={item.title} className="statCard">
+              <div className="statLabel">{item.title}</div>
+              <div className="statValue">{item.value}</div>
+              <p className="cardLine">{item.text}</p>
+            </div>
+          ))}
         </div>
 
-        <div className="buttonRow" style={{ marginBottom: 16 }}>
-          <button
-            className={filter === "all" ? "primaryButton" : "secondaryButton"}
-            type="button"
-            onClick={() => setFilter("all")}
-          >
-            All
-          </button>
-
-          <button
-            className={filter === "needs_review" ? "primaryButton" : "secondaryButton"}
-            type="button"
-            onClick={() => setFilter("needs_review")}
-          >
-            Waiting
-          </button>
-
-          <button
-            className={filter === "reviewed" ? "primaryButton" : "secondaryButton"}
-            type="button"
-            onClick={() => setFilter("reviewed")}
-          >
-            Reviewed
-          </button>
-
-          <button
-            className={filter === "converted_to_quote" ? "primaryButton" : "secondaryButton"}
-            type="button"
-            onClick={() => setFilter("converted_to_quote")}
-          >
-            Quote Prep
-          </button>
-
-          <button
-            className={filter === "declined" ? "primaryButton" : "secondaryButton"}
-            type="button"
-            onClick={() => setFilter("declined")}
-          >
-            Declined
-          </button>
-
-          <button
-            className={filter === "archived" ? "primaryButton" : "secondaryButton"}
-            type="button"
-            onClick={() => setFilter("archived")}
-          >
-            Archived
-          </button>
-        </div>
-
-        <div className="cardsGrid">
-          {visibleEstimates.map((estimate) => {
-            const explanationOpen = explanationEstimateId === estimate.id;
-
-            return (
-              <div key={estimate.id} className="quoteCard">
-                <div className="quoteTopRow">
-                  <div className="quoteNumber">{estimate.serviceType || "Estimate"}</div>
-                  <span className={`statusBadge ${statusClass(estimate.status)}`}>
-                    {statusLabel(estimate.status)}
-                  </span>
-                </div>
-
-                <div className="listCard" style={{ marginBottom: 10 }}>
-                  {statusMessage(estimate.status)}
-                </div>
-
-                <div className="buttonRow" style={{ marginBottom: 12 }}>
-                  <button
-                    className="secondaryButton"
-                    type="button"
-                    onClick={() =>
-                      setExplanationEstimateId(explanationOpen ? null : estimate.id)
-                    }
-                  >
-                    {explanationOpen ? "Hide Guru Explanation" : "Ask Guru To Explain"}
-                  </button>
-                </div>
-
-                {explanationOpen && (
-                  <div className="assignBox" style={{ marginBottom: 12 }}>
-                    <div className="assignTitle">Guru Explanation</div>
-                    <div className="cardLine">{buildGuruEstimateExplanation(estimate)}</div>
-                  </div>
-                )}
-
-                {estimate.quoteNumber && (
-                  <div className="assignBox" style={{ marginBottom: 12 }}>
-                    <div className="assignTitle">Connected Quote</div>
-                    <div className="cardLine">
-                      <strong>Quote #:</strong> {estimate.quoteNumber}
-                    </div>
-                    <div className="cardLine">
-                      <strong>Quote Total:</strong>{" "}
-                      {estimate.quoteTotal !== null && estimate.quoteTotal !== undefined
-                        ? `$${Number(estimate.quoteTotal).toFixed(2)}`
-                        : "—"}
-                    </div>
-                    <div className="cardLine">
-                      <strong>Quote Status:</strong> {estimate.quoteStatus || "—"}
-                    </div>
-                  </div>
-                )}
-
-                {estimate.photoDataUrl && (
-                  <div style={{ marginBottom: 12 }}>
-                    <img
-                      src={estimate.photoDataUrl}
-                      alt="Submitted estimate preview"
-                      style={{
-                        width: "100%",
-                        height: 190,
-                        objectFit: "cover",
-                        borderRadius: 14,
-                        border: "1px solid var(--border)"
-                      }}
-                    />
-
-                    <div className="buttonRow" style={{ marginTop: 8 }}>
-                      <button
-                        className="secondaryButton"
-                        type="button"
-                        onClick={() => setExpandedPhotoId(estimate.id)}
-                      >
-                        View Photo
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                <div className="cardLine">
-                  <strong>Preliminary Range:</strong> $
-                  {estimate.preliminaryEstimateLow.toFixed(2)} - $
-                  {estimate.preliminaryEstimateHigh.toFixed(2)}
-                </div>
-
-                <div className="cardLine">
-                  <strong>Address:</strong> {estimate.address || "—"}
-                </div>
-
-                <div className="cardLine">
-                  <strong>Property Area:</strong> {estimate.propertyArea || "—"}
-                </div>
-
-                <div className="cardLine">
-                  <strong>Surface:</strong> {estimate.surfaceType || "—"}
-                </div>
-
-                <div className="cardLine">
-                  <strong>Condition:</strong> {estimate.conditionLevel || "—"}
-                </div>
-
-                <div className="cardLine">
-                  <strong>Size:</strong> {estimate.squareFootage || "—"}
-                </div>
-
-                <div className="cardLine">
-                  <strong>Preferred Schedule:</strong> {estimate.preferredSchedule || "—"}
-                </div>
-
-                <div className="cardLine">
-                  <strong>Special Concerns:</strong> {estimate.specialConcerns || "—"}
-                </div>
-
-                <div className="cardLine">
-                  <strong>Photo Note:</strong> {estimate.photoNote || "—"}
-                </div>
-
-                <div className="cardLine">
-                  <strong>Submitted:</strong>{" "}
-                  {estimate.createdAt ? new Date(estimate.createdAt).toLocaleString() : "—"}
-                </div>
-
-                <div className="cardLine">
-                  <strong>Reviewed:</strong>{" "}
-                  {estimate.reviewedAt ? new Date(estimate.reviewedAt).toLocaleString() : "Not yet"}
-                </div>
-              </div>
-            );
-          })}
-
-          {visibleEstimates.length === 0 && (
-            <div className="listCard">No estimates found for this filter.</div>
-          )}
+        <div className="listCard">
+          No client estimates are loaded yet. Estimate records will connect to Guru intake,
+          uploaded photos, service request details, admin review, and quote conversion.
         </div>
       </section>
     </div>
