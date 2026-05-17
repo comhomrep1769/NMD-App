@@ -35,7 +35,12 @@ body {
 .clientMetricCard,
 .clientActionCard,
 .clientInfoPanel,
-.clientStatusCard {
+.clientStatusCard,
+.calendarDayCard,
+.calendarJobCard,
+.calendarDayJobs,
+.calendarSelectedJob,
+.calendarFormPanel {
   border: 1px solid var(--nmd-border);
   background:
     linear-gradient(145deg, rgba(10, 39, 64, 0.96), rgba(6, 27, 44, 0.92)),
@@ -114,7 +119,7 @@ textarea.textInput {
   color: #ffffff;
 }
 
-/* Sidebar cleanup */
+/* Sidebar */
 
 .sidebar {
   width: 280px;
@@ -225,6 +230,56 @@ textarea.textInput {
   font-weight: 900;
 }
 
+/* Mobile nav */
+
+.mobileNav {
+  position: sticky;
+  bottom: 0;
+  z-index: 50;
+  padding: 8px;
+  border-top: 1px solid rgba(82, 178, 255, 0.25);
+  background: rgba(4, 17, 30, 0.95);
+  backdrop-filter: blur(14px);
+}
+
+.mobileNavScroller {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobileNavLink {
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(82, 178, 255, 0.25);
+  color: var(--nmd-muted);
+  text-decoration: none;
+  font-weight: 900;
+  background: rgba(10, 41, 62, 0.65);
+  position: relative;
+}
+
+.mobileNavLink.active,
+.mobileNavLink:hover {
+  color: #ffffff;
+  border-color: rgba(45, 212, 191, 0.55);
+  background: linear-gradient(135deg, rgba(25, 136, 255, 0.4), rgba(35, 196, 131, 0.25));
+}
+
+.mobileNavDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--nmd-danger);
+  position: absolute;
+  right: 8px;
+  top: 6px;
+}
+
 /* Client portal */
 
 .clientPortalPage {
@@ -327,7 +382,8 @@ textarea.textInput {
   background: rgba(7, 33, 52, 0.72);
 }
 
-.clientRailLink:hover {
+.clientRailLink:hover,
+.clientRailLink.active {
   border-color: rgba(45, 212, 191, 0.62);
   background: linear-gradient(135deg, rgba(25, 136, 255, 0.22), rgba(35, 196, 131, 0.18));
 }
@@ -425,12 +481,177 @@ textarea.textInput {
   border-color: rgba(45, 212, 191, 0.45);
 }
 
+/* Live calendar */
+
+.liveCalendarPanel {
+  overflow: hidden;
+}
+
+.calendarWeekGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(110px, 1fr));
+  gap: 10px;
+}
+
+.calendarDayCard {
+  border-radius: 18px;
+  padding: 14px;
+  color: var(--nmd-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.calendarDayCard.active,
+.calendarDayCard:hover {
+  border-color: rgba(45, 212, 191, 0.65);
+  background: linear-gradient(135deg, rgba(25, 136, 255, 0.25), rgba(35, 196, 131, 0.2));
+}
+
+.calendarDayName,
+.calendarDayCard small {
+  display: block;
+  color: var(--nmd-muted);
+  font-weight: 800;
+}
+
+.calendarDayCard strong {
+  display: block;
+  margin: 8px 0 2px;
+  font-size: 2rem;
+}
+
+.calendarContentGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+  gap: 16px;
+}
+
+.calendarDayJobs,
+.calendarSelectedJob,
+.calendarFormPanel {
+  border-radius: 22px;
+  padding: 18px;
+}
+
+.calendarJobCard {
+  width: 100%;
+  min-height: 96px;
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  border-radius: 18px;
+  color: var(--nmd-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.calendarJobCard strong,
+.calendarJobCard small {
+  display: block;
+}
+
+.calendarJobCard small {
+  color: var(--nmd-muted);
+}
+
+.calendarJobCard.active,
+.calendarJobCard:hover {
+  border-color: rgba(45, 212, 191, 0.65);
+  background: linear-gradient(135deg, rgba(25, 136, 255, 0.22), rgba(35, 196, 131, 0.16));
+}
+
+.calendarEmployeeBlue,
+.calendarEmployeeGreen,
+.calendarEmployeeTeal,
+.calendarEmployeePurple,
+.calendarEmployeeAmber {
+  width: 8px;
+  min-height: 72px;
+  border-radius: 999px;
+}
+
+.calendarEmployeeBlue {
+  background: #38bdf8;
+}
+
+.calendarEmployeeGreen {
+  background: #22c55e;
+}
+
+.calendarEmployeeTeal {
+  background: #2dd4bf;
+}
+
+.calendarEmployeePurple {
+  background: #a78bfa;
+}
+
+.calendarEmployeeAmber {
+  background: #f59e0b;
+}
+
+/* Service status */
+
+.serviceStatusTimeline {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.serviceStatusStep {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 14px;
+  border: 1px solid rgba(82, 178, 255, 0.24);
+  border-radius: 18px;
+  background: rgba(7, 33, 52, 0.55);
+}
+
+.serviceStatusStep p {
+  margin: 4px 0 0;
+  color: var(--nmd-muted);
+}
+
+.serviceStatusStep.complete,
+.serviceStatusStep.active {
+  border-color: rgba(45, 212, 191, 0.55);
+  background: linear-gradient(135deg, rgba(25, 136, 255, 0.17), rgba(35, 196, 131, 0.12));
+}
+
+.serviceStatusDot {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-weight: 1000;
+  color: #ffffff;
+  background: rgba(82, 178, 255, 0.3);
+}
+
+.serviceStatusStep.complete .serviceStatusDot,
+.serviceStatusStep.active .serviceStatusDot {
+  background: linear-gradient(135deg, var(--nmd-blue), var(--nmd-green));
+}
+
 @media (max-width: 1150px) {
   .clientMetricGrid {
     grid-template-columns: repeat(2, minmax(160px, 1fr));
   }
 
   .clientActionGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .calendarWeekGrid {
+    grid-template-columns: repeat(4, minmax(120px, 1fr));
+  }
+
+  .calendarContentGrid {
     grid-template-columns: 1fr;
   }
 }
@@ -461,10 +682,15 @@ textarea.textInput {
   .clientServicePills {
     justify-content: flex-start;
   }
+
+  .calendarWeekGrid {
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
+  }
 }
 
 @media (max-width: 560px) {
-  .clientMetricGrid {
+  .clientMetricGrid,
+  .calendarWeekGrid {
     grid-template-columns: 1fr;
   }
 
