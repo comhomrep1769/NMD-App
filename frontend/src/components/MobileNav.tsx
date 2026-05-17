@@ -1,160 +1,147 @@
 import React from "react";
-import type { AuthUserRole, PageKey } from "../types";
-import { isAdminRole } from "../utils/roles";
+import type { AuthUserRole } from "../types";
 
-type MobileNavItem = {
-  key: PageKey;
-  label: string;
+type MobileNavProps = {
+  role?: AuthUserRole | string;
+  activePage?: string;
+  currentPage?: string;
+  onNavigate?: (page: string) => void;
+  setCurrentPage?: (page: string) => void;
 };
 
-function getMobileItems(role: AuthUserRole): MobileNavItem[] {
-  if (isAdminRole(role)) {
-    return [
-      { key: "dashboard", label: role === "superadmin" ? "Owner" : "Home" },
-      { key: "guru-estimates", label: "Guru" },
-      { key: "schedule", label: "Schedule" },
-      { key: "quotes", label: "Quotes" },
-      { key: "invoices", label: "Invoices" },
-      { key: "clients", label: "Clients" },
-      { key: "pos", label: "POS" },
-      { key: "pricing", label: "Pricing" },
-      { key: "treatments", label: "Treatments" },
-      { key: "chat", label: "Chat" },
-      { key: "employees", label: "Team" },
-      { key: "expenses", label: "Expenses" },
-      { key: "mileage", label: "Mileage" },
-      { key: "recurring", label: "Recurring" }
-    ];
-  }
+type NavItem = {
+  key: string;
+  label: string;
+  href: string;
+  roles: string[];
+};
 
-  if (role === "employee") {
-    return [
-      { key: "dashboard", label: "Home" },
-      { key: "schedule", label: "Schedule" },
-      { key: "timeclock", label: "Clock" },
-      { key: "treatments", label: "Treatments" },
-      { key: "tips", label: "Tips" },
-      { key: "pos", label: "POS" },
-      { key: "chat", label: "Chat" },
-      { key: "availability", label: "Available" },
-      { key: "my-ledger", label: "Ledger" }
-    ];
+const navItems: NavItem[] = [
+  {
+    key: "dashboard",
+    label: "Home",
+    href: "/dashboard",
+    roles: ["superadmin", "admin", "employee"]
+  },
+  {
+    key: "clientDashboard",
+    label: "Client",
+    href: "/client",
+    roles: ["client"]
+  },
+  {
+    key: "clientRequests",
+    label: "Requests",
+    href: "/client/requests",
+    roles: ["client"]
+  },
+  {
+    key: "clientQuotes",
+    label: "Quotes",
+    href: "/client/quotes",
+    roles: ["client"]
+  },
+  {
+    key: "clientInvoices",
+    label: "Invoices",
+    href: "/client/invoices",
+    roles: ["client"]
+  },
+  {
+    key: "clientAppointments",
+    label: "Appts",
+    href: "/client/appointments",
+    roles: ["client"]
+  },
+  {
+    key: "clientPhotos",
+    label: "Photos",
+    href: "/client/photos",
+    roles: ["client"]
+  },
+  {
+    key: "schedule",
+    label: "Schedule",
+    href: "/schedule",
+    roles: ["superadmin", "admin", "employee"]
+  },
+  {
+    key: "photos",
+    label: "Photos",
+    href: "/photos",
+    roles: ["superadmin", "admin", "employee"]
+  },
+  {
+    key: "treatments",
+    label: "Treatments",
+    href: "/treatments",
+    roles: ["superadmin", "admin", "employee"]
+  },
+  {
+    key: "requests",
+    label: "Requests",
+    href: "/requests",
+    roles: ["superadmin", "admin", "employee"]
+  },
+  {
+    key: "chat",
+    label: "Chat",
+    href: "/chat",
+    roles: ["superadmin", "admin", "employee", "client"]
   }
+];
 
-  return [
-    { key: "dashboard", label: "Home" },
-    { key: "client-estimates", label: "Estimates" },
-    { key: "client-quotes", label: "Quotes" },
-    { key: "chat", label: "Chat" }
-  ];
+function normalizeRole(role?: string) {
+  const value = String(role || "").toLowerCase();
+
+  if (value === "super_admin" || value === "super-admin") return "superadmin";
+  if (value === "administrator") return "admin";
+
+  return value || "client";
 }
 
 export default function MobileNav({
-  currentPage,
+  role = "admin",
+  activePage = "",
+  currentPage = "",
   onNavigate,
-  role
-}: {
-  currentPage: PageKey;
-  onNavigate: (page: PageKey) => void;
-  role: AuthUserRole;
-}) {
-  const items = getMobileItems(role);
-  const scrollRef = React.useRef<HTMLDivElement | null>(null);
-  const [canScrollLeft, setCanScrollLeft] = React.useState(false);
-  const [canScrollRight, setCanScrollRight] = React.useState(false);
+  setCurrentPage
+}: MobileNavProps) {
+  const safeRole = normalizeRole(String(role));
+  const active = currentPage || activePage;
 
-  const updateScrollState = React.useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
+  const visibleItems = navItems.filter((item) => item.roles.includes(safeRole));
 
-    const maxScrollLeft = el.scrollWidth - el.clientWidth;
-
-    setCanScrollLeft(el.scrollLeft > 4);
-    setCanScrollRight(el.scrollLeft < maxScrollLeft - 4);
-  }, []);
-
-  React.useEffect(() => {
-    updateScrollState();
-
-    const el = scrollRef.current;
-    if (!el) return;
-
-    el.addEventListener("scroll", updateScrollState, { passive: true });
-    window.addEventListener("resize", updateScrollState);
-
-    return () => {
-      el.removeEventListener("scroll", updateScrollState);
-      window.removeEventListener("resize", updateScrollState);
-    };
-  }, [updateScrollState, items.length]);
-
-  React.useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-
-    const activeButton = el.querySelector<HTMLButtonElement>(
-      `[data-page-key="${currentPage}"]`
-    );
-
-    if (activeButton) {
-      activeButton.scrollIntoView({
-        behavior: "smooth",
-        inline: "center",
-        block: "nearest"
-      });
+  const handleClick = (event: React.MouseEvent<HTMLAnchorElement>, item: NavItem) => {
+    if (onNavigate || setCurrentPage) {
+      event.preventDefault();
+      onNavigate?.(item.key);
+      setCurrentPage?.(item.key);
     }
-
-    window.setTimeout(updateScrollState, 150);
-  }, [currentPage, updateScrollState]);
-
-  const scrollByAmount = (amount: number) => {
-    scrollRef.current?.scrollBy({
-      left: amount,
-      behavior: "smooth"
-    });
   };
 
   return (
-    <nav className="mobileNavWrap" aria-label="Mobile navigation">
-      {canScrollLeft && (
-        <button
-          type="button"
-          className="mobileNavArrow mobileNavArrowLeft"
-          onClick={() => scrollByAmount(-180)}
-          aria-label="Scroll navigation left"
-        >
-          ‹
-        </button>
-      )}
-
-      <div className="mobileNavScroll" ref={scrollRef}>
-        {items.map((item) => {
-          const active = currentPage === item.key;
+    <nav className="mobileNav" aria-label="Mobile navigation">
+      <div className="mobileNavScroller">
+        {visibleItems.map((item) => {
+          const selected =
+            active === item.key ||
+            active === item.href ||
+            (typeof window !== "undefined" && window.location.pathname === item.href);
 
           return (
-            <button
+            <a
               key={item.key}
-              data-page-key={item.key}
-              type="button"
-              className={`mobileNavButton ${active ? "mobileNavButtonActive" : ""}`}
-              onClick={() => onNavigate(item.key)}
+              href={item.href}
+              className={selected ? "mobileNavLink active" : "mobileNavLink"}
+              onClick={(event) => handleClick(event, item)}
             >
               {item.label}
-            </button>
+              {item.key === "chat" && <span className="mobileNavDot" />}
+            </a>
           );
         })}
       </div>
-
-      {canScrollRight && (
-        <button
-          type="button"
-          className="mobileNavArrow mobileNavArrowRight"
-          onClick={() => scrollByAmount(180)}
-          aria-label="Scroll navigation right"
-        >
-          ›
-        </button>
-      )}
     </nav>
   );
 }
