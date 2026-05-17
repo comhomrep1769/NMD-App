@@ -1,293 +1,336 @@
 import React from "react";
-import { apiFetch } from "../api";
+import ServicesCatalog from "../components/ServicesCatalog";
+import type { NmdServiceItem } from "../utils/nmdServicesCatalog";
 
-function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
+type ServiceRequestForm = {
+  selectedService: string;
+  customerName: string;
+  email: string;
+  phone: string;
+  serviceAddress: string;
+  preferredDate: string;
+  preferredTime: string;
+  propertyType: string;
+  surfaceDetails: string;
+  problemDescription: string;
+  estimatedSize: string;
+  photoNotes: string;
+  specialConcerns: string;
+};
 
-    reader.onload = () => {
-      if (typeof reader.result === "string") resolve(reader.result);
-      else reject(new Error("Could not read image."));
-    };
-
-    reader.onerror = () => reject(new Error("Could not read image."));
-    reader.readAsDataURL(file);
-  });
-}
+const emptyForm: ServiceRequestForm = {
+  selectedService: "",
+  customerName: "",
+  email: "",
+  phone: "",
+  serviceAddress: "",
+  preferredDate: "",
+  preferredTime: "",
+  propertyType: "",
+  surfaceDetails: "",
+  problemDescription: "",
+  estimatedSize: "",
+  photoNotes: "",
+  specialConcerns: ""
+};
 
 export default function ServiceRequestPage() {
-  const [firstName, setFirstName] = React.useState("");
-  const [lastName, setLastName] = React.useState("");
-  const [phone, setPhone] = React.useState("");
-  const [email, setEmail] = React.useState("");
-  const [address, setAddress] = React.useState("");
-  const [serviceType, setServiceType] = React.useState("Driveway Cleaning");
-  const [preferredDate, setPreferredDate] = React.useState("");
-  const [preferredTime, setPreferredTime] = React.useState("");
-  const [notes, setNotes] = React.useState("");
-  const [photoDataUrl, setPhotoDataUrl] = React.useState<string | null>(null);
-  const [photoNote, setPhotoNote] = React.useState("");
-  const [waiverAccepted, setWaiverAccepted] = React.useState(false);
-  const [waiverSignature, setWaiverSignature] = React.useState("");
-  const [submitted, setSubmitted] = React.useState(false);
-  const [error, setError] = React.useState("");
-  const [photoLoading, setPhotoLoading] = React.useState(false);
+  const [form, setForm] = React.useState<ServiceRequestForm>(emptyForm);
+  const [selectedServiceDetails, setSelectedServiceDetails] = React.useState<NmdServiceItem | null>(null);
+  const [success, setSuccess] = React.useState("");
+  const [uploadedPhotos, setUploadedPhotos] = React.useState<Array<{ id: string; name: string; note: string }>>([]);
 
-  const handlePhoto = async (file?: File) => {
-    setError("");
-
-    if (!file) {
-      setPhotoDataUrl(null);
-      return;
-    }
-
-    if (!file.type.startsWith("image/")) {
-      setError("Please upload an image file.");
-      return;
-    }
-
-    if (file.size > 1_800_000) {
-      setError("Image is too large. Please upload a smaller image under about 1.8MB.");
-      return;
-    }
-
-    try {
-      setPhotoLoading(true);
-      const dataUrl = await fileToDataUrl(file);
-      setPhotoDataUrl(dataUrl);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load image.");
-    } finally {
-      setPhotoLoading(false);
-    }
+  const updateForm = (field: keyof ServiceRequestForm, value: string) => {
+    setForm((prev) => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
+  const chooseService = (service: NmdServiceItem) => {
+    setSelectedServiceDetails(service);
+    updateForm("selectedService", service.title);
 
-    if (!waiverAccepted || !waiverSignature.trim()) {
-      setError("Please accept the waiver and type your full legal name as signature.");
-      return;
-    }
-
-    try {
-      await apiFetch("/api/requests/public", {
-        method: "POST",
-        body: JSON.stringify({
-          firstName,
-          lastName,
-          phone,
-          email,
-          address,
-          serviceType,
-          preferredDate: preferredDate || null,
-          preferredTime,
-          notes,
-          photoDataUrl,
-          photoNote,
-          waiverAccepted,
-          waiverSignature
-        })
-      });
-
-      setSubmitted(true);
-      setFirstName("");
-      setLastName("");
-      setPhone("");
-      setEmail("");
-      setAddress("");
-      setServiceType("Driveway Cleaning");
-      setPreferredDate("");
-      setPreferredTime("");
-      setNotes("");
-      setPhotoDataUrl(null);
-      setPhotoNote("");
-      setWaiverAccepted(false);
-      setWaiverSignature("");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to submit request");
-    }
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
   };
 
-  if (submitted) {
-    return (
-      <div className="loginShell">
-        <section className="loginCard">
-          <h1 className="panelTitle">Request Sent</h1>
-          <p className="brandSubtitle">
-            Thank you. NMD Pressure Washing Services LLC received your request and signed waiver.
-          </p>
-          <button className="primaryButton" onClick={() => setSubmitted(false)}>
-            Submit Another Request
-          </button>
-        </section>
-      </div>
+  const addPhotos = (files: FileList | null) => {
+    if (!files) return;
+
+    const next = Array.from(files).map((file) => ({
+      id: `${file.name}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      name: file.name,
+      note: ""
+    }));
+
+    setUploadedPhotos((prev) => [...next, ...prev]);
+  };
+
+  const updatePhotoNote = (id: string, note: string) => {
+    setUploadedPhotos((prev) =>
+      prev.map((photo) => (photo.id === id ? { ...photo, note } : photo))
     );
-  }
+  };
+
+  const removePhoto = (id: string) => {
+    setUploadedPhotos((prev) => prev.filter((photo) => photo.id !== id));
+  };
+
+  const submitRequest = (event: React.FormEvent) => {
+    event.preventDefault();
+
+    setSuccess(
+      "Service request draft captured. Backend saving, image upload storage, and admin review workflow will connect in the photo/job phase."
+    );
+  };
 
   return (
-    <div className="loginShell">
-      <section className="loginCard">
-        <h1 className="panelTitle">Request Service</h1>
-        <p className="brandSubtitle">
-          NMD Pressure Washing Services LLC • No More Dirt
-        </p>
+    <div className="pageGrid">
+      <section className="clientHeroPanel">
+        <div className="clientHeroContent">
+          <span className="clientEyebrow">Request Service</span>
+          <h1>Tell NMD what needs cleaning.</h1>
+          <p>
+            Choose a service, add property details, upload helpful photos, and include
+            notes about stains, surfaces, access, or pre-existing damage.
+          </p>
+        </div>
 
-        {error && <div className="errorBox">{error}</div>}
+        <div className="clientStatusCard">
+          <div className="statLabel">Photo Tip</div>
+          <div className="clientStatusTitle">Better photos = better estimates</div>
+          <p>
+            Include wide shots, close-up stains, access areas, water source locations,
+            and anything fragile or already damaged.
+          </p>
+        </div>
+      </section>
 
-        <form className="formGrid" onSubmit={submit}>
-          <input
-            className="textInput"
-            placeholder="First name"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-          />
+      {success && (
+        <div className="listCard" style={{ borderColor: "rgba(34, 197, 94, 0.65)" }}>
+          {success}
+        </div>
+      )}
 
-          <input
-            className="textInput"
-            placeholder="Last name"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-          />
+      <section className="panel">
+        <div className="panelHeader">
+          <div>
+            <h2 className="panelTitle">Service Request Details</h2>
+            <p className="brandSubtitle">
+              This form is client-facing and prepares the request for admin review,
+              quote creation, photo records, and future Guru estimate intake.
+            </p>
+          </div>
+        </div>
 
-          <input
-            className="textInput"
-            placeholder="Phone"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-          />
+        {selectedServiceDetails && (
+          <div className="listCard">
+            <strong>Selected service:</strong> {selectedServiceDetails.title}
+            <div className="cardLine">{selectedServiceDetails.estimateNotes}</div>
+          </div>
+        )}
 
-          <input
-            className="textInput"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
+        <form className="formGrid" onSubmit={submitRequest} style={{ marginTop: 16 }}>
+          <label className="fieldLabel">
+            Selected Service
+            <input
+              className="textInput"
+              value={form.selectedService}
+              onChange={(event) => updateForm("selectedService", event.target.value)}
+              placeholder="Example: Roof Cleaning"
+            />
+          </label>
 
-          <input
-            className="textInput"
-            placeholder="Service address"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-          />
+          <label className="fieldLabel">
+            Name
+            <input
+              className="textInput"
+              value={form.customerName}
+              onChange={(event) => updateForm("customerName", event.target.value)}
+              placeholder="Your name"
+            />
+          </label>
 
-          <select
-            className="textInput"
-            value={serviceType}
-            onChange={(e) => setServiceType(e.target.value)}
-          >
-            <option value="Driveway Cleaning">Driveway Cleaning</option>
-            <option value="Sidewalk Cleaning">Sidewalk Cleaning</option>
-            <option value="House Siding">House Siding</option>
-            <option value="Roof Cleaning">Roof Cleaning</option>
-            <option value="Fence Cleaning">Fence Cleaning</option>
-            <option value="Trash Can Cleaning">Trash Can Cleaning</option>
-            <option value="Commercial Cleaning">Commercial Cleaning</option>
-            <option value="Other">Other</option>
-          </select>
+          <label className="fieldLabel">
+            Email
+            <input
+              className="textInput"
+              value={form.email}
+              onChange={(event) => updateForm("email", event.target.value)}
+              placeholder="you@example.com"
+            />
+          </label>
 
-          <input
-            className="textInput"
-            type="date"
-            value={preferredDate}
-            onChange={(e) => setPreferredDate(e.target.value)}
-          />
+          <label className="fieldLabel">
+            Phone
+            <input
+              className="textInput"
+              value={form.phone}
+              onChange={(event) => updateForm("phone", event.target.value)}
+              placeholder="Phone number"
+            />
+          </label>
 
-          <input
-            className="textInput"
-            placeholder="Preferred time window"
-            value={preferredTime}
-            onChange={(e) => setPreferredTime(e.target.value)}
-          />
+          <label className="fieldLabel">
+            Service Address
+            <input
+              className="textInput"
+              value={form.serviceAddress}
+              onChange={(event) => updateForm("serviceAddress", event.target.value)}
+              placeholder="Where service is needed"
+            />
+          </label>
 
-          <textarea
-            className="textInput"
-            placeholder="Notes / details about the surface, stains, access, etc."
-            rows={5}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-          />
+          <label className="fieldLabel">
+            Preferred Date
+            <input
+              className="textInput"
+              type="date"
+              value={form.preferredDate}
+              onChange={(event) => updateForm("preferredDate", event.target.value)}
+            />
+          </label>
 
-          <div className="assignBox">
-            <div className="assignTitle">Upload Photo Optional</div>
+          <label className="fieldLabel">
+            Preferred Time Slot
+            <select
+              className="textInput"
+              value={form.preferredTime}
+              onChange={(event) => updateForm("preferredTime", event.target.value)}
+            >
+              <option value="">Choose a preferred time</option>
+              <option value="morning">Morning</option>
+              <option value="midday">Midday</option>
+              <option value="afternoon">Afternoon</option>
+              <option value="flexible">Flexible</option>
+            </select>
+          </label>
 
+          <label className="fieldLabel">
+            Property Type
+            <input
+              className="textInput"
+              value={form.propertyType}
+              onChange={(event) => updateForm("propertyType", event.target.value)}
+              placeholder="Residential, commercial, HOA, restaurant, industrial..."
+            />
+          </label>
+
+          <label className="fieldLabel">
+            Surface Details
+            <textarea
+              className="textInput"
+              rows={3}
+              value={form.surfaceDetails}
+              onChange={(event) => updateForm("surfaceDetails", event.target.value)}
+              placeholder="Concrete, vinyl siding, roof shingles, tile roof, pavers, wood deck..."
+            />
+          </label>
+
+          <label className="fieldLabel">
+            Problem / Stain Description
+            <textarea
+              className="textInput"
+              rows={3}
+              value={form.problemDescription}
+              onChange={(event) => updateForm("problemDescription", event.target.value)}
+              placeholder="Algae, black streaks, rust, oil, gum, oxidation, grease, mildew..."
+            />
+          </label>
+
+          <label className="fieldLabel">
+            Estimated Size / Dimensions
+            <input
+              className="textInput"
+              value={form.estimatedSize}
+              onChange={(event) => updateForm("estimatedSize", event.target.value)}
+              placeholder="Example: 2-car driveway, 2,000 sq ft roof, 120 ft sidewalk..."
+            />
+          </label>
+
+          <label className="fieldLabel">
+            Photo Notes
+            <textarea
+              className="textInput"
+              rows={3}
+              value={form.photoNotes}
+              onChange={(event) => updateForm("photoNotes", event.target.value)}
+              placeholder="Explain what the uploaded photos show."
+            />
+          </label>
+
+          <label className="fieldLabel">
+            Special Concerns / Pre-existing Damage
+            <textarea
+              className="textInput"
+              rows={3}
+              value={form.specialConcerns}
+              onChange={(event) => updateForm("specialConcerns", event.target.value)}
+              placeholder="Loose paint, cracked concrete, damaged screens, dead plants, oxidation, leaks..."
+            />
+          </label>
+
+          <label className="fieldLabel">
+            Upload Property Photos
             <input
               className="textInput"
               type="file"
+              multiple
               accept="image/*"
-              onChange={(e) => handlePhoto(e.target.files?.[0])}
+              onChange={(event) => addPhotos(event.target.files)}
             />
+          </label>
 
-            {photoLoading && <div className="chatMeta">Loading photo...</div>}
+          {uploadedPhotos.length > 0 && (
+            <div className="cardsGrid">
+              {uploadedPhotos.map((photo) => (
+                <div key={photo.id} className="quoteCard">
+                  <div className="quoteTopRow">
+                    <div className="quoteNumber">{photo.name}</div>
+                    <span className="statusBadge status-approved">Photo</span>
+                  </div>
 
-            {photoDataUrl && (
-              <div style={{ marginTop: 12 }}>
-                <img
-                  src={photoDataUrl}
-                  alt="Request upload preview"
-                  style={{
-                    width: "100%",
-                    maxHeight: 260,
-                    objectFit: "cover",
-                    borderRadius: 14,
-                    border: "1px solid var(--border)"
-                  }}
-                />
+                  <label className="fieldLabel">
+                    Photo Note
+                    <textarea
+                      className="textInput"
+                      rows={3}
+                      value={photo.note}
+                      onChange={(event) => updatePhotoNote(photo.id, event.target.value)}
+                      placeholder="Example: pre-existing crack near garage, rust stain by sprinkler..."
+                    />
+                  </label>
 
-                <button
-                  className="secondaryButton"
-                  type="button"
-                  style={{ marginTop: 10 }}
-                  onClick={() => setPhotoDataUrl(null)}
-                >
-                  Remove Photo
-                </button>
-              </div>
-            )}
-          </div>
-
-          <textarea
-            className="textInput"
-            placeholder="Photo note optional — describe what the image shows"
-            rows={3}
-            value={photoNote}
-            onChange={(e) => setPhotoNote(e.target.value)}
-          />
-
-          <div className="assignBox">
-            <div className="assignTitle">Required Liability Waiver</div>
-
-            <div className="cardLine">
-              By submitting this request, I acknowledge that NMD Pressure Washing Services LLC is not responsible for pre-existing property conditions, including but not limited to oxidation, loose paint, damaged siding, cracked concrete, weakened seals, worn surfaces, improper prior coatings, electrical exposure, or hidden damage.
+                  <div className="buttonRow" style={{ marginTop: 12 }}>
+                    <button
+                      className="dangerButton"
+                      type="button"
+                      onClick={() => removePhoto(photo.id)}
+                    >
+                      Delete / Retake
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
+          )}
 
-            <div className="cardLine">
-              I understand NMD Pressure Washing Services LLC is only responsible for direct damage proven to be caused by its work, and that a quote or service recommendation may depend on visible condition, uploaded photos, and on-site inspection.
-            </div>
+          <div className="buttonRow">
+            <button className="primaryButton" type="submit">
+              Submit Service Request
+            </button>
 
-            <label className="assignItem">
-              <input
-                type="checkbox"
-                checked={waiverAccepted}
-                onChange={(e) => setWaiverAccepted(e.target.checked)}
-              />
-              <span>I have read and accept the liability waiver.</span>
-            </label>
-
-            <input
-              className="textInput"
-              placeholder="Type full legal name as signature"
-              value={waiverSignature}
-              onChange={(e) => setWaiverSignature(e.target.value)}
-            />
+            <a className="secondaryButton" href="/client">
+              Back to Client Portal
+            </a>
           </div>
-
-          <button className="primaryButton" type="submit">
-            Submit Request
-          </button>
         </form>
       </section>
+
+      <ServicesCatalog onRequestService={chooseService} />
     </div>
   );
 }
