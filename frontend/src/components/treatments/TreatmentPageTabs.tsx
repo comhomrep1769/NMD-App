@@ -1,12 +1,40 @@
 import React from "react";
 import type { TreatmentTab, TreatmentTabKey } from "../../types/treatmentUi";
 
-const tabs: TreatmentTab[] = [
+const employeeTabs: TreatmentTab[] = [
   {
     key: "guru",
     label: "Guru Search",
-    description: "Search treatments, cases, and saved plans."
+    description: "Search approved treatment knowledge."
   },
+  {
+    key: "field",
+    label: "Field Mode",
+    description: "Employee checklist and quick job guidance."
+  },
+  {
+    key: "search",
+    label: "Search Treatments",
+    description: "Browse and filter treatment records."
+  },
+  {
+    key: "details",
+    label: "Details",
+    description: "View the selected treatment."
+  },
+  {
+    key: "calculator",
+    label: "SH Calculator",
+    description: "SH percent and oz-per-gallon mix tools."
+  },
+  {
+    key: "cases",
+    label: "Treatment Cases",
+    description: "Case-based treatment workflows."
+  }
+];
+
+const adminOnlyTabs: TreatmentTab[] = [
   {
     key: "uploadHub",
     label: "Upload Center",
@@ -23,31 +51,6 @@ const tabs: TreatmentTab[] = [
     description: "Import treatment cases from CSV or JSON."
   },
   {
-    key: "field",
-    label: "Field Mode",
-    description: "Employee checklist and quick job guidance."
-  },
-  {
-    key: "search",
-    label: "Treatments",
-    description: "Browse and filter treatment records."
-  },
-  {
-    key: "details",
-    label: "Details",
-    description: "View selected treatment information."
-  },
-  {
-    key: "calculator",
-    label: "Calculator",
-    description: "SH percent and oz-per-gallon mix tools."
-  },
-  {
-    key: "cases",
-    label: "Cases",
-    description: "Case-based treatment workflows."
-  },
-  {
     key: "planner",
     label: "Plan Builder",
     description: "Build job treatment plans."
@@ -59,21 +62,66 @@ const tabs: TreatmentTab[] = [
   }
 ];
 
+function getVisibleTabs(adminAccess: boolean): TreatmentTab[] {
+  if (!adminAccess) {
+    return employeeTabs;
+  }
+
+  return [
+    {
+      key: "guru",
+      label: "Guru Search",
+      description: "Search treatments, cases, and saved plans."
+    },
+    ...adminOnlyTabs,
+    {
+      key: "field",
+      label: "Field Mode",
+      description: "Employee checklist and quick job guidance."
+    },
+    {
+      key: "search",
+      label: "Search Treatments",
+      description: "Browse and filter treatment records."
+    },
+    {
+      key: "details",
+      label: "Details",
+      description: "View selected treatment information."
+    },
+    {
+      key: "calculator",
+      label: "SH Calculator",
+      description: "SH percent and oz-per-gallon mix tools."
+    },
+    {
+      key: "cases",
+      label: "Treatment Cases",
+      description: "Case-based treatment workflows."
+    }
+  ];
+}
+
 export default function TreatmentPageTabs({
   activeTab,
+  adminAccess,
   onChange
 }: {
   activeTab: TreatmentTabKey;
+  adminAccess: boolean;
   onChange: (tab: TreatmentTabKey) => void;
 }) {
+  const tabs = getVisibleTabs(Boolean(adminAccess));
+
   return (
     <section className="panel">
       <div className="panelHeader">
         <div>
           <h2 className="panelTitle">Treatment Workspace</h2>
           <p className="brandSubtitle">
-            Use tabs to move between Guru search, uploads, field tools, saved plans,
-            cases, and treatment records.
+            {adminAccess
+              ? "Admin tools for managing treatments, cases, uploads, saved plans, and field guidance."
+              : "Employee tools for approved treatment search, cases, SH calculations, and field guidance."}
           </p>
         </div>
       </div>
