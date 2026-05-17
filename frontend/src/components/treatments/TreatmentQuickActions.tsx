@@ -64,19 +64,55 @@ export default function TreatmentQuickActions({
       <button
         className="secondaryButton"
         type="button"
-        onClick={() => onTabChange("planner")}
+        onClick={() => onTabChange("search")}
       >
-        Plan Builder
+        Search Treatments
       </button>
 
       <button
         className="secondaryButton"
         type="button"
-        onClick={onExportVisible}
-        disabled={visibleCount === 0}
+        onClick={() => onTabChange("cases")}
       >
-        Export Visible CSV
+        Treatment Cases
       </button>
+
+      <button
+        className="secondaryButton"
+        type="button"
+        onClick={() => onTabChange("calculator")}
+      >
+        SH Calculator
+      </button>
+
+      {adminAccess && (
+        <>
+          <button
+            className="secondaryButton"
+            type="button"
+            onClick={() => onTabChange("planner")}
+          >
+            Plan Builder
+          </button>
+
+          <button
+            className="secondaryButton"
+            type="button"
+            onClick={() => onTabChange("saved")}
+          >
+            Saved Plans
+          </button>
+
+          <button
+            className="secondaryButton"
+            type="button"
+            onClick={onExportVisible}
+            disabled={visibleCount === 0}
+          >
+            Export Visible CSV
+          </button>
+        </>
+      )}
     </div>
   );
 }
