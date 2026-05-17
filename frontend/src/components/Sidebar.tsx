@@ -1,187 +1,205 @@
 import React from "react";
-import type { AuthUserRole, PageKey } from "../types";
-import { getPortalLabel, isAdminRole } from "../utils/roles";
+import type { AuthUserRole } from "../types";
 
-type NavItem = {
-  key: PageKey;
+type SidebarProps = {
+  role?: AuthUserRole | string;
+  activePage?: string;
+  currentPage?: string;
+  onNavigate?: (page: string) => void;
+  setCurrentPage?: (page: string) => void;
+  user?: {
+    role?: AuthUserRole | string;
+    displayName?: string;
+    email?: string;
+  } | null;
+};
+
+type SidebarItem = {
+  key: string;
   label: string;
-  description?: string;
-  badge?: string;
+  href: string;
+  roles: Array<AuthUserRole | "superadmin" | "admin" | "employee" | "client" | string>;
 };
 
-type NavGroup = {
-  title: string;
-  items: NavItem[];
-};
+const items: SidebarItem[] = [
+  {
+    key: "dashboard",
+    label: "Dashboard",
+    href: "/dashboard",
+    roles: ["superadmin", "admin", "employee"]
+  },
+  {
+    key: "clientDashboard",
+    label: "Client Home",
+    href: "/client",
+    roles: ["client"]
+  },
+  {
+    key: "clientRequests",
+    label: "My Service Requests",
+    href: "/client/requests",
+    roles: ["client"]
+  },
+  {
+    key: "clientQuotes",
+    label: "My Quotes",
+    href: "/client/quotes",
+    roles: ["client"]
+  },
+  {
+    key: "clientInvoices",
+    label: "My Invoices",
+    href: "/client/invoices",
+    roles: ["client"]
+  },
+  {
+    key: "clientAppointments",
+    label: "My Appointments",
+    href: "/client/appointments",
+    roles: ["client"]
+  },
+  {
+    key: "clientRecurring",
+    label: "My Recurring Services",
+    href: "/client/recurring",
+    roles: ["client"]
+  },
+  {
+    key: "quotes",
+    label: "Quotes",
+    href: "/quotes",
+    roles: ["superadmin", "admin"]
+  },
+  {
+    key: "invoices",
+    label: "Invoices",
+    href: "/invoices",
+    roles: ["superadmin", "admin"]
+  },
+  {
+    key: "requests",
+    label: "Requests",
+    href: "/requests",
+    roles: ["superadmin", "admin", "employee"]
+  },
+  {
+    key: "schedule",
+    label: "Schedule",
+    href: "/schedule",
+    roles: ["superadmin", "admin", "employee"]
+  },
+  {
+    key: "employees",
+    label: "Employees",
+    href: "/employees",
+    roles: ["superadmin", "admin"]
+  },
+  {
+    key: "treatments",
+    label: "Treatments",
+    href: "/treatments",
+    roles: ["superadmin", "admin", "employee"]
+  },
+  {
+    key: "pricing",
+    label: "Pricing",
+    href: "/pricing",
+    roles: ["superadmin", "admin"]
+  },
+  {
+    key: "expenses",
+    label: "Expenses",
+    href: "/expenses",
+    roles: ["superadmin", "admin"]
+  },
+  {
+    key: "mileage",
+    label: "Mileage",
+    href: "/mileage",
+    roles: ["superadmin", "admin", "employee"]
+  },
+  {
+    key: "payroll",
+    label: "Payroll",
+    href: "/payroll",
+    roles: ["superadmin", "admin"]
+  },
+  {
+    key: "chat",
+    label: "Chat",
+    href: "/chat",
+    roles: ["superadmin", "admin", "employee", "client"]
+  }
+];
 
-function getAdminGroups(role: AuthUserRole): NavGroup[] {
-  return [
-    {
-      title: role === "superadmin" ? "Super Admin" : "Main",
-      items: [
-        { key: "dashboard", label: "Dashboard", description: "Admin overview" },
-        {
-          key: "guru-estimates",
-          label: "Guru Review",
-          description: "Review Guru estimates",
-          badge: role === "superadmin" ? "Owner AI" : "AI"
-        },
-        { key: "schedule", label: "Schedule", description: "Live team schedule" },
-        { key: "chat", label: "Chat", description: "Team and client messages" }
-      ]
-    },
-    {
-      title: "Sales",
-      items: [
-        { key: "clients", label: "Clients", description: "Client records" },
-        { key: "requests", label: "Requests", description: "Service requests" },
-        { key: "quotes", label: "Quotes", description: "Create and send quotes" },
-        { key: "invoices", label: "Invoices", description: "Invoice workflow" },
-        { key: "pos", label: "POS", description: "Payments and collection" }
-      ]
-    },
-    {
-      title: "Operations",
-      items: [
-        { key: "employees", label: "Employees", description: "Team management" },
-        { key: "timeclock", label: "Time Clock", description: "Clock and break tracking" },
-        { key: "payroll", label: "Payroll", description: "Wages and balances" },
-        { key: "availability", label: "Availability", description: "Employee availability" },
-        { key: "equipment", label: "Equipment", description: "Tools and assets" }
-      ]
-    },
-    {
-      title: "Knowledge",
-      items: [
-        { key: "pricing", label: "Pricing", description: "NMD Job Pricing" },
-        { key: "treatments", label: "Treatments", description: "Treatment options and cases" },
-        { key: "tips", label: "Tips", description: "Notes and best practices" }
-      ]
-    },
-    {
-      title: "Bookkeeping",
-      items: [
-        { key: "expenses", label: "Expenses", description: "Expense tracking" },
-        { key: "mileage", label: "Mileage", description: "Mileage reimbursement" },
-        { key: "recurring", label: "Recurring", description: "Recurring services" },
-        { key: "email", label: "Email Test", description: "Transactional email test" }
-      ]
-    }
-  ];
-}
+function normalizeRole(role?: string) {
+  const value = String(role || "").toLowerCase();
 
-function getEmployeeGroups(): NavGroup[] {
-  return [
-    {
-      title: "Employee",
-      items: [
-        { key: "dashboard", label: "Dashboard", description: "Employee overview" },
-        { key: "schedule", label: "My Schedule", description: "Assigned jobs" },
-        { key: "timeclock", label: "Time Clock", description: "Clock in/out and breaks" },
-        { key: "chat", label: "Chat", description: "Team messages" }
-      ]
-    },
-    {
-      title: "Field Tools",
-      items: [
-        { key: "treatments", label: "Treatments", description: "Treatment guidance", badge: "Guru" },
-        { key: "tips", label: "Tips", description: "Field notes and best practices" },
-        { key: "pos", label: "Collect Payment", description: "Payment collection" },
-        { key: "availability", label: "Availability", description: "Availability settings" },
-        { key: "my-ledger", label: "My Ledger", description: "Personal pay ledger" }
-      ]
-    }
-  ];
-}
+  if (value === "super_admin" || value === "super-admin") return "superadmin";
+  if (value === "administrator") return "admin";
 
-function getClientGroups(): NavGroup[] {
-  return [
-    {
-      title: "Client",
-      items: [
-        { key: "dashboard", label: "Dashboard", description: "Client overview" },
-        {
-          key: "client-estimates",
-          label: "My Estimates",
-          description: "Guru estimate requests",
-          badge: "Guru"
-        },
-        { key: "client-quotes", label: "My Quotes", description: "NMD quote records" },
-        { key: "chat", label: "Chat", description: "Message NMD" }
-      ]
-    }
-  ];
-}
-
-function getGroups(role: AuthUserRole): NavGroup[] {
-  if (isAdminRole(role)) return getAdminGroups(role);
-  if (role === "employee") return getEmployeeGroups();
-  return getClientGroups();
+  return value || "client";
 }
 
 export default function Sidebar({
+  role,
+  user,
+  activePage,
   currentPage,
   onNavigate,
-  role
-}: {
-  currentPage: PageKey;
-  onNavigate: (page: PageKey) => void;
-  role: AuthUserRole;
-}) {
-  const groups = getGroups(role);
+  setCurrentPage
+}: SidebarProps) {
+  const normalizedRole = normalizeRole(String(role || user?.role || "client"));
+  const active = currentPage || activePage || "";
+
+  const visibleItems = items.filter((item) =>
+    item.roles.map((entry) => normalizeRole(String(entry))).includes(normalizedRole)
+  );
+
+  const handleClick = (event: React.MouseEvent<HTMLAnchorElement>, item: SidebarItem) => {
+    if (onNavigate || setCurrentPage) {
+      event.preventDefault();
+      onNavigate?.(item.key);
+      setCurrentPage?.(item.key);
+    }
+  };
+
+  const isClient = normalizedRole === "client";
 
   return (
-    <aside className="sidebar">
+    <aside className={isClient ? "sidebar clientSidebar" : "sidebar"}>
       <div className="sidebarBrand">
         <div className="sidebarLogo">NMD</div>
-
         <div>
-          <div className="sidebarTitle">No More Dirt</div>
-          <div className="sidebarSubtitle">{getPortalLabel(role)}</div>
+          <strong>No More Dirt</strong>
+          <span>{isClient ? "Client Portal" : "Operations Portal"}</span>
         </div>
       </div>
 
       <nav className="sidebarNav" aria-label="Main navigation">
-        {groups.map((group) => (
-          <div key={group.title} className="sidebarGroup">
-            <div className="sidebarGroupTitle">{group.title}</div>
+        {visibleItems.map((item) => {
+          const selected =
+            active === item.key ||
+            active === item.href ||
+            window.location.pathname === item.href;
 
-            <div className="sidebarGroupItems">
-              {group.items.map((item) => {
-                const active = currentPage === item.key;
-
-                return (
-                  <button
-                    key={item.key}
-                    type="button"
-                    className={`sidebarLink ${active ? "sidebarLinkActive" : ""}`}
-                    onClick={() => onNavigate(item.key)}
-                    title={item.description || item.label}
-                  >
-                    <span className="sidebarLinkText">
-                      <span className="sidebarLinkLabel">{item.label}</span>
-
-                      {item.description && (
-                        <span className="sidebarLinkDescription">{item.description}</span>
-                      )}
-                    </span>
-
-                    {item.badge && <span className="sidebarBadge">{item.badge}</span>}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ))}
+          return (
+            <a
+              key={item.key}
+              href={item.href}
+              className={selected ? "sidebarLink active" : "sidebarLink"}
+              onClick={(event) => handleClick(event, item)}
+            >
+              <span>{item.label}</span>
+              {item.key === "chat" && <span className="sidebarDot" aria-label="Unread" />}
+            </a>
+          );
+        })}
       </nav>
 
       <div className="sidebarFooter">
-        <div className="sidebarFooterTitle">
-          {role === "superadmin" ? "Owner Guru Assistant" : "Guru Assistant"}
-        </div>
-        <div className="sidebarFooterText">
-          Use the floating Guru icon for estimates, field tools, pricing help, and workflow shortcuts.
-        </div>
+        <span>{user?.displayName || user?.email || "NMD User"}</span>
+        <small>{isClient ? "Customer access" : `${normalizedRole} access`}</small>
       </div>
     </aside>
   );
