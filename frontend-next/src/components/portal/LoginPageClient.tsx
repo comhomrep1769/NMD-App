@@ -8,7 +8,7 @@ import Link from 'next/link'
 
 function getPortalPath(role: string) {
   const r = role.toLowerCase()
-  if (r === 'superadmin' || r === 'admin') return '/admin'
+  if (r === 'superadmin' || r === 'admin') return '/dashboard'
   if (r === 'employee') return '/employee'
   return '/client'
 }
