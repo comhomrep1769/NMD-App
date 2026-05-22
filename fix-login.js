@@ -1,4 +1,10 @@
-'use client'
+const fs = require('fs');
+const path = require('path');
+
+const TARGET = path.join(__dirname, 'frontend-next');
+
+// Fix LoginPageClient - wrap useSearchParams in Suspense
+const loginPageClient = `'use client'
 
 import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -144,3 +150,11 @@ export default function LoginPageClient({ portalRole = '' }: { portalRole?: stri
     </Suspense>
   )
 }
+`;
+
+const dest = path.join(TARGET, 'src/components/portal/LoginPageClient.tsx');
+fs.mkdirSync(path.dirname(dest), { recursive: true });
+fs.writeFileSync(dest, loginPageClient, 'utf8');
+console.log('✓ Fixed LoginPageClient.tsx');
+console.log('\nDone! Now run:');
+console.log('  git add . && git commit -m "Fix useSearchParams Suspense boundary" && git push origin main');
