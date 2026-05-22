@@ -1,15 +1,18 @@
 'use client'
 import PortalShell from '@/components/portal/PortalShell'
-import { getNmdUser } from '@/lib/authStorage'
-import { useEffect, useState } from 'react'
-export default function DashboardPage() {
-  const [role, setRole] = useState('')
-  useEffect(() => { setRole(getNmdUser()?.role || '') }, [])
+export default function Page() {
   return (
-    <PortalShell requiredRole={['admin','superadmin','employee']}>
-      <h1 style={{fontFamily:'Syne,sans-serif',fontSize:'1.6rem',fontWeight:700,color:'#0e1117',marginBottom:'0.5rem'}}>Dashboard</h1>
-      <p style={{color:'#5a6a88',fontSize:'0.9rem'}}>Welcome back. Role: {role}</p>
-      <p style={{color:'#8494b0',fontSize:'0.85rem',marginTop:'1rem'}}>Portal dashboard — connect to backend API routes to display metrics, jobs, and activity.</p>
+    <PortalShell requiredRole={["admin", "superadmin", "employee"]}>
+      <div style={{ marginBottom: '1.5rem' }}>
+        <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#1f6132', marginBottom: 6 }}>NMD Portal</div>
+        <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: '1.75rem', fontWeight: 800, color: '#0e1117', letterSpacing: '-0.03em', marginBottom: 6 }}>Dashboard</h1>
+        <p style={{ color: '#5a6a88', fontSize: '0.875rem' }}>Business overview, metrics, and quick actions.</p>
+      </div>
+      <div style={{ background: 'white', border: '1.5px solid #dde4ef', borderRadius: 14, padding: '3rem 2rem', textAlign: 'center' }}>
+        <div style={{ width: 56, height: 56, borderRadius: 14, background: 'linear-gradient(135deg, #eaf7ef, #e8f3fd)', margin: '0 auto 1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', border: '1px solid #dde4ef' }}>⏳</div>
+        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '1rem', fontWeight: 600, color: '#0e1117', marginBottom: 8 }}>Coming online</div>
+        <div style={{ fontSize: '0.85rem', color: '#8494b0', lineHeight: 1.6, maxWidth: 360, margin: '0 auto' }}>This section connects to the NMD backend. Data will appear here once the portal is fully wired up.</div>
+      </div>
     </PortalShell>
   )
 }
