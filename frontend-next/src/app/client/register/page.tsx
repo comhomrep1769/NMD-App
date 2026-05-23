@@ -33,8 +33,8 @@ export default function ClientRegisterPage() {
     try {
       setSaving(true)
       const data = await apiFetch<{ token: string; user: object }>(
-        '/api/auth/client-register',
-        { method: 'POST', body: JSON.stringify({ firstName, lastName, email, phone, address, password }) }
+        '/api/auth/register-client',
+        { method: 'POST', body: JSON.stringify({ displayName: `${firstName} ${lastName}`.trim(), email, phone, password }) }
       )
       saveNmdAuth(data)
       router.replace('/client')
@@ -106,7 +106,7 @@ export default function ClientRegisterPage() {
         </form>
 
         <div style={{ marginTop: '1.25rem', textAlign: 'center', borderTop: '1px solid #dde4ef', paddingTop: '1.25rem' }}>
-          <Link href="/client" style={{ fontSize: '0.85rem', color: '#5a6a88' }}>
+          <Link href="/client/login" style={{ fontSize: '0.85rem', color: '#5a6a88' }}>
             Already have an account? Sign in →
           </Link>
         </div>
@@ -117,3 +117,4 @@ export default function ClientRegisterPage() {
     </div>
   )
 }
+
