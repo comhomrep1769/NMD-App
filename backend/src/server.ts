@@ -1,4 +1,4 @@
-import "dotenv/config";
+﻿import "dotenv/config";
 import express from "express";
 import cors from "cors";
 
@@ -10,6 +10,7 @@ import treatmentsRoutes from "./routes/treatments.js";
 import chatRoutes from "./routes/chat.js";
 import emailTestRoutes from "./routes/email-test.js";
 import employeesRoutes from "./routes/employees.js";
+import employeeDashboardRoutes from "./routes/employee-dashboard.js";
 import jobsRoutes from "./routes/jobs.js";
 import quotesRoutes from "./routes/quotes.js";
 import recurringRoutes from "./routes/recurring.js";
@@ -83,6 +84,7 @@ app.use("/api/treatments", treatmentsRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/email-test", emailTestRoutes);
 app.use("/api/employees", employeesRoutes);
+app.use("/api/employee-dashboard", employeeDashboardRoutes);
 app.use("/api/jobs", jobsRoutes);
 app.use("/api/quotes", quotesRoutes);
 app.use("/api/recurring", recurringRoutes);
@@ -122,3 +124,4 @@ app.use(
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`NMD backend listening on port ${PORT}`);
 });
+
