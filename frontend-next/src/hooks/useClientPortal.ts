@@ -1,0 +1,34 @@
+'use client'
+import { useEffect, useState } from 'react'
+import { getNmdToken } from '@/lib/authStorage'
+
+export type ClientPortalData = {
+  client: {
+    id: string; firstName: string; lastName: string
+    email: string; phone: string; address: string
+  } | null
+  quotes: Array<{ id: string; quoteNumber: number; serviceType: string; total: number; status: string; createdAt: string; acceptedAt: string | null }>
+  invoices: Array<{ id: string; invoiceNumber: number; jobName: string; total: number; status: string; createdAt: string; paymentLinkUrl: string | null }>
+  jobs: Array<{ id: string; title: string; serviceType: string; status: string; scheduledDate: string; startTime: string }>
+  recurringServices: Array<{ id: string; serviceType: string; frequency: string; price: number; status: string; nextServiceDate: string | null }>
+  serviceRequests: Array<{ id: string; serviceType: string; status: string; createdAt: string }>
+}
+
+export function useClientPortal() {
+  const [data, setData] = useState<ClientPortalData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    const token = getNmdToken()
+    const API = process.env.NEXT_PUBLIC_API_URL || ''
+    fetch(`${API}/api/client-portal/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.json())
+      .then(d => { setData(d); setLoading(false) })
+      .catch(() => { setError('Could not load your portal data.'); setLoading(false) })
+  }, [])
+
+  return { data, loading, error }
+}

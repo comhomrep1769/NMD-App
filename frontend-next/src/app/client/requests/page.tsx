@@ -1,18 +1,36 @@
 'use client'
 import PortalShell from '@/components/portal/PortalShell'
-export default function Page() {
+import { useClientPortal } from '@/hooks/useClientPortal'
+import { LoadingCard, ErrorCard, DataTable, StatusBadge, fmtDate } from '@/components/portal/PortalUI'
+import Link from 'next/link'
+
+export default function ClientRequestsPage() {
+  const { data, loading, error } = useClientPortal()
+  const requests = data?.serviceRequests || []
+
   return (
-    <PortalShell requiredRole={"client"}>
-      <div style={{ marginBottom: '1.5rem' }}>
-        <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#1f6132', marginBottom: 6 }}>NMD Portal</div>
-        <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: '1.75rem', fontWeight: 800, color: '#0e1117', letterSpacing: '-0.03em', marginBottom: 6 }}>Service Requests</h1>
-        <p style={{ color: '#5a6a88', fontSize: '0.875rem' }}>All service requests you have submitted.</p>
+    <PortalShell requiredRole="client">
+      <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <div>
+          <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#1f6132', marginBottom: 6 }}>Client Portal</div>
+          <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: '1.75rem', fontWeight: 800, color: '#0e1117', letterSpacing: '-0.03em', marginBottom: 6 }}>Service Requests</h1>
+          <p style={{ color: '#5a6a88', fontSize: '0.875rem' }}>{requests.length} request{requests.length !== 1 ? 's' : ''} submitted.</p>
+        </div>
+        <Link href="/client/request-service" style={{ padding: '0.6rem 1.25rem', borderRadius: 8, background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 600, fontSize: '0.85rem', textDecoration: 'none', whiteSpace: 'nowrap', marginTop: 4 }}>+ New Request</Link>
       </div>
-      <div style={{ background: 'white', border: '1.5px solid #dde4ef', borderRadius: 14, padding: '3rem 2rem', textAlign: 'center' }}>
-        <div style={{ width: 56, height: 56, borderRadius: 14, background: 'linear-gradient(135deg, #eaf7ef, #e8f3fd)', margin: '0 auto 1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', border: '1px solid #dde4ef' }}>⏳</div>
-        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '1rem', fontWeight: 600, color: '#0e1117', marginBottom: 8 }}>Coming online</div>
-        <div style={{ fontSize: '0.85rem', color: '#8494b0', lineHeight: 1.6, maxWidth: 360, margin: '0 auto' }}>This section connects to the NMD backend. Data will appear here once the portal is fully wired up.</div>
-      </div>
+      {loading && <LoadingCard />}
+      {error && <ErrorCard message={error} />}
+      {!loading && !error && (
+        <DataTable
+          headers={['Service', 'Status', 'Submitted']}
+          emptyMessage="No service requests yet. Submit one to get started."
+          rows={requests.map(r => [
+            <span key="svc" style={{ fontWeight: 500 }}>{r.serviceType || '—'}</span>,
+            <StatusBadge key="status" status={r.status} />,
+            <span key="date" style={{ color: '#8494b0', whiteSpace: 'nowrap' }}>{fmtDate(r.createdAt)}</span>,
+          ])}
+        />
+      )}
     </PortalShell>
   )
 }

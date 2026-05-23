@@ -1,18 +1,34 @@
 'use client'
 import PortalShell from '@/components/portal/PortalShell'
-export default function Page() {
+import { useClientPortal } from '@/hooks/useClientPortal'
+import { LoadingCard, ErrorCard, DataTable, StatusBadge, money, fmtDate } from '@/components/portal/PortalUI'
+
+export default function ClientQuotesPage() {
+  const { data, loading, error } = useClientPortal()
+  const quotes = data?.quotes || []
+
   return (
-    <PortalShell requiredRole={"client"}>
+    <PortalShell requiredRole="client">
       <div style={{ marginBottom: '1.5rem' }}>
-        <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#1f6132', marginBottom: 6 }}>NMD Portal</div>
+        <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#1f6132', marginBottom: 6 }}>Client Portal</div>
         <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: '1.75rem', fontWeight: 800, color: '#0e1117', letterSpacing: '-0.03em', marginBottom: 6 }}>My Quotes</h1>
-        <p style={{ color: '#5a6a88', fontSize: '0.875rem' }}>Quotes sent by NMD for your approval.</p>
+        <p style={{ color: '#5a6a88', fontSize: '0.875rem' }}>{quotes.length} quote{quotes.length !== 1 ? 's' : ''} from NMD Pressure Washing Services LLC.</p>
       </div>
-      <div style={{ background: 'white', border: '1.5px solid #dde4ef', borderRadius: 14, padding: '3rem 2rem', textAlign: 'center' }}>
-        <div style={{ width: 56, height: 56, borderRadius: 14, background: 'linear-gradient(135deg, #eaf7ef, #e8f3fd)', margin: '0 auto 1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', border: '1px solid #dde4ef' }}>⏳</div>
-        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '1rem', fontWeight: 600, color: '#0e1117', marginBottom: 8 }}>Coming online</div>
-        <div style={{ fontSize: '0.85rem', color: '#8494b0', lineHeight: 1.6, maxWidth: 360, margin: '0 auto' }}>This section connects to the NMD backend. Data will appear here once the portal is fully wired up.</div>
-      </div>
+      {loading && <LoadingCard />}
+      {error && <ErrorCard message={error} />}
+      {!loading && !error && (
+        <DataTable
+          headers={['Quote #', 'Service', 'Total', 'Status', 'Date']}
+          emptyMessage="No quotes yet. Request a service to get started."
+          rows={quotes.map(q => [
+            <span key="num" style={{ fontWeight: 700, color: '#124d83' }}>#{q.quoteNumber}</span>,
+            <span key="svc">{q.serviceType || '—'}</span>,
+            <span key="total" style={{ fontWeight: 600 }}>{money(q.total)}</span>,
+            <StatusBadge key="status" status={q.status} />,
+            <span key="date" style={{ color: '#8494b0', whiteSpace: 'nowrap' }}>{fmtDate(q.createdAt)}</span>,
+          ])}
+        />
+      )}
     </PortalShell>
   )
 }
