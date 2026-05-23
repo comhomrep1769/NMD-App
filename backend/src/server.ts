@@ -11,6 +11,15 @@ import chatRoutes from "./routes/chat.js";
 import emailTestRoutes from "./routes/email-test.js";
 import employeesRoutes from "./routes/employees.js";
 import employeeDashboardRoutes from "./routes/employee-dashboard.js";
+import clientPortalRoutes from "./routes/client-portal.js";
+import timeclockRoutes from "./routes/timeclock.js";
+import mileageRoutes from "./routes/mileage.js";
+import invoicesRoutes from "./routes/invoices.js";
+import clientsRoutes from "./routes/clients.js";
+import dashboardRoutes from "./routes/dashboard.js";
+import expensesRoutes from "./routes/expenses.js";
+import payrollRoutes from "./routes/payroll.js";
+import notificationsRoutes from "./routes/notifications.js";
 import jobsRoutes from "./routes/jobs.js";
 import quotesRoutes from "./routes/quotes.js";
 import recurringRoutes from "./routes/recurring.js";
@@ -85,6 +94,15 @@ app.use("/api/chat", chatRoutes);
 app.use("/api/email-test", emailTestRoutes);
 app.use("/api/employees", employeesRoutes);
 app.use("/api/employee-dashboard", employeeDashboardRoutes);
+app.use("/api/client-portal", clientPortalRoutes);
+app.use("/api/timeclock", timeclockRoutes);
+app.use("/api/mileage", mileageRoutes);
+app.use("/api/invoices", invoicesRoutes);
+app.use("/api/clients", clientsRoutes);
+app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/expenses", expensesRoutes);
+app.use("/api/payroll", payrollRoutes);
+app.use("/api/notifications", notificationsRoutes);
 app.use("/api/jobs", jobsRoutes);
 app.use("/api/quotes", quotesRoutes);
 app.use("/api/recurring", recurringRoutes);
@@ -124,4 +142,5 @@ app.use(
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`NMD backend listening on port ${PORT}`);
 });
+
 
