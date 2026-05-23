@@ -1,18 +1,60 @@
-'use client'
-import PortalShell from '@/components/portal/PortalShell'
-export default function Page() {
+﻿"use client"
+import { useEffect, useState } from "react"
+import PortalShell from "@/components/portal/PortalShell"
+import { LoadingCard, ErrorCard, DataTable, StatusBadge, fmtDate } from "@/components/portal/PortalUI"
+import { getNmdToken } from "@/lib/authStorage"
+
+type Job = {
+  id: string; title: string; clientName: string; address: string
+  startTime: string; endTime: string; status: string
+  assignedEmployees: { id: string; displayName: string }[]
+}
+
+export default function SchedulePage() {
+  const [jobs, setJobs] = useState<Job[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+  const API = process.env.NEXT_PUBLIC_API_URL || ""
+
+  useEffect(() => {
+    const token = getNmdToken()
+    fetch(`${API}/api/jobs`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(d => {
+        const rows = Array.isArray(d) ? d : d.jobs || []
+        setJobs(rows.map((j: any) => ({
+          id: j.id, title: j.title, clientName: j.client_name,
+          address: j.address, startTime: j.start_time, endTime: j.end_time,
+          status: j.status, assignedEmployees: j.assigned_employees || []
+        })))
+        setLoading(false)
+      })
+      .catch(() => { setError("Could not load schedule."); setLoading(false) })
+  }, [])
+
   return (
-    <PortalShell requiredRole={["admin", "superadmin", "employee"]}>
-      <div style={{ marginBottom: '1.5rem' }}>
-        <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#1f6132', marginBottom: 6 }}>NMD Portal</div>
-        <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: '1.75rem', fontWeight: 800, color: '#0e1117', letterSpacing: '-0.03em', marginBottom: 6 }}>Schedule</h1>
-        <p style={{ color: '#5a6a88', fontSize: '0.875rem' }}>Live calendar for jobs, employees, and appointments.</p>
+    <PortalShell requiredRole={["admin", "superadmin"]}>
+      <div style={{ marginBottom: "1.5rem" }}>
+        <div style={{ fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#1f6132", marginBottom: 6 }}>Admin Portal</div>
+        <h1 style={{ fontFamily: "Syne, sans-serif", fontSize: "1.75rem", fontWeight: 800, color: "#0e1117", letterSpacing: "-0.03em", marginBottom: 6 }}>Schedule</h1>
+        <p style={{ color: "#5a6a88", fontSize: "0.875rem" }}>All jobs and assigned employees.</p>
       </div>
-      <div style={{ background: 'white', border: '1.5px solid #dde4ef', borderRadius: 14, padding: '3rem 2rem', textAlign: 'center' }}>
-        <div style={{ width: 56, height: 56, borderRadius: 14, background: 'linear-gradient(135deg, #eaf7ef, #e8f3fd)', margin: '0 auto 1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', border: '1px solid #dde4ef' }}>⏳</div>
-        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '1rem', fontWeight: 600, color: '#0e1117', marginBottom: 8 }}>Coming online</div>
-        <div style={{ fontSize: '0.85rem', color: '#8494b0', lineHeight: 1.6, maxWidth: 360, margin: '0 auto' }}>This section connects to the NMD backend. Data will appear here once the portal is fully wired up.</div>
-      </div>
+      {loading && <LoadingCard />}
+      {error && <ErrorCard message={error} />}
+      {!loading && !error && (
+        <DataTable
+          headers={["Job", "Client", "Address", "Start", "Assigned To", "Status"]}
+          rows={jobs.map(j => [
+            j.title,
+            j.clientName || "N/A",
+            j.address || "N/A",
+            j.startTime ? fmtDate(j.startTime) : "N/A",
+            j.assignedEmployees.map(e => e.displayName).join(", ") || "Unassigned",
+            <StatusBadge key={j.id} status={j.status} />
+          ])}
+          emptyMessage="No jobs scheduled."
+        />
+      )}
     </PortalShell>
   )
 }
