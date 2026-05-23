@@ -44,7 +44,7 @@ export default function EmployeeTimeclock() {
       {error && <ErrorCard message={error} />}
       {!loading && !error && (
         <DataTable
-          columns={["Date", "Clock In", "Clock Out", "Paid Time", "Break", "Status"]}
+          headers={["Date", "Clock In", "Clock Out", "Paid Time", "Break", "Status"]}
           rows={sessions.map(s => [
             s.workDate ? fmtDate(s.workDate) : "N/A",
             s.clockInAt ? fmtDate(s.clockInAt) : "N/A",
@@ -53,9 +53,10 @@ export default function EmployeeTimeclock() {
             fmtMins(s.breakMinutes),
             <StatusBadge key={s.id} status={s.status} />
           ])}
-          empty="No time sessions recorded yet."
+          emptyMessage="No time sessions recorded yet."
         />
       )}
     </PortalShell>
   )
 }
+

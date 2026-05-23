@@ -42,7 +42,7 @@ export default function EmployeeSchedule() {
       {error && <ErrorCard message={error} />}
       {!loading && !error && (
         <DataTable
-          columns={["Job", "Client", "Address", "Start", "Status"]}
+          headers={["Job", "Client", "Address", "Start", "Status"]}
           rows={jobs.map(j => [
             j.title,
             j.clientName || "N/A",
@@ -50,9 +50,10 @@ export default function EmployeeSchedule() {
             j.startTime ? fmtDate(j.startTime) : "N/A",
             <StatusBadge key={j.id} status={j.status} />
           ])}
-          empty="No jobs assigned yet."
+          emptyMessage="No jobs assigned yet."
         />
       )}
     </PortalShell>
   )
 }
+
