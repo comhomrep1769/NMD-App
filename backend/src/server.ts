@@ -23,6 +23,7 @@ import notificationsRoutes from "./routes/notifications.js";
 import jobsRoutes from "./routes/jobs.js";
 import quotesRoutes from "./routes/quotes.js";
 import recurringRoutes from "./routes/recurring.js";
+import pricingRoutes from "./routes/pricing.js";
 import requestsRoutes from "./routes/requests.js";
 
 const app = express();
@@ -106,6 +107,7 @@ app.use("/api/notifications", notificationsRoutes);
 app.use("/api/jobs", jobsRoutes);
 app.use("/api/quotes", quotesRoutes);
 app.use("/api/recurring", recurringRoutes);
+app.use("/api/pricing", pricingRoutes);
 app.use("/api/requests", requestsRoutes);
 
 app.use((req, res) => {
@@ -142,5 +144,6 @@ app.use(
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`NMD backend listening on port ${PORT}`);
 });
+
 
 
