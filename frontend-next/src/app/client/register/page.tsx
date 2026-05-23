@@ -34,7 +34,7 @@ export default function ClientRegisterPage() {
       setSaving(true)
       const data = await apiFetch<{ token: string; user: object }>(
         '/api/auth/register-client',
-        { method: 'POST', body: JSON.stringify({ displayName: `${firstName} ${lastName}`.trim(), email, phone, password }) }
+        { method: 'POST', body: JSON.stringify({ displayName: `${firstName} ${lastName}`.trim(), email, password }) }
       )
       saveNmdAuth(data)
       router.replace('/client')
@@ -117,4 +117,5 @@ export default function ClientRegisterPage() {
     </div>
   )
 }
+
 
