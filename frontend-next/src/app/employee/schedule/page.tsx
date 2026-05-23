@@ -1,4 +1,4 @@
-"use client"
+ï»¿"use client"
 import { useEffect, useState } from "react"
 import PortalShell from "@/components/portal/PortalShell"
 import { LoadingCard, ErrorCard, DataTable, StatusBadge, fmtDate } from "@/components/portal/PortalUI"
@@ -45,9 +45,9 @@ export default function EmployeeSchedule() {
           columns={["Job", "Client", "Address", "Start", "Status"]}
           rows={jobs.map(j => [
             j.title,
-            j.clientName || "—",
-            j.address || "—",
-            j.startTime ? fmtDate(j.startTime) : "—",
+            j.clientName || "N/A",
+            j.address || "N/A",
+            j.startTime ? fmtDate(j.startTime) : "N/A",
             <StatusBadge key={j.id} status={j.status} />
           ])}
           empty="No jobs assigned yet."

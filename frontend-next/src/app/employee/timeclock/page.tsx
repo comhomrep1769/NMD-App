@@ -1,4 +1,4 @@
-"use client"
+ï»¿"use client"
 import { useEffect, useState } from "react"
 import PortalShell from "@/components/portal/PortalShell"
 import { LoadingCard, ErrorCard, DataTable, StatusBadge, fmtDate } from "@/components/portal/PortalUI"
@@ -46,9 +46,9 @@ export default function EmployeeTimeclock() {
         <DataTable
           columns={["Date", "Clock In", "Clock Out", "Paid Time", "Break", "Status"]}
           rows={sessions.map(s => [
-            s.workDate ? fmtDate(s.workDate) : "—",
-            s.clockInAt ? fmtDate(s.clockInAt) : "—",
-            s.clockOutAt ? fmtDate(s.clockOutAt) : "—",
+            s.workDate ? fmtDate(s.workDate) : "N/A",
+            s.clockInAt ? fmtDate(s.clockInAt) : "N/A",
+            s.clockOutAt ? fmtDate(s.clockOutAt) : "N/A",
             fmtMins(s.paidMinutes),
             fmtMins(s.breakMinutes),
             <StatusBadge key={s.id} status={s.status} />
