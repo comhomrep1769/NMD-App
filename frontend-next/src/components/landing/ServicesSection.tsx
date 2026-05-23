@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 
@@ -24,7 +24,7 @@ const SERVICES: Record<Category, string[]> = {
     'Storefront Cleaning', 'Exterior Building Washing', 'Shopping Center Cleaning',
     'Restaurant Exterior Cleaning', 'Restaurant Patio Cleaning', 'Drive-Thru Cleaning',
     'Gas Station Cleaning', 'Sidewalk & Walkway Pressure Washing', 'Parking Lot Cleaning',
-    'Parking Garage Cleaning', 'Dumpster Pad Cleaning', 'Graffiti Removal', 'Gum Removal',
+    'Parking Garage Cleaning', 'Dumpster Pad Cleaning', 'Dumpster Washing (Recurring)', 'Graffiti Removal', 'Gum Removal',
     'Apartment Complex Washing', 'Condo Community Cleaning', 'HOA Property Maintenance',
     'Hotel & Hospitality Cleaning', 'Office Building Cleaning', 'Fleet Washing',
     'Commercial Roof Cleaning', 'Heavy Foot-Traffic Area Cleaning', 'Loading Dock Cleaning',
@@ -39,7 +39,7 @@ const SERVICES: Record<Category, string[]> = {
     'Storage Tank Cleaning', 'Silo Cleaning', 'Concrete Pad Cleaning',
     'Industrial Surface Restoration', 'Machinery Exterior Cleaning',
     'Industrial Building Washing', 'Equipment Pad Cleaning', 'Large Flatwork Cleaning',
-    'Fuel Island Cleaning',
+    'Fuel Island Cleaning', 'Dumpster Washing (Recurring)',
   ],
   Specialty: [
     'Rust Removal & Restoration', 'Oxidation Removal', 'Efflorescence Removal',
@@ -72,7 +72,7 @@ export default function ServicesSection() {
             Every surface. Every property type.
           </h2>
           <p className="nmd-section-sub">
-            From single-family homes to industrial facilities — if it needs cleaning,
+            From single-family homes to industrial facilities â€” if it needs cleaning,
             we have a process for it. Serving Brevard &amp; Orange County, FL.
           </p>
         </div>
@@ -100,10 +100,11 @@ export default function ServicesSection() {
 
         <div style={{ marginTop: '2.5rem', textAlign: 'center' }}>
           <a href="/client/request-service" className="btn-primary btn-lg">
-            Request a Service →
+            Request a Service â†’
           </a>
         </div>
       </div>
     </section>
   )
 }
+

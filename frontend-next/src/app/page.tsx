@@ -1,7 +1,8 @@
-import type { Metadata } from 'next'
+﻿import type { Metadata } from 'next'
 import Navbar from '@/components/landing/Navbar'
 import ServicesSection from '@/components/landing/ServicesSection'
 import RecurringSection from '@/components/landing/RecurringSection'
+import PricingSection from '@/components/landing/PricingSection'
 import AppSection from '@/components/landing/AppSection'
 import Footer from '@/components/landing/Footer'
 import GuruChat from '@/components/landing/GuruChat'
@@ -18,18 +19,18 @@ export default function HomePage() {
     <>
       <Navbar />
 
-      {/* ── Hero ── */}
+      {/* â”€â”€ Hero â”€â”€ */}
       <main>
         <section className="nmd-hero">
           <div className="nmd-hero-bg" aria-hidden="true" />
           <div className="nmd-hero-grid" aria-hidden="true" />
 
           <div className="nmd-hero-inner">
-            {/* Left — copy */}
+            {/* Left â€” copy */}
             <div>
               <div className="nmd-hero-eyebrow fade-up fade-up-1">
                 <span className="nmd-hero-eyebrow-dot" />
-                Orlando & Central Florida · Brevard County
+                Orlando & Central Florida Â· Brevard County
               </div>
 
               <h1 className="nmd-hero-h1 fade-up fade-up-2">
@@ -39,13 +40,13 @@ export default function HomePage() {
 
               <p className="nmd-hero-sub fade-up fade-up-3">
                 Professional pressure washing for homes, businesses, and industrial
-                properties across Orlando, Orange County &amp; Brevard County. From driveways to rooftops —
+                properties across Orlando, Orange County &amp; Brevard County. From driveways to rooftops â€”
                 we restore every surface to its best.
               </p>
 
               <div className="nmd-hero-actions fade-up fade-up-4">
                 <a href="/client/request-service" className="btn-primary btn-lg">
-                  Get a Free Quote →
+                  Get a Free Quote â†’
                 </a>
                 <a href="#services" className="btn-outline btn-lg">
                   View Services
@@ -68,21 +69,21 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Right — service area card */}
+            {/* Right â€” service area card */}
             <div className="fade-up fade-up-3">
               <div className="nmd-area-card">
                 <div className="nmd-area-badge">
-                  📍 Service Areas
+                  ðŸ“ Service Areas
                 </div>
                 <h2 className="nmd-area-title">We come to you.</h2>
                 <p className="nmd-area-sub">
-                  Fully mobile — we serve residential, commercial, and industrial
+                  Fully mobile â€” we serve residential, commercial, and industrial
                   properties across two counties.
                 </p>
 
                 <div className="nmd-county-list">
                   <div className="nmd-county-item" style={{ border: '1.5px solid var(--nmd-blue-200)', background: 'var(--nmd-blue-50)' }}>
-                    <div className="nmd-county-icon blue">🌊</div>
+                    <div className="nmd-county-icon blue">ðŸŒŠ</div>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <strong>Orange County</strong>
@@ -93,18 +94,18 @@ export default function HomePage() {
                         }}>Primary</span>
                       </div>
                       <div style={{ fontSize: '0.78rem', color: 'var(--color-text-3)', marginTop: 2 }}>
-                        Orlando · Winter Park · Kissimmee · Ocoee
+                        Orlando Â· Winter Park Â· Kissimmee Â· Ocoee
                       </div>
                     </div>
                     <span className="nmd-county-state">FL</span>
                   </div>
 
                   <div className="nmd-county-item">
-                    <div className="nmd-county-icon green">🌿</div>
+                    <div className="nmd-county-icon green">ðŸŒ¿</div>
                     <div>
                       <strong>Brevard County</strong>
                       <div style={{ fontSize: '0.78rem', color: 'var(--color-text-3)', marginTop: 2 }}>
-                        Melbourne · Cocoa · Palm Bay · Titusville
+                        Melbourne Â· Cocoa Â· Palm Bay Â· Titusville
                       </div>
                     </div>
                     <span className="nmd-county-state">FL</span>
@@ -123,7 +124,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ── Trust bar ── */}
+        {/* â”€â”€ Trust bar â”€â”€ */}
         <div
           style={{
             background: 'var(--color-surface)',
@@ -144,12 +145,12 @@ export default function HomePage() {
             }}
           >
             {[
-              ['✅', 'Licensed & Insured'],
-              ['🏠', 'Residential & Commercial'],
-              ['🔬', 'Soft Wash Specialists'],
-              ['📍', 'Orlando & Orange County — Primary'],
-              ['📍', 'Brevard County'],
-              ['🔄', '20% Recurring Discount'],
+              ['âœ…', 'Licensed & Insured'],
+              ['ðŸ ', 'Residential & Commercial'],
+              ['ðŸ”¬', 'Soft Wash Specialists'],
+              ['ðŸ“', 'Orlando & Orange County â€” Primary'],
+              ['ðŸ“', 'Brevard County'],
+              ['ðŸ”„', '20% Recurring Discount'],
             ].map(([icon, label]) => (
               <div
                 key={label}
@@ -170,19 +171,20 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* ── Services ── */}
+        {/* â”€â”€ Services â”€â”€ */}
         <ServicesSection />
 
-        {/* ── Recurring Plans ── */}
+        {/* â”€â”€ Recurring Plans â”€â”€ */}
         <div style={{ background: 'var(--color-surface)', borderTop: '1px solid var(--color-border)', borderBottom: '1px solid var(--color-border)' }}>
-          <RecurringSection />
+          <PricingSection />
+        <RecurringSection />
         </div>
 
-        {/* ── Quote CTA ── */}
+        {/* â”€â”€ Quote CTA â”€â”€ */}
         <section className="nmd-cta-section">
           <div className="nmd-cta-inner">
             <div className="nmd-cta-eyebrow">
-              <span>●</span> Free estimates
+              <span>â—</span> Free estimates
             </div>
             <h2 className="nmd-cta-title">
               Ready for a cleaner property?
@@ -193,7 +195,7 @@ export default function HomePage() {
             </p>
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
               <a href="/client/request-service" className="btn-white">
-                Request a Free Quote →
+                Request a Free Quote â†’
               </a>
               <a
                 href="/client/register"
@@ -217,7 +219,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ── App / Client Portal ── */}
+        {/* â”€â”€ App / Client Portal â”€â”€ */}
         <AppSection />
       </main>
 
@@ -226,3 +228,4 @@ export default function HomePage() {
     </>
   )
 }
+
