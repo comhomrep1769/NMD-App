@@ -1,18 +1,72 @@
 'use client'
+
+import { useEffect, useState } from 'react'
 import PortalShell from '@/components/portal/PortalShell'
-export default function Page() {
+import { DataTable, LoadingCard, ErrorCard, SearchInput, SectionHeader, StatusBadge, MetricCard, money, fmtDate } from '@/components/portal/PortalUI'
+import { getNmdToken } from '@/lib/authStorage'
+
+type Invoice = {
+  id: string; invoiceNumber: number; clientName: string
+  jobName: string; subtotal: number; total: number
+  status: string; createdAt: string; paidAt: string | null
+}
+
+export default function InvoicesPage() {
+  const [invoices, setInvoices] = useState<Invoice[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [search, setSearch] = useState('')
+
+  useEffect(() => {
+    const token = getNmdToken()
+    const API = process.env.NEXT_PUBLIC_API_URL || ''
+    fetch(`${API}/api/invoices`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(d => { setInvoices(d.invoices || []); setLoading(false) })
+      .catch(() => { setError('Could not load invoices.'); setLoading(false) })
+  }, [])
+
+  const filtered = invoices.filter(i =>
+    `${i.invoiceNumber} ${i.clientName} ${i.jobName} ${i.status}`.toLowerCase().includes(search.toLowerCase())
+  )
+
+  const paid = invoices.filter(i => i.status === 'paid')
+  const unpaid = invoices.filter(i => i.status !== 'paid')
+  const paidTotal = paid.reduce((s, i) => s + i.total, 0)
+  const unpaidTotal = unpaid.reduce((s, i) => s + i.total, 0)
+
   return (
-    <PortalShell requiredRole={["admin", "superadmin", "employee"]}>
-      <div style={{ marginBottom: '1.5rem' }}>
-        <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#1f6132', marginBottom: 6 }}>NMD Portal</div>
-        <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: '1.75rem', fontWeight: 800, color: '#0e1117', letterSpacing: '-0.03em', marginBottom: 6 }}>Invoices</h1>
-        <p style={{ color: '#5a6a88', fontSize: '0.875rem' }}>Manage invoices, payments, and billing.</p>
-      </div>
-      <div style={{ background: 'white', border: '1.5px solid #dde4ef', borderRadius: 14, padding: '3rem 2rem', textAlign: 'center' }}>
-        <div style={{ width: 56, height: 56, borderRadius: 14, background: 'linear-gradient(135deg, #eaf7ef, #e8f3fd)', margin: '0 auto 1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', border: '1px solid #dde4ef' }}>⏳</div>
-        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '1rem', fontWeight: 600, color: '#0e1117', marginBottom: 8 }}>Coming online</div>
-        <div style={{ fontSize: '0.85rem', color: '#8494b0', lineHeight: 1.6, maxWidth: 360, margin: '0 auto' }}>This section connects to the NMD backend. Data will appear here once the portal is fully wired up.</div>
-      </div>
+    <PortalShell requiredRole={['admin', 'superadmin']}>
+      <SectionHeader
+        title="Invoices"
+        sub={`${invoices.length} total invoices`}
+        action={<SearchInput value={search} onChange={setSearch} placeholder="Search invoices..." />}
+      />
+
+      {!loading && !error && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+          <MetricCard label="Paid" value={money(paidTotal)} sub={`${paid.length} invoices`} accent="#1f6132" />
+          <MetricCard label="Outstanding" value={money(unpaidTotal)} sub={`${unpaid.length} invoices`} accent="#a32d2d" />
+          <MetricCard label="Total" value={invoices.length} sub="all invoices" accent="#124d83" />
+        </div>
+      )}
+
+      {loading && <LoadingCard />}
+      {error && <ErrorCard message={error} />}
+      {!loading && !error && (
+        <DataTable
+          headers={['Invoice #', 'Client', 'Job', 'Total', 'Status', 'Created']}
+          emptyMessage="No invoices found."
+          rows={filtered.map(inv => [
+            <span key="num" style={{ fontWeight: 700, color: '#124d83' }}>#{inv.invoiceNumber}</span>,
+            <span key="client" style={{ fontWeight: 500 }}>{inv.clientName || '—'}</span>,
+            <span key="job" style={{ color: '#5a6a88' }}>{inv.jobName || '—'}</span>,
+            <span key="total" style={{ fontWeight: 600 }}>{money(inv.total)}</span>,
+            <StatusBadge key="status" status={inv.status} />,
+            <span key="date" style={{ color: '#8494b0', whiteSpace: 'nowrap' }}>{fmtDate(inv.createdAt)}</span>,
+          ])}
+        />
+      )}
     </PortalShell>
   )
 }

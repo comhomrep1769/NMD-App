@@ -1,18 +1,58 @@
 'use client'
+
+import { useEffect, useState } from 'react'
 import PortalShell from '@/components/portal/PortalShell'
-export default function Page() {
+import { DataTable, LoadingCard, ErrorCard, SearchInput, SectionHeader, StatusBadge, money, fmtDate } from '@/components/portal/PortalUI'
+import { getNmdToken } from '@/lib/authStorage'
+
+type Quote = {
+  id: string; quoteNumber: number; clientName: string
+  serviceType: string; total: number; status: string
+  acceptedAt: string | null; createdAt: string
+}
+
+export default function QuotesPage() {
+  const [quotes, setQuotes] = useState<Quote[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [search, setSearch] = useState('')
+
+  useEffect(() => {
+    const token = getNmdToken()
+    const API = process.env.NEXT_PUBLIC_API_URL || ''
+    fetch(`${API}/api/quotes`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(d => { setQuotes(d.quotes || []); setLoading(false) })
+      .catch(() => { setError('Could not load quotes.'); setLoading(false) })
+  }, [])
+
+  const filtered = quotes.filter(q =>
+    `${q.quoteNumber} ${q.clientName} ${q.serviceType} ${q.status}`.toLowerCase().includes(search.toLowerCase())
+  )
+
   return (
-    <PortalShell requiredRole={["admin", "superadmin", "employee"]}>
-      <div style={{ marginBottom: '1.5rem' }}>
-        <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#1f6132', marginBottom: 6 }}>NMD Portal</div>
-        <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: '1.75rem', fontWeight: 800, color: '#0e1117', letterSpacing: '-0.03em', marginBottom: 6 }}>Quotes</h1>
-        <p style={{ color: '#5a6a88', fontSize: '0.875rem' }}>Create, review, and send quotes to clients.</p>
-      </div>
-      <div style={{ background: 'white', border: '1.5px solid #dde4ef', borderRadius: 14, padding: '3rem 2rem', textAlign: 'center' }}>
-        <div style={{ width: 56, height: 56, borderRadius: 14, background: 'linear-gradient(135deg, #eaf7ef, #e8f3fd)', margin: '0 auto 1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', border: '1px solid #dde4ef' }}>⏳</div>
-        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '1rem', fontWeight: 600, color: '#0e1117', marginBottom: 8 }}>Coming online</div>
-        <div style={{ fontSize: '0.85rem', color: '#8494b0', lineHeight: 1.6, maxWidth: 360, margin: '0 auto' }}>This section connects to the NMD backend. Data will appear here once the portal is fully wired up.</div>
-      </div>
+    <PortalShell requiredRole={['admin', 'superadmin']}>
+      <SectionHeader
+        title="Quotes"
+        sub={`${quotes.length} total quotes`}
+        action={<SearchInput value={search} onChange={setSearch} placeholder="Search quotes..." />}
+      />
+      {loading && <LoadingCard />}
+      {error && <ErrorCard message={error} />}
+      {!loading && !error && (
+        <DataTable
+          headers={['Quote #', 'Client', 'Service', 'Total', 'Status', 'Created']}
+          emptyMessage="No quotes found."
+          rows={filtered.map(q => [
+            <span key="num" style={{ fontWeight: 700, color: '#124d83' }}>#{q.quoteNumber}</span>,
+            <span key="client" style={{ fontWeight: 500 }}>{q.clientName || '—'}</span>,
+            <span key="svc" style={{ color: '#5a6a88' }}>{q.serviceType || '—'}</span>,
+            <span key="total" style={{ fontWeight: 600 }}>{money(q.total)}</span>,
+            <StatusBadge key="status" status={q.status} />,
+            <span key="date" style={{ color: '#8494b0', whiteSpace: 'nowrap' }}>{fmtDate(q.createdAt)}</span>,
+          ])}
+        />
+      )}
     </PortalShell>
   )
 }

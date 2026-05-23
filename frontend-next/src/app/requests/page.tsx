@@ -1,18 +1,67 @@
 'use client'
+
+import { useEffect, useState } from 'react'
 import PortalShell from '@/components/portal/PortalShell'
-export default function Page() {
+import { DataTable, LoadingCard, ErrorCard, SearchInput, SectionHeader, StatusBadge, fmtDate } from '@/components/portal/PortalUI'
+import { getNmdToken } from '@/lib/authStorage'
+
+type Request = {
+  id: string; firstName: string; lastName: string
+  email: string; phone: string; serviceType: string
+  address: string; status: string; createdAt: string
+  preferredDate: string | null; preferredTime: string | null
+}
+
+export default function RequestsPage() {
+  const [requests, setRequests] = useState<Request[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [search, setSearch] = useState('')
+
+  useEffect(() => {
+    const token = getNmdToken()
+    const API = process.env.NEXT_PUBLIC_API_URL || ''
+    fetch(`${API}/api/requests`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(d => { setRequests(d.requests || []); setLoading(false) })
+      .catch(() => { setError('Could not load service requests.'); setLoading(false) })
+  }, [])
+
+  const filtered = requests.filter(r =>
+    `${r.firstName} ${r.lastName} ${r.email} ${r.serviceType} ${r.status}`.toLowerCase().includes(search.toLowerCase())
+  )
+
+  const pending = requests.filter(r => r.status === 'pending' || r.status === 'new').length
+
   return (
-    <PortalShell requiredRole={["admin", "superadmin", "employee"]}>
-      <div style={{ marginBottom: '1.5rem' }}>
-        <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#1f6132', marginBottom: 6 }}>NMD Portal</div>
-        <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: '1.75rem', fontWeight: 800, color: '#0e1117', letterSpacing: '-0.03em', marginBottom: 6 }}>Service Requests</h1>
-        <p style={{ color: '#5a6a88', fontSize: '0.875rem' }}>Review and process incoming service requests.</p>
-      </div>
-      <div style={{ background: 'white', border: '1.5px solid #dde4ef', borderRadius: 14, padding: '3rem 2rem', textAlign: 'center' }}>
-        <div style={{ width: 56, height: 56, borderRadius: 14, background: 'linear-gradient(135deg, #eaf7ef, #e8f3fd)', margin: '0 auto 1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', border: '1px solid #dde4ef' }}>⏳</div>
-        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '1rem', fontWeight: 600, color: '#0e1117', marginBottom: 8 }}>Coming online</div>
-        <div style={{ fontSize: '0.85rem', color: '#8494b0', lineHeight: 1.6, maxWidth: 360, margin: '0 auto' }}>This section connects to the NMD backend. Data will appear here once the portal is fully wired up.</div>
-      </div>
+    <PortalShell requiredRole={['admin', 'superadmin']}>
+      <SectionHeader
+        title="Service Requests"
+        sub={`${requests.length} total · ${pending} pending review`}
+        action={<SearchInput value={search} onChange={setSearch} placeholder="Search requests..." />}
+      />
+      {loading && <LoadingCard />}
+      {error && <ErrorCard message={error} />}
+      {!loading && !error && (
+        <DataTable
+          headers={['Client', 'Service', 'Contact', 'Preferred Date', 'Status', 'Received']}
+          emptyMessage="No service requests yet."
+          rows={filtered.map(r => [
+            <span key="name" style={{ fontWeight: 600 }}>{r.firstName} {r.lastName}</span>,
+            <span key="svc" style={{ color: '#5a6a88' }}>{r.serviceType || '—'}</span>,
+            <div key="contact">
+              <div style={{ fontSize: '0.82rem' }}>{r.email || '—'}</div>
+              <div style={{ fontSize: '0.78rem', color: '#8494b0' }}>{r.phone || '—'}</div>
+            </div>,
+            <span key="date" style={{ color: '#5a6a88', whiteSpace: 'nowrap' }}>
+              {r.preferredDate ? fmtDate(r.preferredDate) : '—'}
+              {r.preferredTime ? ` · ${r.preferredTime}` : ''}
+            </span>,
+            <StatusBadge key="status" status={r.status} />,
+            <span key="created" style={{ color: '#8494b0', whiteSpace: 'nowrap' }}>{fmtDate(r.createdAt)}</span>,
+          ])}
+        />
+      )}
     </PortalShell>
   )
 }
