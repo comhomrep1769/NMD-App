@@ -39,12 +39,10 @@ const ADMIN_NAV = [
 
 const EMPLOYEE_NAV = [
   { href: '/employee', label: 'Dashboard', icon: '⊞' },
-  { href: '/schedule', label: 'My Schedule', icon: '📅' },
-  { href: '/treatments', label: 'Treatments', icon: '🧪' },
-  { href: '/photos', label: 'Job Photos', icon: '📷' },
-  { href: '/chat', label: 'Chat', icon: '💬' },
-  { href: '/mileage', label: 'Mileage', icon: '🚗' },
-  { href: '/timeclock', label: 'Time Clock', icon: '⏱' },
+  { href: '/employee/schedule', label: 'My Schedule', icon: '📅' },
+  { href: '/employee/treatments', label: 'Treatments', icon: '🧪' },
+  { href: '/employee/chat', label: 'Chat', icon: '💬' },
+  { href: '/employee/timeclock', label: 'Time Clock', icon: '⏱' },
 ]
 
 export default function PortalShell({
