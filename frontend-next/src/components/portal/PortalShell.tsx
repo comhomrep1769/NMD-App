@@ -62,7 +62,13 @@ export default function PortalShell({
 
   useEffect(() => {
     const auth = getNmdAuth()
-    if (!auth?.token) { router.replace('/admin'); return }
+    if (!auth?.token) {
+      const roles = Array.isArray(requiredRole) ? requiredRole : [requiredRole || '']
+      if (roles.includes('client')) router.replace('/client/login')
+      else if (roles.includes('employee')) router.replace('/employee')
+      else router.replace('/admin')
+      return
+    }
     if (requiredRole) {
       const roles = Array.isArray(requiredRole) ? requiredRole : [requiredRole]
       const userRole = String(auth.user?.role || '').toLowerCase()
@@ -70,7 +76,12 @@ export default function PortalShell({
         if (r === 'adminOrSuperadmin') return userRole === 'admin' || userRole === 'superadmin'
         return userRole === r.toLowerCase()
       })
-      if (!allowed) { router.replace('/'); return }
+      if (!allowed) {
+        if (userRole === 'client') router.replace('/client')
+        else if (userRole === 'employee') router.replace('/employee')
+        else router.replace('/dashboard')
+        return
+      }
     }
     setUser(auth.user)
     setChecked(true)
@@ -152,3 +163,4 @@ export default function PortalShell({
     </div>
   )
 }
+

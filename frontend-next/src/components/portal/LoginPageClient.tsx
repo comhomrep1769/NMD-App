@@ -121,7 +121,7 @@ function LoginForm({ portalRole }: { portalRole: string }) {
 
         <div style={{ marginTop: '1.5rem', display: 'flex', flexDirection: 'column', gap: 8, borderTop: '1px solid #dde4ef', paddingTop: '1.25rem' }}>
           {portalRole !== 'client' && (
-            <Link href="/client" style={{ fontSize: '0.82rem', color: '#5a6a88', textAlign: 'center' }}>Client portal →</Link>
+            <Link href="/client/login" style={{ fontSize: '0.82rem', color: '#5a6a88', textAlign: 'center' }}>Client portal →</Link>
           )}
           {portalRole !== 'employee' && (
             <Link href="/employee" style={{ fontSize: '0.82rem', color: '#5a6a88', textAlign: 'center' }}>Employee portal →</Link>
@@ -144,3 +144,4 @@ export default function LoginPageClient({ portalRole = '' }: { portalRole?: stri
     </Suspense>
   )
 }
+
