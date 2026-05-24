@@ -1,4 +1,4 @@
-Set-Content -Encoding UTF8 frontend-next/src/components/portal/LoginPageClient.tsx -Value @'
+
 "use client"
 
 import { useState, Suspense } from "react"
@@ -142,4 +142,3 @@ export default function LoginPageClient({ portalRole = "" }: { portalRole?: stri
     </Suspense>
   )
 }
-'@
