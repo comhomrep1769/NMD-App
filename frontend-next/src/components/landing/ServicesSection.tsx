@@ -72,7 +72,7 @@ export default function ServicesSection() {
             Every surface. Every property type.
           </h2>
           <p className="nmd-section-sub">
-            From single-family homes to industrial facilities â€” if it needs cleaning,
+            From single-family homes to industrial facilities — if it needs cleaning,
             we have a process for it. Serving Brevard &amp; Orange County, FL.
           </p>
         </div>
@@ -100,11 +100,10 @@ export default function ServicesSection() {
 
         <div style={{ marginTop: '2.5rem', textAlign: 'center' }}>
           <a href="/client/request-service" className="btn-primary btn-lg">
-            Request a Service â†’
+            Request a Service →
           </a>
         </div>
       </div>
     </section>
   )
 }
-
