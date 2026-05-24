@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import Link from 'next/link'
 
 const SERVICES = [
@@ -9,10 +9,56 @@ const SERVICES = [
   'Paver Cleaning','Paver Sealing','Gutter Cleaning','Rust Stain Removal',
   'Oil Stain Removal','Mold & Mildew Removal','Soft Washing','Concrete Cleaning',
   'Storefront Cleaning','Exterior Building Washing','Parking Lot Cleaning',
-  'Graffiti Removal','Fleet Washing','Commercial Roof Cleaning',
+  'Dumpster Washing','Graffiti Removal','Fleet Washing','Commercial Roof Cleaning',
   'Heavy Equipment Cleaning','Industrial Degreasing','Post-Construction Cleanup',
   'Wood Restoration','Other',
 ]
+
+const DISCLAIMER = `NMD Pressure Washing Services LLC — Service Agreement, Liability Waiver, and Booking Disclaimer
+
+By requesting, scheduling, approving, or receiving services from NMD Pressure Washing Services LLC, the client/customer agrees to the following terms and conditions:
+
+1. PRE-EXISTING CONDITIONS DISCLAIMER
+The client acknowledges that exterior cleaning services may reveal or expose pre-existing damage, deterioration, oxidation, defects, wear, improper installation, aging materials, or structural weaknesses that existed prior to service. NMD Pressure Washing Services LLC is not responsible for damage or issues resulting from pre-existing conditions including loose/cracked/brittle siding, oxidized surfaces, loose mortar, aging roofs, cracked windows, improperly sealed doors/windows, existing rust, loose gutters, previously weakened wood, rot, mold, algae, or decay.
+
+2. SOFT WASHING & PRESSURE WASHING RISKS
+The client understands that pressure washing, soft washing, chemical treatment, and surface restoration involve inherent risks including surface discoloration, oxidation exposure, paint peeling, water spotting, wood fuzzing, concrete etching, and sealant failure. No guarantee is made that all stains, discoloration, or contaminants can be completely removed.
+
+3. ROOF CLEANING DISCLAIMER
+Roof cleaning services are performed using low-pressure soft wash methods whenever appropriate. NMD Pressure Washing Services LLC is not responsible for fragile/brittle/aging roofing materials, existing leaks, improper roof installation, or pre-existing roof deterioration.
+
+4. WATER USAGE & UTILITIES
+The client agrees to provide access to functioning water utilities. NMD Pressure Washing Services LLC is not responsible for utility interruptions, low water pressure, or property drainage limitations.
+
+5. CHEMICAL USAGE NOTICE
+Professional cleaning solutions may be used including sodium hypochlorite, surfactants, degreasers, rust removers, and specialty restoration chemicals. The client agrees to close all windows/doors, remove or protect sensitive items, and keep pets and individuals away from active work areas.
+
+6. LANDSCAPING & PLANT DISCLAIMER
+NMD Pressure Washing Services LLC is not responsible for existing unhealthy vegetation, previously stressed landscaping, seasonal sensitivity, or plant reactions to environmental conditions or chemicals.
+
+7. STAIN REMOVAL & RESTORATION DISCLAIMER
+Some stains may be permanent or only partially removable including rust, battery acid, deep oil, efflorescence, artillery fungus, hard water stains, and calcium/mineral deposits. No guarantee is made regarding complete restoration.
+
+8. APPOINTMENT, CANCELLATION, & RESCHEDULING POLICY
+Cancellation or rescheduling fees may apply if the appointment is canceled within the restricted cancellation window, access to the property is unavailable, or utilities are unavailable.
+
+9. WEATHER DELAYS
+NMD Pressure Washing Services LLC reserves the right to reschedule services due to unsafe weather or delay sealing applications due to moisture or humidity.
+
+10. PHOTO & DOCUMENTATION AUTHORIZATION
+The client authorizes NMD Pressure Washing Services LLC to document the property before, during, and after service for service records, liability protection, quality assurance, training, and marketing purposes unless otherwise requested in writing.
+
+11. PAYMENT TERMS
+Payment is due according to the agreed invoice terms. Failure to pay may result in late fees, collections, suspension of future services, or legal action.
+
+12. LIMITATION OF LIABILITY
+To the fullest extent permitted by law, NMD Pressure Washing Services LLC shall not be liable for pre-existing property damage, hidden defects, improperly maintained surfaces, manufacturer defects, or cosmetic changes caused by removal of contaminants. Any liability proven to be directly caused solely by negligence shall be limited to the amount paid for the specific service performed.
+
+13. CLIENT RESPONSIBILITY
+The client agrees to provide safe access to the property, secure pets, remove fragile or valuable items, notify the company of any concerns prior to service, and disclose known property issues before work begins.
+
+14. ACCEPTANCE OF TERMS
+By submitting this estimate request, the client confirms they have read and understood this agreement, accept all terms and conditions, and authorize NMD Pressure Washing Services LLC to perform the requested services.`
 
 export default function ServiceRequestPage() {
   const [form, setForm] = useState({
@@ -21,34 +67,83 @@ export default function ServiceRequestPage() {
     propertyType: '', surfaceDetails: '', problemDescription: '',
     estimatedSize: '', specialConcerns: '',
   })
-  const [photos, setPhotos] = useState<Array<{ id: string; name: string; note: string }>>([])
+  const [photos, setPhotos] = useState<Array<{ id: string; name: string; note: string; dataUrl: string; file: File }>>([])
+  const [showDisclaimer, setShowDisclaimer] = useState(false)
+  const [disclaimerScrolled, setDisclaimerScrolled] = useState(false)
+  const [disclaimerAgreed, setDisclaimerAgreed] = useState(false)
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const disclaimerRef = useRef<HTMLDivElement>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
 
   const update = (field: string, value: string) =>
     setForm(prev => ({ ...prev, [field]: value }))
 
   const addPhotos = (files: FileList | null) => {
     if (!files) return
-    const next = Array.from(files).map(f => ({
-      id: `${f.name}-${Date.now()}`, name: f.name, note: '',
-    }))
-    setPhotos(prev => [...next, ...prev])
+    Array.from(files).forEach(file => {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setPhotos(prev => [...prev, {
+          id: `${file.name}-${Date.now()}`,
+          name: file.name,
+          note: '',
+          dataUrl: e.target?.result as string,
+          file,
+        }])
+      }
+      reader.readAsDataURL(file)
+    })
   }
 
-  const submit = async (e: React.FormEvent) => {
+  const removePhoto = (id: string) => setPhotos(prev => prev.filter(p => p.id !== id))
+  const updateNote = (id: string, note: string) =>
+    setPhotos(prev => prev.map(p => p.id === id ? { ...p, note } : p))
+
+  const handleDisclaimerScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 20) {
+      setDisclaimerScrolled(true)
+    }
+  }
+
+  const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    if (!form.selectedService || !form.customerName || !form.email || !form.serviceAddress) {
+      setError('Please fill in all required fields.')
+      return
+    }
+    if (photos.length === 0) {
+      setError('Please upload at least one photo of the area.')
+      return
+    }
+    setError('')
+    setShowDisclaimer(true)
+  }
+
+  const submitWithAgreement = async () => {
+    if (!disclaimerAgreed) return
     setLoading(true)
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
+      const photoData = photos.map(p => ({ name: p.name, note: p.note, dataUrl: p.dataUrl }))
       await fetch(`${API_URL}/api/requests`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, photoCount: photos.length }),
+        body: JSON.stringify({
+          ...form,
+          photos: photoData,
+          disclaimerAgreed: true,
+          disclaimerSignedAt: new Date().toISOString(),
+        }),
       })
-    } catch {}
+      setShowDisclaimer(false)
+      setSuccess(true)
+    } catch {
+      setError('Submission failed. Please try again.')
+    }
     setLoading(false)
-    setSuccess(true)
   }
 
   const inputStyle: React.CSSProperties = {
@@ -58,16 +153,20 @@ export default function ServiceRequestPage() {
     background: '#f4f7fb', boxSizing: 'border-box',
   }
 
+  const labelStyle: React.CSSProperties = {
+    fontSize: '0.8rem', fontWeight: 500, color: '#3a4660', display: 'block', marginBottom: 4,
+  }
+
   if (success) {
     return (
       <div style={{ minHeight: '100vh', background: '#f4f7fb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'DM Sans, sans-serif', padding: '2rem' }}>
         <div style={{ background: 'white', borderRadius: 16, border: '1px solid #c0dd97', padding: '3rem', maxWidth: 480, width: '100%', textAlign: 'center', boxShadow: '0 8px 40px rgba(14,17,23,0.07)' }}>
           <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
-          <h2 style={{ fontFamily: 'Syne, sans-serif', fontSize: '1.4rem', fontWeight: 700, color: '#0e1117', marginBottom: '0.75rem', letterSpacing: '-0.02em' }}>Request Submitted!</h2>
+          <h2 style={{ fontFamily: 'Syne, sans-serif', fontSize: '1.4rem', fontWeight: 700, color: '#0e1117', marginBottom: '0.75rem', letterSpacing: '-0.02em' }}>Estimate Request Submitted!</h2>
           <p style={{ color: '#5a6a88', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '1.5rem' }}>
-            Thanks {form.customerName}! Your service request has been received. Our team will review it and reach out to confirm pricing and scheduling.
+            Thanks {form.customerName}! Your estimate request has been received along with your photos. Our team will review and reach out to confirm pricing and scheduling. A copy of your signed agreement has been sent to {form.email}.
           </p>
-          <Link href="/" style={{ display: 'inline-block', padding: '0.7rem 1.5rem', borderRadius: 10, background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 600, fontSize: '0.9rem' }}>
+          <Link href="/" style={{ display: 'inline-block', padding: '0.7rem 1.5rem', borderRadius: 10, background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 600, fontSize: '0.9rem', textDecoration: 'none' }}>
             Back to Home
           </Link>
         </div>
@@ -77,108 +176,58 @@ export default function ServiceRequestPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#f4f7fb', fontFamily: 'DM Sans, sans-serif' }}>
-      {/* Nav */}
-      <div style={{ background: 'white', borderBottom: '1px solid #dde4ef', padding: '0 2rem', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 50 }}>
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-          <div style={{ width: 28, height: 28, borderRadius: 6, background: 'linear-gradient(135deg, #1f6132, #124d83)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.65rem', fontWeight: 800 }}>NMD</div>
-          <span style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0e1117' }}>NMD Pressure Washing</span>
-        </Link>
-        <Link href="/" style={{ fontSize: '0.82rem', color: '#5a6a88' }}>← Back to home</Link>
-      </div>
-
-      <div style={{ maxWidth: 680, margin: '0 auto', padding: '2.5rem 1.5rem' }}>
-        {/* Header */}
-        <div style={{ marginBottom: '2rem' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#1f6132', background: '#eaf7ef', border: '1px solid #c0dd97', padding: '3px 10px', borderRadius: 100, marginBottom: '1rem' }}>
-            Free Quote Request
-          </div>
-          <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: 'clamp(1.8rem, 4vw, 2.4rem)', fontWeight: 800, color: '#0e1117', letterSpacing: '-0.03em', marginBottom: '0.75rem' }}>
-            Tell us what needs cleaning.
-          </h1>
-          <p style={{ color: '#5a6a88', fontSize: '1rem', lineHeight: 1.7, fontWeight: 300 }}>
-            Fill out the form below and our team will review your request and get back to you with pricing. Serving Orange County &amp; Brevard County, FL.
-          </p>
-        </div>
-
-        <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {/* Contact info card */}
-          <div style={{ background: 'white', border: '1px solid #dde4ef', borderRadius: 12, padding: '1.5rem' }}>
-            <h3 style={{ fontFamily: 'Syne, sans-serif', fontSize: '1rem', fontWeight: 600, color: '#0e1117', marginBottom: '1rem', letterSpacing: '-0.01em' }}>Contact Information</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <input style={inputStyle} placeholder="Your full name *" value={form.customerName} onChange={e => update('customerName', e.target.value)} required />
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <input style={inputStyle} placeholder="Email address *" type="email" value={form.email} onChange={e => update('email', e.target.value)} required />
-                <input style={inputStyle} placeholder="Phone number" value={form.phone} onChange={e => update('phone', e.target.value)} />
-              </div>
-              <input style={inputStyle} placeholder="Service address *" value={form.serviceAddress} onChange={e => update('serviceAddress', e.target.value)} required />
+      {/* Disclaimer Modal */}
+      {showDisclaimer && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(14,17,23,0.7)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ background: 'white', borderRadius: 16, width: '100%', maxWidth: 620, maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(14,17,23,0.3)' }}>
+            <div style={{ padding: '1.5rem', borderBottom: '1px solid #dde4ef' }}>
+              <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '1.1rem', fontWeight: 700, color: '#0e1117' }}>Service Agreement & Liability Waiver</div>
+              <div style={{ fontSize: '0.82rem', color: '#8494b0', marginTop: 4 }}>Please read the full agreement before submitting your estimate request.</div>
             </div>
-          </div>
-
-          {/* Service details card */}
-          <div style={{ background: 'white', border: '1px solid #dde4ef', borderRadius: 12, padding: '1.5rem' }}>
-            <h3 style={{ fontFamily: 'Syne, sans-serif', fontSize: '1rem', fontWeight: 600, color: '#0e1117', marginBottom: '1rem', letterSpacing: '-0.01em' }}>Service Details</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <select style={inputStyle} value={form.selectedService} onChange={e => update('selectedService', e.target.value)} required>
-                <option value="">Select a service *</option>
-                {SERVICES.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-              <input style={inputStyle} placeholder="Property type (residential, commercial, industrial...)" value={form.propertyType} onChange={e => update('propertyType', e.target.value)} />
-              <textarea style={{ ...inputStyle, resize: 'vertical' }} rows={2} placeholder="Surface details (concrete, vinyl siding, tile roof, pavers...)" value={form.surfaceDetails} onChange={e => update('surfaceDetails', e.target.value)} />
-              <textarea style={{ ...inputStyle, resize: 'vertical' }} rows={2} placeholder="Problem description (algae, rust, oil, mildew, black streaks...)" value={form.problemDescription} onChange={e => update('problemDescription', e.target.value)} />
-              <input style={inputStyle} placeholder="Estimated size (e.g. 2-car driveway, 2,000 sq ft roof)" value={form.estimatedSize} onChange={e => update('estimatedSize', e.target.value)} />
-              <textarea style={{ ...inputStyle, resize: 'vertical' }} rows={2} placeholder="Special concerns or pre-existing damage" value={form.specialConcerns} onChange={e => update('specialConcerns', e.target.value)} />
+            <div
+              ref={disclaimerRef}
+              onScroll={handleDisclaimerScroll}
+              style={{ flex: 1, overflowY: 'auto', padding: '1.25rem 1.5rem', fontSize: '0.82rem', color: '#3a4660', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}
+            >
+              {DISCLAIMER}
             </div>
-          </div>
-
-          {/* Scheduling card */}
-          <div style={{ background: 'white', border: '1px solid #dde4ef', borderRadius: 12, padding: '1.5rem' }}>
-            <h3 style={{ fontFamily: 'Syne, sans-serif', fontSize: '1rem', fontWeight: 600, color: '#0e1117', marginBottom: '1rem', letterSpacing: '-0.01em' }}>Scheduling Preference</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <input style={inputStyle} type="date" value={form.preferredDate} onChange={e => update('preferredDate', e.target.value)} />
-              <select style={inputStyle} value={form.preferredTime} onChange={e => update('preferredTime', e.target.value)}>
-                <option value="">Preferred time</option>
-                <option value="morning">Morning</option>
-                <option value="midday">Midday</option>
-                <option value="afternoon">Afternoon</option>
-                <option value="flexible">Flexible</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Photos card */}
-          <div style={{ background: 'white', border: '1px solid #dde4ef', borderRadius: 12, padding: '1.5rem' }}>
-            <h3 style={{ fontFamily: 'Syne, sans-serif', fontSize: '1rem', fontWeight: 600, color: '#0e1117', marginBottom: '0.5rem', letterSpacing: '-0.01em' }}>Upload Photos <span style={{ fontWeight: 400, color: '#8494b0', fontSize: '0.85rem' }}>(optional)</span></h3>
-            <p style={{ fontSize: '0.82rem', color: '#8494b0', marginBottom: '1rem', lineHeight: 1.5 }}>Better photos = better estimates. Include wide shots, close-up stains, and access areas.</p>
-            <input type="file" multiple accept="image/*" onChange={e => addPhotos(e.target.files)} style={{ fontSize: '0.85rem', color: '#5a6a88' }} />
-            {photos.length > 0 && (
-              <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {photos.map(p => (
-                  <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0.5rem 0.75rem', background: '#f4f7fb', borderRadius: 8, border: '1px solid #dde4ef', fontSize: '0.85rem', color: '#5a6a88' }}>
-                    <span>📷</span> {p.name}
-                    <button type="button" onClick={() => setPhotos(prev => prev.filter(x => x.id !== p.id))} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#a32d2d', cursor: 'pointer', fontSize: '0.8rem' }}>Remove</button>
-                  </div>
-                ))}
+            {!disclaimerScrolled && (
+              <div style={{ padding: '0.75rem 1.5rem', background: '#fff9e6', borderTop: '1px solid #f5e6a0', fontSize: '0.8rem', color: '#8a6a00', textAlign: 'center' }}>
+                Please scroll to the bottom to read the full agreement.
               </div>
             )}
+            <div style={{ padding: '1.25rem 1.5rem', borderTop: '1px solid #dde4ef', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: disclaimerScrolled ? 'pointer' : 'not-allowed', opacity: disclaimerScrolled ? 1 : 0.5 }}>
+                <input
+                  type="checkbox"
+                  checked={disclaimerAgreed}
+                  onChange={e => disclaimerScrolled && setDisclaimerAgreed(e.target.checked)}
+                  disabled={!disclaimerScrolled}
+                  style={{ marginTop: 2, flexShrink: 0 }}
+                />
+                <span style={{ fontSize: '0.85rem', color: '#0e1117', lineHeight: 1.5 }}>
+                  I, <strong>{form.customerName}</strong>, have read and agree to the NMD Pressure Washing Services LLC Service Agreement, Liability Waiver, and Booking Disclaimer.
+                </span>
+              </label>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  onClick={() => { setShowDisclaimer(false); setDisclaimerAgreed(false); setDisclaimerScrolled(false) }}
+                  style={{ flex: 1, padding: '0.7rem', borderRadius: 8, border: '1.5px solid #dde4ef', background: 'white', color: '#5a6a88', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={submitWithAgreement}
+                  disabled={!disclaimerAgreed || loading}
+                  style={{ flex: 2, padding: '0.7rem', borderRadius: 8, border: 'none', background: disclaimerAgreed ? 'linear-gradient(135deg, #1f6132, #124d83)' : '#dde4ef', color: disclaimerAgreed ? 'white' : '#8494b0', fontWeight: 600, cursor: disclaimerAgreed ? 'pointer' : 'not-allowed', fontFamily: 'DM Sans, sans-serif' }}
+                >
+                  {loading ? 'Submitting...' : 'I Agree & Submit Estimate Request'}
+                </button>
+              </div>
+            </div>
           </div>
+        </div>
+      )}
 
-          <button type="submit" disabled={loading} style={{
-            width: '100%', padding: '0.9rem', borderRadius: 12, border: 'none',
-            background: 'linear-gradient(135deg, #1f6132, #124d83)',
-            color: 'white', fontWeight: 700, fontSize: '1rem',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            opacity: loading ? 0.7 : 1,
-            fontFamily: 'DM Sans, sans-serif',
-            boxShadow: '0 4px 20px rgba(23,99,168,0.25)',
-          }}>
-            {loading ? 'Submitting...' : 'Submit Service Request →'}
-          </button>
-
-          <p style={{ fontSize: '0.78rem', color: '#8494b0', textAlign: 'center', lineHeight: 1.5 }}>
-            By submitting you acknowledge that pricing is subject to review. Our team will contact you to confirm scope and pricing before any work begins.
-          </p>
-        </form>
-      </div>
-    </div>
-  )
-}
+      {/* Nav */}
+      <div style={{ ba
