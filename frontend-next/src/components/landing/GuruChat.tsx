@@ -128,7 +128,7 @@ export default function GuruChat() {
           : ''
         setMessages(prev => [...prev,
           { role: 'user', text: `Submitted estimate for ${estimateForm.serviceType} at ${estimateForm.address}.` },
-          { role: 'guru', text: `Thanks ${estimateForm.clientName}! Your estimate was submitted for NMD review.${rangeText} This is not a final quote — NMD will review and confirm official pricing. We\'ll be in touch soon!` },
+          { role: 'guru', text: `Thanks ${estimateForm.clientName}! Your estimate was submitted for NMD review.${rangeText} This is not a final quote — NMD will review and confirm official pricing. We'll be in touch soon!` },
         ])
       } else {
         setMessages(prev => [...prev,
@@ -166,15 +166,22 @@ export default function GuruChat() {
           position: 'fixed', bottom: '1.75rem', right: '1.75rem', zIndex: 1000,
           width: 56, height: 56, borderRadius: '50%', border: 'none',
           background: 'linear-gradient(135deg, #1f6132, #124d83)',
-          color: 'white', fontSize: '1.4rem',
+          color: 'white', fontSize: '1rem',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           boxShadow: '0 4px 24px rgba(23,99,168,0.35)', cursor: 'pointer',
           transition: 'transform 0.2s, box-shadow 0.2s',
+          padding: 0, overflow: 'hidden',
         }}
         onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.08)')}
         onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
       >
-        {open ? '✕' : '🤖'}
+        {open ? '✕' : (
+          <img
+            src="/guru-avatar.jpg"
+            alt="Guru"
+            style={{ width: 56, height: 56, objectFit: 'cover', objectPosition: 'center 10%' }}
+          />
+        )}
         {!open && unread && (
           <span style={{
             position: 'absolute', top: 2, right: 2,
@@ -202,12 +209,15 @@ export default function GuruChat() {
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{
-                width: 38, height: 38, borderRadius: '50%',
-                background: 'rgba(255,255,255,0.15)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '1.2rem',
-              }}>🤖</div>
+              <img
+                src="/guru-avatar.jpg"
+                alt="Guru"
+                style={{
+                  width: 38, height: 38, borderRadius: '50%',
+                  objectFit: 'cover', objectPosition: 'center 10%',
+                  border: '2px solid rgba(255,255,255,0.3)',
+                }}
+              />
               <div>
                 <div style={{ color: 'white', fontWeight: 700, fontSize: '1rem', fontFamily: 'Syne, sans-serif', letterSpacing: '-0.02em' }}>Guru</div>
                 <div style={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.7rem' }}>NMD AI Assistant · Online</div>
@@ -224,7 +234,7 @@ export default function GuruChat() {
           {/* Estimate submitted banner */}
           {estimateSubmitted && !estimateMode && (
             <div style={{ padding: '0.6rem 1rem', background: '#eaf7ef', borderBottom: '1px solid #c2edcf', fontSize: '0.8rem', color: '#1a4d28', fontWeight: 500 }}>
-              ✅ Estimate submitted — NMD will be in touch soon.
+              Estimate submitted — NMD will be in touch soon.
             </div>
           )}
 
@@ -334,7 +344,7 @@ export default function GuruChat() {
                   border: '1.5px solid #c0dd97', background: '#eaf7ef',
                   color: '#1a4d28', fontWeight: 600, fontSize: '0.82rem', cursor: 'pointer',
                 }}>
-                  📋 Start a Guru Estimate
+                  Start a Guru Estimate
                 </button>
               </div>
 
@@ -362,7 +372,9 @@ export default function GuruChat() {
                     cursor: input.trim() && !loading ? 'pointer' : 'not-allowed',
                     fontSize: '0.9rem', flexShrink: 0,
                   }}
-                >→</button>
+                >
+                  →
+                </button>
               </div>
             </>
           )}
