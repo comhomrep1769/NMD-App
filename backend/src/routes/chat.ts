@@ -5,12 +5,33 @@ import { sendPushToUser } from "../services/push.js";
 
 const router = Router();
 
+// Ensure new employees/admins get added to company-wide group
+async function ensureCompanyWideGroup() {
+  await pool.query(`
+    INSERT INTO conversation_members (conversation_id, user_id)
+    SELECT c.id, u.id
+    FROM conversations c
+    CROSS JOIN users u
+    WHERE c.is_group = TRUE
+      AND c.group_name = 'Company-Wide'
+      AND u.role IN ('admin', 'superadmin', 'employee')
+      AND NOT EXISTS (
+        SELECT 1 FROM conversation_members cm
+        WHERE cm.conversation_id = c.id AND cm.user_id = u.id
+      )
+  `);
+}
+
 router.get("/conversations", requireAuth, async (req, res) => {
   try {
+    await ensureCompanyWideGroup();
+
     const result = await pool.query(
       `
       SELECT
         c.id,
+        c.is_group,
+        c.group_name,
         c.created_at,
         COALESCE(
           json_agg(
@@ -43,16 +64,18 @@ router.get("/conversations", requireAuth, async (req, res) => {
       LEFT JOIN users u ON u.id = cm.user_id
       WHERE mycm.user_id = $1
       GROUP BY c.id
-      ORDER BY COALESCE(
-        (
-          SELECT m.created_at
-          FROM messages m
-          WHERE m.conversation_id = c.id
-          ORDER BY m.created_at DESC
-          LIMIT 1
-        ),
-        c.created_at
-      ) DESC
+      ORDER BY
+        c.is_group DESC,
+        COALESCE(
+          (
+            SELECT m.created_at
+            FROM messages m
+            WHERE m.conversation_id = c.id
+            ORDER BY m.created_at DESC
+            LIMIT 1
+          ),
+          c.created_at
+        ) DESC
       `,
       [req.user!.id]
     );
@@ -66,26 +89,37 @@ router.get("/conversations", requireAuth, async (req, res) => {
 
 router.get("/users", requireAuth, async (req, res) => {
   try {
-    const isAdmin = req.user!.role === "admin";
+    const role = req.user!.role;
+    let result;
 
-    const result = isAdmin
-      ? await pool.query(
-          `
-          SELECT id, email, display_name, role
-          FROM users
-          WHERE id <> $1
-          ORDER BY role ASC, display_name ASC
-          `,
-          [req.user!.id]
-        )
-      : await pool.query(
-          `
-          SELECT id, email, display_name, role
-          FROM users
-          WHERE role = 'admin'
-          ORDER BY display_name ASC
-          `
-        );
+    if (role === "admin" || role === "superadmin") {
+      // Admin sees everyone
+      result = await pool.query(
+        `SELECT id, email, display_name, role
+         FROM users
+         WHERE id <> $1
+         ORDER BY role ASC, display_name ASC`,
+        [req.user!.id]
+      );
+    } else if (role === "employee") {
+      // Employee sees admin + other employees
+      result = await pool.query(
+        `SELECT id, email, display_name, role
+         FROM users
+         WHERE id <> $1
+           AND role IN ('admin', 'superadmin', 'employee')
+         ORDER BY role ASC, display_name ASC`,
+        [req.user!.id]
+      );
+    } else {
+      // Client sees admin only
+      result = await pool.query(
+        `SELECT id, email, display_name, role
+         FROM users
+         WHERE role IN ('admin', 'superadmin')
+         ORDER BY display_name ASC`
+      );
+    }
 
     return res.json({
       users: result.rows.map((row) => ({
@@ -104,6 +138,7 @@ router.get("/users", requireAuth, async (req, res) => {
 router.post("/conversations", requireAuth, async (req, res) => {
   try {
     const { targetUserId } = req.body as { targetUserId?: string };
+    const role = req.user!.role;
 
     if (!targetUserId) {
       return res.status(400).json({ error: "targetUserId is required" });
@@ -114,7 +149,7 @@ router.post("/conversations", requireAuth, async (req, res) => {
     }
 
     const targetCheck = await pool.query(
-      `SELECT id FROM users WHERE id = $1 LIMIT 1`,
+      `SELECT id, role FROM users WHERE id = $1 LIMIT 1`,
       [targetUserId]
     );
 
@@ -122,6 +157,18 @@ router.post("/conversations", requireAuth, async (req, res) => {
       return res.status(404).json({ error: "Target user not found" });
     }
 
+    const targetRole = targetCheck.rows[0].role;
+
+    // Enforce role-based chat restrictions
+    if (role === "client" && !["admin", "superadmin"].includes(targetRole)) {
+      return res.status(403).json({ error: "Clients can only chat with admin." });
+    }
+
+    if (role === "employee" && targetRole === "client") {
+      return res.status(403).json({ error: "Employees cannot chat with clients." });
+    }
+
+    // Check for existing direct conversation
     const existing = await pool.query(
       `
       SELECT c.id
@@ -130,6 +177,7 @@ router.post("/conversations", requireAuth, async (req, res) => {
       JOIN conversation_members cm2 ON cm2.conversation_id = c.id
       WHERE cm1.user_id = $1
         AND cm2.user_id = $2
+        AND c.is_group = FALSE
       GROUP BY c.id
       HAVING COUNT(*) = 2
       LIMIT 1
@@ -142,26 +190,18 @@ router.post("/conversations", requireAuth, async (req, res) => {
     }
 
     const client = await pool.connect();
-
     try {
       await client.query("BEGIN");
-
       const conversation = await client.query(
-        `INSERT INTO conversations DEFAULT VALUES RETURNING id`
+        `INSERT INTO conversations (is_group) VALUES (FALSE) RETURNING id`
       );
-
       const conversationId = conversation.rows[0].id;
-
       await client.query(
-        `
-        INSERT INTO conversation_members (conversation_id, user_id)
-        VALUES ($1, $2), ($1, $3)
-        `,
+        `INSERT INTO conversation_members (conversation_id, user_id)
+         VALUES ($1, $2), ($1, $3)`,
         [conversationId, req.user!.id, targetUserId]
       );
-
       await client.query("COMMIT");
-
       return res.status(201).json({ conversationId });
     } catch (err) {
       await client.query("ROLLBACK");
@@ -180,12 +220,8 @@ router.get("/conversations/:conversationId/messages", requireAuth, async (req, r
     const { conversationId } = req.params;
 
     const memberCheck = await pool.query(
-      `
-      SELECT 1
-      FROM conversation_members
-      WHERE conversation_id = $1 AND user_id = $2
-      LIMIT 1
-      `,
+      `SELECT 1 FROM conversation_members
+       WHERE conversation_id = $1 AND user_id = $2 LIMIT 1`,
       [conversationId, req.user!.id]
     );
 
@@ -200,6 +236,7 @@ router.get("/conversations/:conversationId/messages", requireAuth, async (req, r
         m.conversation_id,
         m.sender_id,
         m.body,
+        m.image_url,
         m.created_at,
         u.display_name AS sender_display_name,
         u.email AS sender_email,
@@ -222,19 +259,15 @@ router.get("/conversations/:conversationId/messages", requireAuth, async (req, r
 router.post("/conversations/:conversationId/messages", requireAuth, async (req, res) => {
   try {
     const { conversationId } = req.params;
-    const { body } = req.body as { body?: string };
+    const { body, imageUrl } = req.body as { body?: string; imageUrl?: string };
 
-    if (!body || !body.trim()) {
-      return res.status(400).json({ error: "Message body is required" });
+    if ((!body || !body.trim()) && !imageUrl) {
+      return res.status(400).json({ error: "Message body or image is required" });
     }
 
     const memberCheck = await pool.query(
-      `
-      SELECT 1
-      FROM conversation_members
-      WHERE conversation_id = $1 AND user_id = $2
-      LIMIT 1
-      `,
+      `SELECT 1 FROM conversation_members
+       WHERE conversation_id = $1 AND user_id = $2 LIMIT 1`,
       [conversationId, req.user!.id]
     );
 
@@ -242,31 +275,28 @@ router.post("/conversations/:conversationId/messages", requireAuth, async (req, 
       return res.status(403).json({ error: "Not a member of this conversation" });
     }
 
-    const cleanBody = body.trim();
+    const cleanBody = body?.trim() || "";
 
     const result = await pool.query(
       `
-      INSERT INTO messages (conversation_id, sender_id, body)
-      VALUES ($1, $2, $3)
-      RETURNING id, conversation_id, sender_id, body, created_at
+      INSERT INTO messages (conversation_id, sender_id, body, image_url)
+      VALUES ($1, $2, $3, $4)
+      RETURNING id, conversation_id, sender_id, body, image_url, created_at
       `,
-      [conversationId, req.user!.id, cleanBody]
+      [conversationId, req.user!.id, cleanBody, imageUrl || null]
     );
 
     const members = await pool.query(
-      `
-      SELECT user_id
-      FROM conversation_members
-      WHERE conversation_id = $1
-        AND user_id <> $2
-      `,
+      `SELECT user_id FROM conversation_members
+       WHERE conversation_id = $1 AND user_id <> $2`,
       [conversationId, req.user!.id]
     );
 
+    const pushBody = cleanBody || "📷 Image";
     for (const member of members.rows) {
       await sendPushToUser(member.user_id, {
         title: "New NMD Chat Message",
-        body: cleanBody,
+        body: pushBody,
         url: "/"
       });
     }
