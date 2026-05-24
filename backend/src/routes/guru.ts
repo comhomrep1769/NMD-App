@@ -73,6 +73,12 @@ type TreatmentSearchRow = {
   created_at: string;
 };
 
+type GuruTrainingRow = {
+  category: string;
+  title: string;
+  content: string;
+};
+
 function getUser(req: AuthenticatedRequest) {
   if (!req.authUser) {
     throw new Error("Missing authenticated user.");
@@ -162,6 +168,84 @@ function mapTreatmentSearchResult(row: TreatmentSearchRow) {
     sourceName: row.source_name || "",
     createdAt: row.created_at
   };
+}
+
+async function buildGuruReply(input: {
+  role: UserRole;
+  body: string;
+}): Promise<string> {
+  try {
+    const lower = input.body.toLowerCase();
+
+    // Search guru_training table for relevant entries first
+    const keywords = lower.split(" ").filter(w => w.length > 3).slice(0, 3);
+    const searchTerm = keywords.length > 0 ? `%${keywords.join("%")}%` : null;
+
+    if (searchTerm) {
+      const trainingResult = await pool.query<GuruTrainingRow>(
+        `SELECT category, title, content FROM guru_training
+         WHERE LOWER(title) LIKE $1 OR LOWER(content) LIKE $1
+         ORDER BY category, title
+         LIMIT 5`,
+        [searchTerm]
+      );
+
+      if (trainingResult.rows.length > 0) {
+        return trainingResult.rows
+          .map(r => `**${r.title}**\n${r.content}`)
+          .join("\n\n");
+      }
+    }
+
+    // Fallback keyword-based replies
+    if (
+      lower.includes("treatment") ||
+      lower.includes("chemical") ||
+      lower.includes("mix") ||
+      lower.includes("roof") ||
+      lower.includes("rust") ||
+      lower.includes("concrete") ||
+      lower.includes("oxidation")
+    ) {
+      return "I can help with treatment guidance. Open the Treatments page and use Guru Search, Treatment Cases, Field Mode, or the SH Calculator. Employees can view approved guidance only. Admin/Super Admin can seed or upload treatment records.";
+    }
+
+    if (lower.includes("price") || lower.includes("cost") || lower.includes("how much")) {
+      return "For pricing info, please check the Pricing section or contact NMD directly. Pricing depends on surface type, size, and condition.";
+    }
+
+    if (lower.includes("estimate") || lower.includes("quote")) {
+      if (input.role === "client") {
+        return "I can help start a preliminary estimate. Please provide service type, surface, condition, address, photos if available, and preferred schedule. NMD will review before sending an official quote.";
+      }
+      return "I can help review estimates, treatment risks, and quote workflow. Use Guru Review for submitted estimates and Treatments/Pricing for job-specific guidance.";
+    }
+
+    if (lower.includes("schedule") || lower.includes("appointment") || lower.includes("book")) {
+      return "To schedule a service, please submit a service request from your client portal or contact NMD directly. We will confirm your appointment within 24 hours.";
+    }
+
+    if (lower.includes("recurring") || lower.includes("monthly") || lower.includes("weekly")) {
+      return "NMD offers recurring service plans with 20% off. Options include weekly, bi-weekly, and monthly scheduling. Contact NMD or submit a request through your portal to set one up.";
+    }
+
+    if (input.role === "employee") {
+      return "I can help with field workflow, treatments, safety reminders, and service guidance. For high-risk treatment decisions, escalate to Admin or Super Admin.";
+    }
+
+    if (input.role === "superadmin") {
+      return "Owner mode is active. I can help with operations, estimates, quotes, treatments, pricing, payments, employees, expenses, mileage, recurring services, and business analysis.";
+    }
+
+    if (input.role === "admin") {
+      return "I can help with admin operations, estimates, quotes, treatments, pricing, payments, schedules, expenses, mileage, and client follow-up.";
+    }
+
+    return "I have this noted. For estimates, please provide the service type, surface, condition, address, photos if available, and preferred schedule.";
+  } catch (err) {
+    console.error("Guru reply error:", err);
+    return "I'm here to help. Please contact NMD directly at nmdpowash@gmail.com if you need immediate assistance.";
+  }
 }
 
 async function ensureGuruTables() {
@@ -290,47 +374,6 @@ async function ensureTreatmentSearchTables() {
   `);
 }
 
-function buildGuruReply(input: {
-  role: UserRole;
-  body: string;
-}) {
-  const lower = input.body.toLowerCase();
-
-  if (
-    lower.includes("treatment") ||
-    lower.includes("chemical") ||
-    lower.includes("mix") ||
-    lower.includes("roof") ||
-    lower.includes("rust") ||
-    lower.includes("concrete") ||
-    lower.includes("oxidation")
-  ) {
-    return "I can help with treatment guidance. Open the Treatments page and use Guru Search, Treatment Cases, Field Mode, or the SH Calculator. Employees can view approved guidance only. Admin/Super Admin can seed or upload treatment records.";
-  }
-
-  if (lower.includes("estimate") || lower.includes("quote")) {
-    if (input.role === "client") {
-      return "I can help start a preliminary estimate. Please provide service type, surface, condition, address, photos if available, and preferred schedule. NMD will review before sending an official quote.";
-    }
-
-    return "I can help review estimates, treatment risks, and quote workflow. Use Guru Review for submitted estimates and Treatments/Pricing for job-specific guidance.";
-  }
-
-  if (input.role === "employee") {
-    return "I can help with field workflow, treatments, safety reminders, and service guidance. For high-risk treatment decisions, escalate to Admin or Super Admin.";
-  }
-
-  if (input.role === "superadmin") {
-    return "Owner mode is active. I can help with operations, estimates, quotes, treatments, pricing, payments, employees, expenses, mileage, recurring services, and business analysis.";
-  }
-
-  if (input.role === "admin") {
-    return "I can help with admin operations, estimates, quotes, treatments, pricing, payments, schedules, expenses, mileage, and client follow-up.";
-  }
-
-  return "I have this noted. For estimates, please provide the service type, surface, condition, address, photos if available, and preferred schedule.";
-}
-
 router.get("/messages", requireAuth, async (req: AuthenticatedRequest, res) => {
   try {
     await ensureGuruTables();
@@ -373,7 +416,9 @@ router.post("/messages", requireAuth, async (req: AuthenticatedRequest, res) => 
     }
 
     const roleContext = getRoleContext(userRole);
-    const reply = buildGuruReply({
+
+    // Now async — checks guru_training table before falling back to keywords
+    const reply = await buildGuruReply({
       role: userRole,
       body
     });
@@ -498,7 +543,6 @@ router.get("/treatment-search", requireAuth, async (req: AuthenticatedRequest, r
                 name || ' ' ||
                 category || ' ' ||
                 COALESCE(chemical,'') || ' ' ||
-                COALESCE(safety_notes,'') || ' ' ||
                 COALESCE(instructions,'') || ' ' ||
                 COALESCE(use_case,'')
               ) LIKE '%new concrete%'

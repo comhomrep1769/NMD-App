@@ -4,6 +4,7 @@ import cors from "cors";
 
 import authRoutes from "./routes/auth.js";
 import guruRoutes from "./routes/guru.js";
+import guruTrainingRoutes from "./routes/guruTraining.js";
 import paymentsRoutes from "./routes/payments.js";
 import posRoutes from "./routes/pos.js";
 import treatmentsRoutes from "./routes/treatments.js";
@@ -89,6 +90,7 @@ app.get("/api/health", (_req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/guru", guruRoutes);
+app.use("/api/guru-training", guruTrainingRoutes);
 app.use("/api/payments", paymentsRoutes);
 app.use("/api/pos", posRoutes);
 app.use("/api/treatments", treatmentsRoutes);
@@ -146,7 +148,3 @@ app.use(
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`NMD backend listening on port ${PORT}`);
 });
-
-
-
-
