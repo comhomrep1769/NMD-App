@@ -35,6 +35,7 @@ const ADMIN_NAV = [
   { href: '/timeclock', label: 'Time Clock', icon: '⏱' },
   { href: '/expenses', label: 'Expenses', icon: '💳' },
   { href: '/payroll', label: 'Payroll', icon: '💵' },
+  { href: '/bonus', label: 'Bonus Tracker', icon: '🏆' },
 ]
 
 const EMPLOYEE_NAV = [
@@ -43,6 +44,7 @@ const EMPLOYEE_NAV = [
   { href: '/employee/treatments', label: 'Treatments', icon: '🧪' },
   { href: '/employee/chat', label: 'Chat', icon: '💬' },
   { href: '/employee/timeclock', label: 'Time Clock', icon: '⏱' },
+  { href: '/employee/bonus', label: 'My Bonus', icon: '🏆' },
 ]
 
 export default function PortalShell({
