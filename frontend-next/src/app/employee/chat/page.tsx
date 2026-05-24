@@ -88,7 +88,17 @@ export default function EmployeeChat() {
         body: JSON.stringify({ body: newMsg.trim(), imageUrl })
       })
       const data = await r.json()
-      setMessages(prev => [...prev, data.message])
+      if (data.message) {
+        setMessages(prev => [...prev, {
+          id: data.message.id,
+          body: data.message.body || "",
+          sender_id: data.message.sender_id,
+          sender_display_name: data.message.sender_display_name || "You",
+          sender_role: data.message.sender_role || "",
+          image_url: data.message.image_url,
+          created_at: data.message.created_at,
+        }])
+      }
       setNewMsg("")
     } catch {}
     setSending(false)
