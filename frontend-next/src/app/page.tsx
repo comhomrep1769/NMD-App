@@ -25,7 +25,6 @@ export default function HomePage() {
           <div className="nmd-hero-grid" aria-hidden="true" />
 
           <div className="nmd-hero-inner">
-            {/* Left - copy */}
             <div>
               <div className="nmd-hero-eyebrow fade-up fade-up-1">
                 <span className="nmd-hero-eyebrow-dot" />
@@ -68,7 +67,6 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Right - service area card */}
             <div className="fade-up fade-up-3">
               <div className="nmd-area-card">
                 <div className="nmd-area-badge">
@@ -124,25 +122,8 @@ export default function HomePage() {
         </section>
 
         {/* Trust bar */}
-        <div
-          style={{
-            background: 'var(--color-surface)',
-            borderTop: '1px solid var(--color-border)',
-            borderBottom: '1px solid var(--color-border)',
-            padding: '1.5rem 2.5rem',
-          }}
-        >
-          <div
-            style={{
-              maxWidth: 1180,
-              margin: '0 auto',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '3rem',
-              flexWrap: 'wrap',
-            }}
-          >
+        <div style={{ background: 'var(--color-surface)', borderTop: '1px solid var(--color-border)', borderBottom: '1px solid var(--color-border)', padding: '1.5rem 2.5rem' }}>
+          <div style={{ maxWidth: 1180, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3rem', flexWrap: 'wrap' }}>
             {[
               ['✅', 'Licensed & Insured'],
               ['🏠', 'Residential & Commercial'],
@@ -151,18 +132,7 @@ export default function HomePage() {
               ['📍', 'Brevard County'],
               ['🔄', '20% Recurring Discount'],
             ].map(([icon, label]) => (
-              <div
-                key={label}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  fontSize: '0.875rem',
-                  fontWeight: 500,
-                  color: 'var(--color-text-2)',
-                  whiteSpace: 'nowrap',
-                }}
-              >
+              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-text-2)', whiteSpace: 'nowrap' }}>
                 <span>{icon}</span>
                 {label}
               </div>
@@ -196,21 +166,7 @@ export default function HomePage() {
               <a href="/client/request-service" className="btn-white">
                 Request a Free Quote →
               </a>
-              
-                href="/client/register"
-                style={{
-                  fontSize: '1rem',
-                  fontWeight: 600,
-                  color: 'rgba(255,255,255,0.75)',
-                  padding: '0.9rem 2rem',
-                  borderRadius: 'var(--radius-lg)',
-                  border: '1.5px solid rgba(255,255,255,0.2)',
-                  background: 'transparent',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  transition: 'all 0.2s',
-                }}>
+              <a href="/client/register" className="btn-outline-white">
                 Create Client Account
               </a>
             </div>
