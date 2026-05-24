@@ -5,7 +5,6 @@ import { sendPushToUser } from "../services/push.js";
 
 const router = Router();
 
-// Ensure new employees/admins get added to company-wide group
 async function ensureCompanyWideGroup() {
   await pool.query(`
     INSERT INTO conversation_members (conversation_id, user_id)
@@ -89,11 +88,10 @@ router.get("/conversations", requireAuth, async (req, res) => {
 
 router.get("/users", requireAuth, async (req, res) => {
   try {
-    const role = req.user!.role;
+    const role = String(req.user!.role);
     let result;
 
     if (role === "admin" || role === "superadmin") {
-      // Admin sees everyone
       result = await pool.query(
         `SELECT id, email, display_name, role
          FROM users
@@ -102,7 +100,6 @@ router.get("/users", requireAuth, async (req, res) => {
         [req.user!.id]
       );
     } else if (role === "employee") {
-      // Employee sees admin + other employees
       result = await pool.query(
         `SELECT id, email, display_name, role
          FROM users
@@ -112,7 +109,6 @@ router.get("/users", requireAuth, async (req, res) => {
         [req.user!.id]
       );
     } else {
-      // Client sees admin only
       result = await pool.query(
         `SELECT id, email, display_name, role
          FROM users
@@ -138,7 +134,7 @@ router.get("/users", requireAuth, async (req, res) => {
 router.post("/conversations", requireAuth, async (req, res) => {
   try {
     const { targetUserId } = req.body as { targetUserId?: string };
-    const role = req.user!.role;
+    const role = String(req.user!.role);
 
     if (!targetUserId) {
       return res.status(400).json({ error: "targetUserId is required" });
@@ -157,9 +153,8 @@ router.post("/conversations", requireAuth, async (req, res) => {
       return res.status(404).json({ error: "Target user not found" });
     }
 
-    const targetRole = targetCheck.rows[0].role;
+    const targetRole = String(targetCheck.rows[0].role);
 
-    // Enforce role-based chat restrictions
     if (role === "client" && !["admin", "superadmin"].includes(targetRole)) {
       return res.status(403).json({ error: "Clients can only chat with admin." });
     }
@@ -168,7 +163,6 @@ router.post("/conversations", requireAuth, async (req, res) => {
       return res.status(403).json({ error: "Employees cannot chat with clients." });
     }
 
-    // Check for existing direct conversation
     const existing = await pool.query(
       `
       SELECT c.id
