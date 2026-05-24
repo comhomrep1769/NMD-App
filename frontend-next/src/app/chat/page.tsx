@@ -49,7 +49,6 @@ export default function AdminChat() {
 
   useEffect(() => {
     const token = getNmdToken()
-    // Get current user id from token
     try {
       const payload = JSON.parse(atob(token!.split('.')[1]))
       setCurrentUserId(payload.id || payload.sub || null)
@@ -89,7 +88,17 @@ export default function AdminChat() {
         body: JSON.stringify({ body: newMsg.trim(), imageUrl })
       })
       const data = await r.json()
-      setMessages(prev => [...prev, data.message])
+      if (data.message) {
+        setMessages(prev => [...prev, {
+          id: data.message.id,
+          body: data.message.body || "",
+          sender_id: data.message.sender_id,
+          sender_display_name: data.message.sender_display_name || "You",
+          sender_role: data.message.sender_role || "",
+          image_url: data.message.image_url,
+          created_at: data.message.created_at,
+        }])
+      }
       setNewMsg("")
     } catch {}
     setSending(false)
@@ -117,7 +126,6 @@ export default function AdminChat() {
       const data = await r.json()
       setActiveConv(data.conversationId)
       setShowNewChat(false)
-      // Refresh conversations
       fetch(`${API}/api/chat/conversations`, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json())
         .then(d => setConversations(d.conversations || []))
@@ -145,7 +153,6 @@ export default function AdminChat() {
         </button>
       </div>
 
-      {/* New chat user picker */}
       {showNewChat && (
         <div style={{ background: "white", border: "1.5px solid #dde4ef", borderRadius: 12, padding: "1rem", marginBottom: "1rem" }}>
           <div style={{ fontSize: "0.82rem", fontWeight: 600, color: "#0e1117", marginBottom: "0.75rem" }}>Start a new conversation with:</div>
@@ -169,7 +176,6 @@ export default function AdminChat() {
       {error && <ErrorCard message={error} />}
       {!loading && !error && (
         <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: "1rem", height: "65vh" }}>
-          {/* Conversation list */}
           <div style={{ background: "white", border: "1.5px solid #dde4ef", borderRadius: 14, overflow: "auto" }}>
             {conversations.length === 0 && (
               <div style={{ padding: "2rem", textAlign: "center", color: "#8494b0", fontSize: "0.85rem" }}>No conversations yet.</div>
@@ -189,7 +195,6 @@ export default function AdminChat() {
             ))}
           </div>
 
-          {/* Message area */}
           <div style={{ background: "white", border: "1.5px solid #dde4ef", borderRadius: 14, display: "flex", flexDirection: "column" }}>
             {!activeConv ? (
               <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#8494b0", fontSize: "0.875rem" }}>
@@ -224,7 +229,6 @@ export default function AdminChat() {
                   <div ref={bottomRef} />
                 </div>
 
-                {/* Input bar */}
                 <div style={{ padding: "0.85rem", borderTop: "1px solid #dde4ef", display: "flex", gap: 8, alignItems: "center" }}>
                   <input ref={fileRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => handleImageUpload(e.target.files)} />
                   <button
