@@ -127,21 +127,46 @@ export default function ServiceRequestPage() {
     setLoading(true)
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
-      const photoData = photos.map(p => ({ name: p.name, note: p.note, dataUrl: p.dataUrl }))
-      await fetch(`${API_URL}/api/requests`, {
+      const nameParts = form.customerName.trim().split(' ')
+      const firstName = nameParts[0] || form.customerName
+      const lastName = nameParts.slice(1).join(' ') || ''
+      const firstPhoto = photos[0] || null
+
+      const res = await fetch(`${API_URL}/api/requests/public`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...form,
-          photos: photoData,
-          disclaimerAgreed: true,
-          disclaimerSignedAt: new Date().toISOString(),
+          firstName,
+          lastName,
+          email: form.email,
+          phone: form.phone,
+          address: form.serviceAddress,
+          serviceType: form.selectedService,
+          preferredDate: form.preferredDate,
+          preferredTime: form.preferredTime,
+          notes: [
+            form.propertyType ? `Property Type: ${form.propertyType}` : '',
+            form.surfaceDetails ? `Surface Details: ${form.surfaceDetails}` : '',
+            form.estimatedSize ? `Estimated Size: ${form.estimatedSize}` : '',
+            form.problemDescription ? `Problem: ${form.problemDescription}` : '',
+            form.specialConcerns ? `Special Concerns: ${form.specialConcerns}` : '',
+          ].filter(Boolean).join('\n'),
+          photoDataUrl: firstPhoto?.dataUrl || null,
+          photoNote: firstPhoto?.note || null,
+          waiverAccepted: true,
+          waiverSignature: form.customerName,
         }),
       })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Submission failed')
+      }
+
       setShowDisclaimer(false)
       setSuccess(true)
-    } catch {
-      setError('Submission failed. Please try again.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Submission failed. Please try again.')
     }
     setLoading(false)
   }
@@ -176,6 +201,7 @@ export default function ServiceRequestPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#f4f7fb', fontFamily: 'DM Sans, sans-serif' }}>
+
       {/* Disclaimer Modal */}
       {showDisclaimer && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(14,17,23,0.7)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
@@ -230,4 +256,191 @@ export default function ServiceRequestPage() {
       )}
 
       {/* Nav */}
-      <div style={{ ba
+      <div style={{ background: 'white', borderBottom: '1px solid #dde4ef', padding: '1rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Link href="/" style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1.1rem', color: '#0e1117', textDecoration: 'none' }}>
+          NMD Pressure Washing
+        </Link>
+        <Link href="/client/login" style={{ fontSize: '0.85rem', color: '#1f6132', fontWeight: 600, textDecoration: 'none' }}>
+          Client Login
+        </Link>
+      </div>
+
+      {/* Form */}
+      <div style={{ maxWidth: 720, margin: '0 auto', padding: '2.5rem 1.5rem' }}>
+        <div style={{ marginBottom: '2rem' }}>
+          <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: '1.8rem', fontWeight: 700, color: '#0e1117', marginBottom: '0.5rem', letterSpacing: '-0.02em' }}>
+            Request a Free Estimate
+          </h1>
+          <p style={{ color: '#5a6a88', fontSize: '0.9rem', lineHeight: 1.6 }}>
+            Fill out the form below and our team will review your request and reach out to confirm pricing and scheduling.
+          </p>
+        </div>
+
+        {error && (
+          <div style={{ background: '#fff0f0', border: '1.5px solid #ffc0c0', borderRadius: 8, padding: '0.75rem 1rem', marginBottom: '1.5rem', fontSize: '0.875rem', color: '#c0392b' }}>
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleFormSubmit}>
+          {/* Service Selection */}
+          <div style={{ background: 'white', borderRadius: 12, border: '1px solid #dde4ef', padding: '1.5rem', marginBottom: '1.25rem' }}>
+            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '0.95rem', color: '#0e1117', marginBottom: '1rem' }}>Service Needed *</div>
+            <select
+              value={form.selectedService}
+              onChange={e => update('selectedService', e.target.value)}
+              style={{ ...inputStyle }}
+              required
+            >
+              <option value="">Select a service...</option>
+              {SERVICES.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+
+          {/* Contact Info */}
+          <div style={{ background: 'white', borderRadius: 12, border: '1px solid #dde4ef', padding: '1.5rem', marginBottom: '1.25rem' }}>
+            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '0.95rem', color: '#0e1117', marginBottom: '1rem' }}>Your Information</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div>
+                <label style={labelStyle}>Full Name *</label>
+                <input style={inputStyle} value={form.customerName} onChange={e => update('customerName', e.target.value)} placeholder="John Smith" required />
+              </div>
+              <div>
+                <label style={labelStyle}>Email *</label>
+                <input style={inputStyle} type="email" value={form.email} onChange={e => update('email', e.target.value)} placeholder="you@email.com" required />
+              </div>
+              <div>
+                <label style={labelStyle}>Phone</label>
+                <input style={inputStyle} value={form.phone} onChange={e => update('phone', e.target.value)} placeholder="(555) 000-0000" />
+              </div>
+              <div>
+                <label style={labelStyle}>Service Address *</label>
+                <input style={inputStyle} value={form.serviceAddress} onChange={e => update('serviceAddress', e.target.value)} placeholder="123 Main St, Atlanta, GA" required />
+              </div>
+            </div>
+          </div>
+
+          {/* Scheduling */}
+          <div style={{ background: 'white', borderRadius: 12, border: '1px solid #dde4ef', padding: '1.5rem', marginBottom: '1.25rem' }}>
+            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '0.95rem', color: '#0e1117', marginBottom: '1rem' }}>Preferred Schedule</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div>
+                <label style={labelStyle}>Preferred Date</label>
+                <input style={inputStyle} type="date" value={form.preferredDate} onChange={e => update('preferredDate', e.target.value)} />
+              </div>
+              <div>
+                <label style={labelStyle}>Preferred Time</label>
+                <select style={inputStyle} value={form.preferredTime} onChange={e => update('preferredTime', e.target.value)}>
+                  <option value="">Any time</option>
+                  <option>Morning (8am - 12pm)</option>
+                  <option>Afternoon (12pm - 5pm)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Property Details */}
+          <div style={{ background: 'white', borderRadius: 12, border: '1px solid #dde4ef', padding: '1.5rem', marginBottom: '1.25rem' }}>
+            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '0.95rem', color: '#0e1117', marginBottom: '1rem' }}>Property Details</div>
+            <div style={{ display: 'grid', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label style={labelStyle}>Property Type</label>
+                  <select style={inputStyle} value={form.propertyType} onChange={e => update('propertyType', e.target.value)}>
+                    <option value="">Select...</option>
+                    <option>Residential</option>
+                    <option>Commercial</option>
+                    <option>Industrial</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>Estimated Size (sq ft)</label>
+                  <input style={inputStyle} value={form.estimatedSize} onChange={e => update('estimatedSize', e.target.value)} placeholder="e.g. 2000" />
+                </div>
+              </div>
+              <div>
+                <label style={labelStyle}>Surface Details</label>
+                <input style={inputStyle} value={form.surfaceDetails} onChange={e => update('surfaceDetails', e.target.value)} placeholder="e.g. Concrete driveway, brick facade, wood deck..." />
+              </div>
+              <div>
+                <label style={labelStyle}>Problem Description</label>
+                <textarea
+                  value={form.problemDescription}
+                  onChange={e => update('problemDescription', e.target.value)}
+                  placeholder="Describe what needs to be cleaned or treated..."
+                  rows={3}
+                  style={{ ...inputStyle, resize: 'vertical' }}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Special Concerns</label>
+                <textarea
+                  value={form.specialConcerns}
+                  onChange={e => update('specialConcerns', e.target.value)}
+                  placeholder="Pets, plants, fragile surfaces, access restrictions..."
+                  rows={2}
+                  style={{ ...inputStyle, resize: 'vertical' }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Photos */}
+          <div style={{ background: 'white', borderRadius: 12, border: '1px solid #dde4ef', padding: '1.5rem', marginBottom: '1.25rem' }}>
+            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '0.95rem', color: '#0e1117', marginBottom: '0.5rem' }}>Photos *</div>
+            <p style={{ fontSize: '0.82rem', color: '#8494b0', marginBottom: '1rem' }}>Upload at least one photo of the area to be cleaned. This helps us provide an accurate estimate.</p>
+
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              multiple
+              style={{ display: 'none' }}
+              onChange={e => addPhotos(e.target.files)}
+            />
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              style={{ padding: '0.65rem 1.25rem', borderRadius: 8, border: '1.5px dashed #b0c0d8', background: '#f4f7fb', color: '#3a4660', fontWeight: 500, fontSize: '0.875rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', marginBottom: '1rem' }}
+            >
+              + Add Photos
+            </button>
+
+            {photos.length > 0 && (
+              <div style={{ display: 'grid', gap: '0.75rem' }}>
+                {photos.map(photo => (
+                  <div key={photo.id} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', background: '#f4f7fb', borderRadius: 8, padding: '0.75rem' }}>
+                    <img src={photo.dataUrl} alt={photo.name} style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '0.8rem', color: '#3a4660', fontWeight: 500, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{photo.name}</div>
+                      <input
+                        style={{ ...inputStyle, fontSize: '0.8rem', padding: '0.4rem 0.7rem' }}
+                        placeholder="Add a note about this photo (optional)"
+                        value={photo.note}
+                        onChange={e => updateNote(photo.id, e.target.value)}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removePhoto(photo.id)}
+                      style={{ background: 'none', border: 'none', color: '#c0392b', cursor: 'pointer', fontSize: '1.1rem', flexShrink: 0, padding: '0 0.25rem' }}
+                    >
+                      x
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <button
+            type="submit"
+            style={{ width: '100%', padding: '0.9rem', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 700, fontSize: '1rem', cursor: 'pointer', fontFamily: 'Syne, sans-serif', letterSpacing: '-0.01em' }}
+          >
+            Review Agreement & Submit
+          </button>
+        </form>
+      </div>
+    </div>
+  )
+}
