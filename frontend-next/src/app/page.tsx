@@ -6,6 +6,7 @@ import PricingSection from '@/components/landing/PricingSection'
 import AppSection from '@/components/landing/AppSection'
 import Footer from '@/components/landing/Footer'
 import GuruChat from '@/components/landing/GuruChat'
+import BeforeAfterSection from '@/components/landing/BeforeAfterSection'
 
 export const metadata: Metadata = {
   title: 'NMD Pressure Washing | Brevard & Orange County, FL',
@@ -172,6 +173,9 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+
+        {/* Before & After */}
+        <BeforeAfterSection />
 
         {/* App / Client Portal */}
         <AppSection />
