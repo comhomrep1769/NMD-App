@@ -210,8 +210,7 @@ export default function HomePage() {
                   alignItems: 'center',
                   gap: 8,
                   transition: 'all 0.2s',
-                }}
-              >
+                }}>
                 Create Client Account
               </a>
             </div>
