@@ -32,6 +32,7 @@ router.get("/", requireAuth, requireRole("admin"), async (_req, res) => {
 });
 
 router.post("/public", async (req, res) => {
+  console.log("[requests/public] received submission");
   try {
     const {
       firstName, lastName, phone, email, address, serviceType,
@@ -80,16 +81,20 @@ router.post("/public", async (req, res) => {
       waiverSignedAt: row.waiver_signed_at, status: row.status, createdAt: row.created_at
     };
 
+    console.log("[requests/public] saved to DB, email:", email);
+
     const PORTAL_URL = process.env.FRONTEND_URL || "https://nmdpowash.com";
 
     if (email) {
       try {
+        console.log("[requests/public] creating client account for:", email);
         const displayName = `${firstName} ${lastName}`.trim();
         const { token: setPasswordToken, isNew } = await createClientAccountAndToken({
           email: email.trim().toLowerCase(),
           displayName,
           phone: phone || null
         });
+        console.log("[requests/public] account created, isNew:", isNew, "sending onboarding email");
 
         const setPasswordUrl = `${PORTAL_URL}/client/set-password?token=${setPasswordToken}`;
 
@@ -106,8 +111,9 @@ router.post("/public", async (req, res) => {
           }),
           text: `Hi ${firstName}, your quote request was received. Set your password here: ${setPasswordUrl}`
         });
+        console.log("[requests/public] onboarding email sent to:", email);
       } catch (emailErr) {
-        console.error("Client onboarding email error:", emailErr);
+        console.error("[requests/public] Client onboarding email error:", emailErr);
       }
     }
 
@@ -120,10 +126,11 @@ router.post("/public", async (req, res) => {
       }),
       text: `New service request from ${firstName} ${lastName}: ${serviceType} at ${address}`
     });
+    console.log("[requests/public] admin notification sent");
 
     return res.status(201).json({ request });
   } catch (error) {
-    console.error("public service request error", error);
+    console.error("[requests/public] error:", error);
     return res.status(500).json({ error: "Server error" });
   }
 });
