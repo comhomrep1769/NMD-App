@@ -26,12 +26,19 @@ export default function EmployeesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
-  const [showModal, setShowModal] = useState(false)
+
+  const [showCreate, setShowCreate] = useState(false)
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState('')
-  const [form, setForm] = useState({
-    displayName: '', email: '', password: '', role: 'employee', payRate: '30'
-  })
+  const [form, setForm] = useState({ displayName: '', email: '', password: '', role: 'employee', payRate: '30' })
+
+  const [editEmployee, setEditEmployee] = useState<Employee | null>(null)
+  const [editForm, setEditForm] = useState({ displayName: '', email: '', role: 'employee', payRate: '30' })
+  const [editError, setEditError] = useState('')
+  const [editSaving, setEditSaving] = useState(false)
+
+  const [deleteEmployee, setDeleteEmployee] = useState<Employee | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const API = process.env.NEXT_PUBLIC_API_URL || ''
 
@@ -49,8 +56,8 @@ export default function EmployeesPage() {
     `${e.displayName} ${e.email} ${e.role}`.toLowerCase().includes(search.toLowerCase())
   )
 
-  const update = (field: string, value: string) =>
-    setForm(prev => ({ ...prev, [field]: value }))
+  const update = (field: string, value: string) => setForm(prev => ({ ...prev, [field]: value }))
+  const updateEdit = (field: string, value: string) => setEditForm(prev => ({ ...prev, [field]: value }))
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -65,17 +72,14 @@ export default function EmployeesPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
-          displayName: form.displayName.trim(),
-          email: form.email.trim(),
-          password: form.password,
-          role: form.role,
-          payRate: parseFloat(form.payRate) || 30
+          displayName: form.displayName.trim(), email: form.email.trim(),
+          password: form.password, role: form.role, payRate: parseFloat(form.payRate) || 30
         })
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to create employee')
       setEmployees(prev => [data.employee, ...prev])
-      setShowModal(false)
+      setShowCreate(false)
       setForm({ displayName: '', email: '', password: '', role: 'employee', payRate: '30' })
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'Failed to create employee')
@@ -83,22 +87,83 @@ export default function EmployeesPage() {
     setSaving(false)
   }
 
+  const openEdit = (emp: Employee) => {
+    setEditEmployee(emp)
+    setEditForm({ displayName: emp.displayName, email: emp.email, role: emp.role, payRate: String(emp.payRate) })
+    setEditError('')
+  }
+
+  const handleEdit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editEmployee) return
+    setEditError('')
+    setEditSaving(true)
+    try {
+      const token = getNmdToken()
+      const res = await fetch(`${API}/api/employees/${editEmployee.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          displayName: editForm.displayName.trim(),
+          email: editForm.email.trim(),
+          role: editForm.role,
+          payRate: parseFloat(editForm.payRate) || 30
+        })
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to update employee')
+      setEmployees(prev => prev.map(e => e.id === editEmployee.id ? data.employee : e))
+      setEditEmployee(null)
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : 'Failed to update employee')
+    }
+    setEditSaving(false)
+  }
+
+  const handleDelete = async () => {
+    if (!deleteEmployee) return
+    setDeleting(true)
+    try {
+      const token = getNmdToken()
+      const res = await fetch(`${API}/api/employees/${deleteEmployee.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (!res.ok) throw new Error('Failed to delete employee')
+      setEmployees(prev => prev.filter(e => e.id !== deleteEmployee.id))
+      setDeleteEmployee(null)
+    } catch (err) {
+      console.error(err)
+    }
+    setDeleting(false)
+  }
+
+  const modalOverlay: React.CSSProperties = {
+    position: 'fixed', inset: 0, background: 'rgba(14,17,23,0.6)',
+    zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
+  }
+  const modalBox: React.CSSProperties = {
+    background: 'white', borderRadius: 16, width: '100%', maxWidth: 480,
+    boxShadow: '0 20px 60px rgba(14,17,23,0.2)', overflow: 'hidden'
+  }
+  const modalHeader: React.CSSProperties = {
+    padding: '1.25rem 1.5rem', borderBottom: '1px solid #dde4ef',
+    display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+  }
+
   return (
     <PortalShell requiredRole={['admin', 'superadmin']}>
 
-      {showModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(14,17,23,0.6)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ background: 'white', borderRadius: 16, width: '100%', maxWidth: 480, boxShadow: '0 20px 60px rgba(14,17,23,0.2)', overflow: 'hidden' }}>
-            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #dde4ef', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      {/* Create Modal */}
+      {showCreate && (
+        <div style={modalOverlay}>
+          <div style={modalBox}>
+            <div style={modalHeader}>
               <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#0e1117' }}>Add New Employee</div>
-              <button onClick={() => { setShowModal(false); setFormError('') }} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#8494b0' }}>x</button>
+              <button onClick={() => { setShowCreate(false); setFormError('') }} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#8494b0' }}>x</button>
             </div>
             <form onSubmit={handleCreate} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {formError && (
-                <div style={{ background: '#fff0f0', border: '1.5px solid #ffc0c0', borderRadius: 8, padding: '0.65rem 1rem', fontSize: '0.82rem', color: '#c0392b' }}>
-                  {formError}
-                </div>
-              )}
+              {formError && <div style={{ background: '#fff0f0', border: '1.5px solid #ffc0c0', borderRadius: 8, padding: '0.65rem 1rem', fontSize: '0.82rem', color: '#c0392b' }}>{formError}</div>}
               <div>
                 <label style={labelStyle}>Full Name *</label>
                 <input style={inputStyle} value={form.displayName} onChange={e => update('displayName', e.target.value)} placeholder="John Smith" required />
@@ -125,14 +190,77 @@ export default function EmployeesPage() {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-                <button type="button" onClick={() => { setShowModal(false); setFormError('') }} style={{ flex: 1, padding: '0.7rem', borderRadius: 8, border: '1.5px solid #dde4ef', background: 'white', color: '#5a6a88', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
-                  Cancel
-                </button>
+                <button type="button" onClick={() => { setShowCreate(false); setFormError('') }} style={{ flex: 1, padding: '0.7rem', borderRadius: 8, border: '1.5px solid #dde4ef', background: 'white', color: '#5a6a88', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Cancel</button>
                 <button type="submit" disabled={saving} style={{ flex: 2, padding: '0.7rem', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: saving ? 0.7 : 1 }}>
-                  {saving ? 'Creating...' : 'Create Employee & Send Welcome Email'}
+                  {saving ? 'Creating...' : 'Create & Send Welcome Email'}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {editEmployee && (
+        <div style={modalOverlay}>
+          <div style={modalBox}>
+            <div style={modalHeader}>
+              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#0e1117' }}>Edit Employee</div>
+              <button onClick={() => setEditEmployee(null)} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#8494b0' }}>x</button>
+            </div>
+            <form onSubmit={handleEdit} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {editError && <div style={{ background: '#fff0f0', border: '1.5px solid #ffc0c0', borderRadius: 8, padding: '0.65rem 1rem', fontSize: '0.82rem', color: '#c0392b' }}>{editError}</div>}
+              <div>
+                <label style={labelStyle}>Full Name</label>
+                <input style={inputStyle} value={editForm.displayName} onChange={e => updateEdit('displayName', e.target.value)} required />
+              </div>
+              <div>
+                <label style={labelStyle}>Email</label>
+                <input style={inputStyle} type="email" value={editForm.email} onChange={e => updateEdit('email', e.target.value)} required />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label style={labelStyle}>Role</label>
+                  <select style={inputStyle} value={editForm.role} onChange={e => updateEdit('role', e.target.value)}>
+                    <option value="employee">Employee</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>Pay Rate ($/hr)</label>
+                  <input style={inputStyle} type="number" value={editForm.payRate} onChange={e => updateEdit('payRate', e.target.value)} min="0" step="0.5" />
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+                <button type="button" onClick={() => setEditEmployee(null)} style={{ flex: 1, padding: '0.7rem', borderRadius: 8, border: '1.5px solid #dde4ef', background: 'white', color: '#5a6a88', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Cancel</button>
+                <button type="submit" disabled={editSaving} style={{ flex: 2, padding: '0.7rem', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 600, cursor: editSaving ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: editSaving ? 0.7 : 1 }}>
+                  {editSaving ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirm Modal */}
+      {deleteEmployee && (
+        <div style={modalOverlay}>
+          <div style={{ ...modalBox, maxWidth: 420 }}>
+            <div style={modalHeader}>
+              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#0e1117' }}>Delete Employee</div>
+              <button onClick={() => setDeleteEmployee(null)} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#8494b0' }}>x</button>
+            </div>
+            <div style={{ padding: '1.5rem' }}>
+              <p style={{ color: '#3a4660', fontSize: '0.9rem', marginBottom: '1.5rem', lineHeight: 1.6 }}>
+                Are you sure you want to delete <strong>{deleteEmployee.displayName}</strong> ({deleteEmployee.email})? This action cannot be undone.
+              </p>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={() => setDeleteEmployee(null)} style={{ flex: 1, padding: '0.7rem', borderRadius: 8, border: '1.5px solid #dde4ef', background: 'white', color: '#5a6a88', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Cancel</button>
+                <button onClick={handleDelete} disabled={deleting} style={{ flex: 1, padding: '0.7rem', borderRadius: 8, border: 'none', background: '#e74c3c', color: 'white', fontWeight: 600, cursor: deleting ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: deleting ? 0.7 : 1 }}>
+                  {deleting ? 'Deleting...' : 'Yes, Delete'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -143,10 +271,7 @@ export default function EmployeesPage() {
         action={
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <SearchInput value={search} onChange={setSearch} placeholder="Search employees..." />
-            <button
-              onClick={() => setShowModal(true)}
-              style={{ padding: '0.6rem 1.25rem', borderRadius: 8, background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 600, fontSize: '0.85rem', border: 'none', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', whiteSpace: 'nowrap' }}
-            >
+            <button onClick={() => setShowCreate(true)} style={{ padding: '0.6rem 1.25rem', borderRadius: 8, background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 600, fontSize: '0.85rem', border: 'none', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', whiteSpace: 'nowrap' }}>
               + Add Employee
             </button>
           </div>
@@ -156,7 +281,7 @@ export default function EmployeesPage() {
       {error && <ErrorCard message={error} />}
       {!loading && !error && (
         <DataTable
-          headers={['Name', 'Email', 'Role', 'Pay Rate', 'Joined']}
+          headers={['Name', 'Email', 'Role', 'Pay Rate', 'Joined', '']}
           emptyMessage="No employees found."
           rows={filtered.map(e => [
             <div key="name" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -169,6 +294,10 @@ export default function EmployeesPage() {
             <StatusBadge key="role" status={e.role} />,
             <span key="pay" style={{ fontWeight: 600 }}>{money(e.payRate)}/hr</span>,
             <span key="date" style={{ color: '#8494b0', whiteSpace: 'nowrap' }}>{fmtDate(e.createdAt)}</span>,
+            <div key="actions" style={{ display: 'flex', gap: 6 }}>
+              <button onClick={() => openEdit(e)} style={{ padding: '0.35rem 0.75rem', borderRadius: 6, border: '1.5px solid #dde4ef', background: 'white', color: '#3a4660', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Edit</button>
+              <button onClick={() => setDeleteEmployee(e)} style={{ padding: '0.35rem 0.75rem', borderRadius: 6, border: 'none', background: '#fef2f2', color: '#e74c3c', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Delete</button>
+            </div>
           ])}
         />
       )}
