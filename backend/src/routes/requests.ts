@@ -94,24 +94,39 @@ router.post("/public", async (req, res) => {
           displayName,
           phone: phone || null
         });
-        console.log("[requests/public] account created, isNew:", isNew, "sending onboarding email");
+        console.log("[requests/public] account ready, isNew:", isNew);
 
-        const setPasswordUrl = `${PORTAL_URL}/client/set-password?token=${setPasswordToken}`;
-
-        await sendEmail({
-          to: email,
-          subject: "Your Quote Request Has Been Received - NMD Pressure Washing",
-          html: buildNmdEmailTemplate({
-            title: "Quote Request Received",
-            heading: "Your Quote Request Has Been Received",
-            message: `Hi ${firstName},\n\nThank you for choosing NMD Pressure Washing Services LLC. We have successfully received your quote request and our team is currently reviewing the details. You can expect a response from us shortly with the next steps.\n\nYOUR ACCOUNT ACCESS\n\nFor your convenience, ${isNew ? "an account has been created for you" : "your account is ready"} so you can:\n- View your quote\n- Communicate directly with our team\n- Manage scheduling and future services\n\nTo get started, please set your password using the link below:\n\n${setPasswordUrl}\n\nOPTIONAL: ADD THE APP TO YOUR PHONE\n\niPhone (Safari): Open the link above in Safari, tap the Share icon, select Add to Home Screen, tap Add.\n\nAndroid (Chrome): Open the link above in Chrome, tap the menu (3 dots), select Add to Home Screen or Install App, tap Add/Install.\n\nWe appreciate the opportunity to serve you and look forward to helping you achieve a clean, refreshed property. If you have any questions in the meantime, feel free to reply directly to this email.\n\nBest regards,\nNMD Pressure Washing Services LLC\n321-888-6586`,
-            buttonText: "Set Your Password & Access Your Account",
-            buttonUrl: setPasswordUrl,
-            footerNote: "Clean Results. Reliable Service. Every Time."
-          }),
-          text: `Hi ${firstName}, your quote request was received. Set your password here: ${setPasswordUrl}`
-        });
-        console.log("[requests/public] onboarding email sent to:", email);
+        if (isNew) {
+          const setPasswordUrl = `${PORTAL_URL}/client/set-password?token=${setPasswordToken}`;
+          await sendEmail({
+            to: email,
+            subject: "Your Quote Request Has Been Received - NMD Pressure Washing",
+            html: buildNmdEmailTemplate({
+              title: "Quote Request Received",
+              heading: "Your Quote Request Has Been Received",
+              message: `Hi ${firstName},\n\nThank you for choosing NMD Pressure Washing Services LLC. We have successfully received your quote request and our team is currently reviewing the details.\n\nYOUR ACCOUNT ACCESS\n\nAn account has been created for you so you can:\n- View your quote\n- Communicate directly with our team\n- Manage scheduling and future services\n\nTo get started, please set your password using the button below.\n\nOPTIONAL: ADD THE APP TO YOUR PHONE\n\niPhone (Safari): Open the link in Safari, tap Share, select Add to Home Screen.\nAndroid (Chrome): Open in Chrome, tap menu (3 dots), select Add to Home Screen.\n\nBest regards,\nNMD Pressure Washing Services LLC\n321-888-6586`,
+              buttonText: "Set Your Password & Access Your Account",
+              buttonUrl: setPasswordUrl,
+              footerNote: "Clean Results. Reliable Service. Every Time."
+            }),
+            text: `Hi ${firstName}, your quote request was received. Set your password here: ${setPasswordUrl}`
+          });
+        } else {
+          await sendEmail({
+            to: email,
+            subject: "New Service Request Received - NMD Pressure Washing",
+            html: buildNmdEmailTemplate({
+              title: "Service Request Received",
+              heading: "New Request Received",
+              message: `Hi ${firstName},\n\nThank you for submitting a new service request. Our team is reviewing your request and will be in touch shortly with a quote.\n\nService: ${serviceType}\nAddress: ${address}\n\nYou can track your request status in your client portal.\n\nBest regards,\nNMD Pressure Washing Services LLC\n321-888-6586`,
+              buttonText: "View Your Portal",
+              buttonUrl: `${PORTAL_URL}/client`,
+              footerNote: "Clean Results. Reliable Service. Every Time."
+            }),
+            text: `Hi ${firstName}, your new service request for ${serviceType} has been received.`
+          });
+        }
+        console.log("[requests/public] client email sent to:", email);
       } catch (emailErr) {
         console.error("[requests/public] Client onboarding email error:", emailErr);
       }
