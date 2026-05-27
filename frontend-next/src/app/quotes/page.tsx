@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import PortalShell from '@/components/portal/PortalShell'
 import { DataTable, LoadingCard, ErrorCard, SearchInput, SectionHeader, StatusBadge, money, fmtDate } from '@/components/portal/PortalUI'
 import { getNmdToken } from '@/lib/authStorage'
@@ -25,7 +25,7 @@ const modalOverlay: React.CSSProperties = {
   zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
 }
 const modalBox: React.CSSProperties = {
-  background: 'white', borderRadius: 16, width: '100%', maxWidth: 480,
+  background: 'white', borderRadius: 16, width: '100%', maxWidth: 500,
   boxShadow: '0 20px 60px rgba(14,17,23,0.2)', overflow: 'hidden'
 }
 
@@ -41,6 +41,12 @@ export default function QuotesPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [deleteQuote, setDeleteQuote] = useState<Quote | null>(null)
   const [deleting, setDeleting] = useState(false)
+
+  const [convertQuote, setConvertQuote] = useState<Quote | null>(null)
+  const [uploadFile, setUploadFile] = useState<{ name: string; dataUrl: string } | null>(null)
+  const [converting, setConverting] = useState(false)
+  const [convertError, setConvertError] = useState('')
+  const fileRef = useRef<HTMLInputElement>(null)
 
   const API = process.env.NEXT_PUBLIC_API_URL || ''
 
@@ -109,18 +115,50 @@ export default function QuotesPage() {
     setActionLoading(null)
   }
 
-  const handleConvert = async (q: Quote) => {
-    if (!confirm(`Convert Quote #${q.quoteNumber} to an invoice?`)) return
-    setActionLoading(q.id + '-convert')
+  const handleFileSelect = (files: FileList | null) => {
+    if (!files || files.length === 0) return
+    const file = files[0]
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      setUploadFile({ name: file.name, dataUrl: e.target?.result as string })
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleConvertWithUpload = async () => {
+    if (!convertQuote) return
+    setConvertError('')
+    setConverting(true)
     try {
       const token = getNmdToken()
-      const res = await fetch(`${API}/api/quotes/${q.id}/convert-to-invoice`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
-      setQuotes(p => p.map(x => x.id === q.id ? { ...x, convertedInvoiceId: data.invoice.id } : x))
-      alert(`Invoice #${data.invoice.invoiceNumber} created successfully.`)
-    } catch (err) { alert(err instanceof Error ? err.message : 'Failed') }
-    setActionLoading(null)
+
+      const convertRes = await fetch(`${API}/api/quotes/${convertQuote.id}/convert-to-invoice`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const convertData = await convertRes.json()
+      if (!convertRes.ok) throw new Error(convertData.error)
+
+      const invoiceId = convertData.invoice.id
+      const invoiceNumber = convertData.invoice.invoiceNumber
+
+      if (uploadFile) {
+        const uploadRes = await fetch(`${API}/api/invoices/${invoiceId}/upload`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ fileDataUrl: uploadFile.dataUrl, fileName: uploadFile.name })
+        })
+        if (!uploadRes.ok) throw new Error('Invoice created but file upload failed.')
+      }
+
+      setQuotes(p => p.map(x => x.id === convertQuote.id ? { ...x, convertedInvoiceId: invoiceId } : x))
+      setConvertQuote(null)
+      setUploadFile(null)
+      alert(`Invoice #${invoiceNumber} created successfully.${uploadFile ? ' Client has been notified by email.' : ''}`)
+    } catch (err) {
+      setConvertError(err instanceof Error ? err.message : 'Failed')
+    }
+    setConverting(false)
   }
 
   const handleDelete = async () => {
@@ -139,6 +177,7 @@ export default function QuotesPage() {
   return (
     <PortalShell requiredRole={['admin', 'superadmin']}>
 
+      {/* Create Modal */}
       {showCreate && (
         <div style={modalOverlay}>
           <div style={modalBox}>
@@ -180,6 +219,75 @@ export default function QuotesPage() {
         </div>
       )}
 
+      {/* Convert to Invoice Modal */}
+      {convertQuote && (
+        <div style={modalOverlay}>
+          <div style={{ ...modalBox, maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #dde4ef', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#0e1117' }}>Convert to Invoice</div>
+              <button onClick={() => { setConvertQuote(null); setUploadFile(null); setConvertError('') }} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#8494b0' }}>x</button>
+            </div>
+
+            <div style={{ padding: '1rem 1.5rem', background: '#f8fbff', borderBottom: '1px solid #dde4ef', flexShrink: 0 }}>
+              <div style={{ fontSize: '0.8rem', color: '#5a6a88', marginBottom: 2 }}>Creating invoice for</div>
+              <div style={{ fontWeight: 700, color: '#0e1117', fontFamily: 'Syne, sans-serif' }}>{convertQuote.clientName}</div>
+              <div style={{ fontSize: '0.82rem', color: '#5a6a88', marginTop: 2 }}>{convertQuote.serviceType} · ${convertQuote.total.toFixed(2)}</div>
+            </div>
+
+            <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', overflowY: 'auto' }}>
+              {convertError && <div style={{ background: '#fff0f0', border: '1.5px solid #ffc0c0', borderRadius: 8, padding: '0.65rem 1rem', fontSize: '0.82rem', color: '#c0392b' }}>{convertError}</div>}
+
+              <div>
+                <label style={labelStyle}>Upload Invoice from Bank App (Optional)</label>
+                <p style={{ fontSize: '0.78rem', color: '#8494b0', marginBottom: 8, lineHeight: 1.5 }}>
+                  Upload the invoice PDF or image you generated from your bank app. The client will be notified by email when you upload.
+                </p>
+                <input ref={fileRef} type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={e => handleFileSelect(e.target.files)} />
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: 8, border: '1.5px dashed #b0c0d8', background: uploadFile ? '#f0fff4' : '#f4f7fb', color: uploadFile ? '#1f6132' : '#3a4660', fontWeight: 500, fontSize: '0.875rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}
+                >
+                  {uploadFile ? `Selected: ${uploadFile.name}` : '+ Select Invoice File (PDF or Image)'}
+                </button>
+                {uploadFile && (
+                  <button
+                    type="button"
+                    onClick={() => setUploadFile(null)}
+                    style={{ marginTop: 6, background: 'none', border: 'none', color: '#e74c3c', fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}
+                  >
+                    Remove file
+                  </button>
+                )}
+              </div>
+
+              <div style={{ background: '#f8fbff', borderRadius: 8, padding: '0.75rem 1rem', border: '1px solid #dde4ef', fontSize: '0.78rem', color: '#5a6a88', lineHeight: 1.6 }}>
+                {uploadFile
+                  ? 'The invoice will be created and the file will be attached. Client will receive an email notification.'
+                  : 'You can skip the upload now and upload the invoice file later from the Invoices page.'}
+              </div>
+
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  onClick={() => { setConvertQuote(null); setUploadFile(null); setConvertError('') }}
+                  style={{ flex: 1, padding: '0.7rem', borderRadius: 8, border: '1.5px solid #dde4ef', background: 'white', color: '#5a6a88', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConvertWithUpload}
+                  disabled={converting}
+                  style={{ flex: 2, padding: '0.7rem', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 600, cursor: converting ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: converting ? 0.7 : 1 }}
+                >
+                  {converting ? 'Processing...' : uploadFile ? 'Create Invoice & Upload File' : 'Create Invoice'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Modal */}
       {deleteQuote && (
         <div style={modalOverlay}>
           <div style={{ ...modalBox, maxWidth: 420 }}>
@@ -239,8 +347,11 @@ export default function QuotesPage() {
                 </>
               )}
               {q.status === 'accepted' && !q.convertedInvoiceId && (
-                <button onClick={() => handleConvert(q)} disabled={actionLoading === q.id + '-convert'} style={{ padding: '0.3rem 0.65rem', borderRadius: 6, border: 'none', background: '#e8f0fe', color: '#124d83', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
-                  {actionLoading === q.id + '-convert' ? '...' : 'Convert to Invoice'}
+                <button
+                  onClick={() => { setConvertQuote(q); setUploadFile(null); setConvertError('') }}
+                  style={{ padding: '0.3rem 0.65rem', borderRadius: 6, border: 'none', background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}
+                >
+                  Convert to Invoice
                 </button>
               )}
               {q.convertedInvoiceId && (
