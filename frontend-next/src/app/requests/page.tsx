@@ -1,7 +1,6 @@
 ﻿'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import PortalShell from '@/components/portal/PortalShell'
 import { DataTable, LoadingCard, ErrorCard, SearchInput, SectionHeader, StatusBadge, fmtDate } from '@/components/portal/PortalUI'
 import { getNmdToken } from '@/lib/authStorage'
@@ -11,7 +10,7 @@ type Request = {
   email: string; phone: string; serviceType: string
   address: string; status: string; createdAt: string
   preferredDate: string | null; preferredTime: string | null
-  notes: string | null
+  notes: string | null; photoDataUrl: string | null; photoNote: string | null
 }
 
 const inputStyle: React.CSSProperties = {
@@ -27,13 +26,8 @@ const modalOverlay: React.CSSProperties = {
   position: 'fixed', inset: 0, background: 'rgba(14,17,23,0.6)',
   zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
 }
-const modalBox: React.CSSProperties = {
-  background: 'white', borderRadius: 16, width: '100%', maxWidth: 500,
-  boxShadow: '0 20px 60px rgba(14,17,23,0.2)', overflow: 'hidden'
-}
 
 export default function RequestsPage() {
-  const router = useRouter()
   const [requests, setRequests] = useState<Request[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -43,6 +37,7 @@ export default function RequestsPage() {
   const [quoteSaving, setQuoteSaving] = useState(false)
   const [quoteError, setQuoteError] = useState('')
   const [statusLoading, setStatusLoading] = useState<string | null>(null)
+  const [viewPhoto, setViewPhoto] = useState<Request | null>(null)
 
   const API = process.env.NEXT_PUBLIC_API_URL || ''
 
@@ -126,43 +121,109 @@ export default function RequestsPage() {
   return (
     <PortalShell requiredRole={['admin', 'superadmin']}>
 
+      {/* Photo Lightbox */}
+      {viewPhoto && (
+        <div
+          onClick={() => setViewPhoto(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', cursor: 'zoom-out' }}
+        >
+          <div onClick={e => e.stopPropagation()} style={{ maxWidth: 800, width: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+              <div style={{ color: 'white', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem' }}>
+                {viewPhoto.firstName} {viewPhoto.lastName} — {viewPhoto.serviceType}
+              </div>
+              <button onClick={() => setViewPhoto(null)} style={{ background: 'none', border: 'none', color: 'white', fontSize: '1.5rem', cursor: 'pointer' }}>x</button>
+            </div>
+            <img
+              src={viewPhoto.photoDataUrl!}
+              alt="Client uploaded photo"
+              style={{ width: '100%', borderRadius: 12, maxHeight: '70vh', objectFit: 'contain', background: '#111' }}
+            />
+            {viewPhoto.photoNote && (
+              <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 8, padding: '0.75rem 1rem', color: 'white', fontSize: '0.85rem' }}>
+                <strong>Client note:</strong> {viewPhoto.photoNote}
+              </div>
+            )}
+            <div style={{ color: '#aaa', fontSize: '0.8rem', textAlign: 'center' }}>Click anywhere outside to close</div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Quote Modal */}
       {quoteRequest && (
         <div style={modalOverlay}>
-          <div style={modalBox}>
-            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #dde4ef', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ background: 'white', borderRadius: 16, width: '100%', maxWidth: 540, boxShadow: '0 20px 60px rgba(14,17,23,0.2)', overflow: 'hidden', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #dde4ef', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
               <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#0e1117' }}>Create Quote</div>
               <button onClick={() => setQuoteRequest(null)} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#8494b0' }}>x</button>
             </div>
-            <div style={{ padding: '1.25rem 1.5rem', background: '#f8fbff', borderBottom: '1px solid #dde4ef' }}>
-              <div style={{ fontSize: '0.8rem', color: '#5a6a88', marginBottom: 4 }}>Creating quote for</div>
-              <div style={{ fontWeight: 700, color: '#0e1117', fontFamily: 'Syne, sans-serif' }}>{quoteRequest.firstName} {quoteRequest.lastName}</div>
-              <div style={{ fontSize: '0.82rem', color: '#5a6a88', marginTop: 2 }}>{quoteRequest.serviceType} · {quoteRequest.address}</div>
-              {quoteRequest.notes && <div style={{ fontSize: '0.78rem', color: '#8494b0', marginTop: 4, fontStyle: 'italic' }}>Notes: {quoteRequest.notes}</div>}
+
+            <div style={{ overflowY: 'auto', flex: 1 }}>
+              {/* Client info */}
+              <div style={{ padding: '1rem 1.5rem', background: '#f8fbff', borderBottom: '1px solid #dde4ef' }}>
+                <div style={{ fontSize: '0.8rem', color: '#5a6a88', marginBottom: 4 }}>Creating quote for</div>
+                <div style={{ fontWeight: 700, color: '#0e1117', fontFamily: 'Syne, sans-serif' }}>{quoteRequest.firstName} {quoteRequest.lastName}</div>
+                <div style={{ fontSize: '0.82rem', color: '#5a6a88', marginTop: 2 }}>{quoteRequest.serviceType} · {quoteRequest.address}</div>
+                {quoteRequest.preferredDate && (
+                  <div style={{ fontSize: '0.78rem', color: '#8494b0', marginTop: 2 }}>Preferred: {fmtDate(quoteRequest.preferredDate)}{quoteRequest.preferredTime ? ` · ${quoteRequest.preferredTime}` : ''}</div>
+                )}
+                {quoteRequest.notes && (
+                  <div style={{ fontSize: '0.78rem', color: '#5a6a88', marginTop: 6, background: 'white', borderRadius: 6, padding: '0.5rem 0.75rem', border: '1px solid #dde4ef' }}>
+                    <strong>Notes:</strong> {quoteRequest.notes}
+                  </div>
+                )}
+              </div>
+
+              {/* Photo */}
+              {quoteRequest.photoDataUrl && (
+                <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #dde4ef' }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#3a4660', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Client Photo</div>
+                  <div style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
+                    <img
+                      src={quoteRequest.photoDataUrl}
+                      alt="Client photo"
+                      style={{ width: '100%', maxHeight: 240, objectFit: 'cover', borderRadius: 10, border: '1px solid #dde4ef', cursor: 'zoom-in' }}
+                      onClick={() => setViewPhoto(quoteRequest)}
+                    />
+                    <div
+                      onClick={() => setViewPhoto(quoteRequest)}
+                      style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(0,0,0,0.6)', color: 'white', fontSize: '0.72rem', fontWeight: 600, padding: '0.25rem 0.6rem', borderRadius: 6, cursor: 'zoom-in' }}
+                    >
+                      View Full
+                    </div>
+                  </div>
+                  {quoteRequest.photoNote && (
+                    <div style={{ fontSize: '0.78rem', color: '#5a6a88', marginTop: 6, fontStyle: 'italic' }}>"{quoteRequest.photoNote}"</div>
+                  )}
+                </div>
+              )}
+
+              {/* Quote form */}
+              <form onSubmit={handleCreateQuote} style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {quoteError && <div style={{ background: '#fff0f0', border: '1.5px solid #ffc0c0', borderRadius: 8, padding: '0.65rem 1rem', fontSize: '0.82rem', color: '#c0392b' }}>{quoteError}</div>}
+                <div>
+                  <label style={labelStyle}>Quote Total ($) *</label>
+                  <input
+                    style={inputStyle} type="number" value={quoteForm.total}
+                    onChange={e => setQuoteForm(p => ({ ...p, total: e.target.value }))}
+                    placeholder="0.00" min="0" step="0.01" required autoFocus
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>Send to Client?</label>
+                  <select style={inputStyle} value={quoteForm.status} onChange={e => setQuoteForm(p => ({ ...p, status: e.target.value }))}>
+                    <option value="sent">Yes — Send quote to client now</option>
+                    <option value="draft">No — Save as draft first</option>
+                  </select>
+                </div>
+                <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+                  <button type="button" onClick={() => setQuoteRequest(null)} style={{ flex: 1, padding: '0.7rem', borderRadius: 8, border: '1.5px solid #dde4ef', background: 'white', color: '#5a6a88', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Cancel</button>
+                  <button type="submit" disabled={quoteSaving} style={{ flex: 2, padding: '0.7rem', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 600, cursor: quoteSaving ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: quoteSaving ? 0.7 : 1 }}>
+                    {quoteSaving ? 'Creating...' : 'Create Quote'}
+                  </button>
+                </div>
+              </form>
             </div>
-            <form onSubmit={handleCreateQuote} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {quoteError && <div style={{ background: '#fff0f0', border: '1.5px solid #ffc0c0', borderRadius: 8, padding: '0.65rem 1rem', fontSize: '0.82rem', color: '#c0392b' }}>{quoteError}</div>}
-              <div>
-                <label style={labelStyle}>Quote Total ($) *</label>
-                <input
-                  style={inputStyle} type="number" value={quoteForm.total}
-                  onChange={e => setQuoteForm(p => ({ ...p, total: e.target.value }))}
-                  placeholder="0.00" min="0" step="0.01" required
-                />
-              </div>
-              <div>
-                <label style={labelStyle}>Send to Client?</label>
-                <select style={inputStyle} value={quoteForm.status} onChange={e => setQuoteForm(p => ({ ...p, status: e.target.value }))}>
-                  <option value="sent">Yes — Send quote to client now</option>
-                  <option value="draft">No — Save as draft first</option>
-                </select>
-              </div>
-              <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-                <button type="button" onClick={() => setQuoteRequest(null)} style={{ flex: 1, padding: '0.7rem', borderRadius: 8, border: '1.5px solid #dde4ef', background: 'white', color: '#5a6a88', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Cancel</button>
-                <button type="submit" disabled={quoteSaving} style={{ flex: 2, padding: '0.7rem', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 600, cursor: quoteSaving ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: quoteSaving ? 0.7 : 1 }}>
-                  {quoteSaving ? 'Creating...' : 'Create Quote'}
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}
@@ -179,7 +240,17 @@ export default function RequestsPage() {
           headers={['Client', 'Service', 'Contact', 'Preferred Date', 'Status', 'Received', '']}
           emptyMessage="No service requests yet."
           rows={filtered.map(r => [
-            <span key="name" style={{ fontWeight: 600 }}>{r.firstName} {r.lastName}</span>,
+            <div key="name" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {r.photoDataUrl && (
+                <img
+                  src={r.photoDataUrl}
+                  alt="preview"
+                  onClick={() => setViewPhoto(r)}
+                  style={{ width: 36, height: 36, borderRadius: 6, objectFit: 'cover', border: '1.5px solid #dde4ef', cursor: 'zoom-in', flexShrink: 0 }}
+                />
+              )}
+              <span style={{ fontWeight: 600 }}>{r.firstName} {r.lastName}</span>
+            </div>,
             <span key="svc" style={{ color: '#5a6a88' }}>{r.serviceType || '—'}</span>,
             <div key="contact">
               <div style={{ fontSize: '0.82rem' }}>{r.email || '—'}</div>
