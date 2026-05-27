@@ -18,7 +18,7 @@ export default function ClientQuotesPage() {
     setActionError('')
     try {
       const token = getNmdToken()
-      const res = await fetch(`${API}/api/quotes/${quoteId}/accept`, {
+      const res = await fetch(`${API}/api/quotes/${quoteId}/client-accept`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       })
@@ -36,10 +36,9 @@ export default function ClientQuotesPage() {
     setActionError('')
     try {
       const token = getNmdToken()
-      const res = await fetch(`${API}/api/quotes/${quoteId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ status: 'declined' })
+      const res = await fetch(`${API}/api/quotes/${quoteId}/client-decline`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to decline quote')
@@ -77,28 +76,16 @@ export default function ClientQuotesPage() {
             <div key="actions" style={{ display: 'flex', gap: 6 }}>
               {q.status === 'sent' && (
                 <>
-                  <button
-                    onClick={() => handleAccept(q.id)}
-                    disabled={actionLoading === q.id + '-accept'}
-                    style={{ padding: '0.35rem 0.85rem', borderRadius: 6, border: 'none', background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: actionLoading === q.id + '-accept' ? 0.6 : 1 }}
-                  >
+                  <button onClick={() => handleAccept(q.id)} disabled={actionLoading === q.id + '-accept'} style={{ padding: '0.35rem 0.85rem', borderRadius: 6, border: 'none', background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: actionLoading === q.id + '-accept' ? 0.6 : 1 }}>
                     {actionLoading === q.id + '-accept' ? '...' : 'Accept'}
                   </button>
-                  <button
-                    onClick={() => handleDecline(q.id)}
-                    disabled={actionLoading === q.id + '-decline'}
-                    style={{ padding: '0.35rem 0.85rem', borderRadius: 6, border: '1.5px solid #ffc0c0', background: 'white', color: '#e74c3c', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: actionLoading === q.id + '-decline' ? 0.6 : 1 }}
-                  >
+                  <button onClick={() => handleDecline(q.id)} disabled={actionLoading === q.id + '-decline'} style={{ padding: '0.35rem 0.85rem', borderRadius: 6, border: '1.5px solid #ffc0c0', background: 'white', color: '#e74c3c', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: actionLoading === q.id + '-decline' ? 0.6 : 1 }}>
                     {actionLoading === q.id + '-decline' ? '...' : 'Decline'}
                   </button>
                 </>
               )}
-              {q.status === 'accepted' && (
-                <span style={{ fontSize: '0.78rem', color: '#1f6132', fontWeight: 600 }}>Accepted</span>
-              )}
-              {q.status === 'declined' && (
-                <span style={{ fontSize: '0.78rem', color: '#e74c3c', fontWeight: 600 }}>Declined</span>
-              )}
+              {q.status === 'accepted' && <span style={{ fontSize: '0.78rem', color: '#1f6132', fontWeight: 600 }}>Accepted</span>}
+              {q.status === 'declined' && <span style={{ fontSize: '0.78rem', color: '#e74c3c', fontWeight: 600 }}>Declined</span>}
             </div>
           ])}
         />
