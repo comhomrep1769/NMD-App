@@ -1,4 +1,4 @@
-import { Router } from "express";
+﻿import { Router } from "express";
 import { pool } from "../db.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 import { sendPushToUser } from "../services/push.js";
@@ -223,7 +223,7 @@ router.post("/", requireAuth, requireRole("admin"), async (req, res) => {
         for (const userId of assignedUserIds) {
           await sendPushToUser(userId, {
             title: "New NMD Job Assigned",
-            body: `${title} — ${clientName}`,
+            body: `${title} â€” ${clientName}`,
             url: "/"
           });
         }
@@ -405,4 +405,62 @@ router.delete("/:jobId", requireAuth, requireRole("admin"), async (req, res) => 
   }
 });
 
+
+router.get("/board", requireAuth, requireRole("employee"), async (req, res) => {
+  try {
+    const result = await pool.query(
+      `
+      SELECT
+        j.id, j.title, j.client_name, j.address,
+        j.start_time, j.end_time, j.status, j.notes, j.created_at,
+        COALESCE(
+          json_agg(json_build_object('id', u.id, 'displayName', u.display_name))
+          FILTER (WHERE u.id IS NOT NULL), '[]'
+        ) AS assigned_employees
+      FROM jobs j
+      LEFT JOIN job_assignments ja ON ja.job_id = j.id
+      LEFT JOIN users u ON u.id = ja.user_id
+      WHERE j.status = 'scheduled'
+        AND j.id NOT IN (
+          SELECT job_id FROM job_assignments WHERE user_id = $1
+        )
+      GROUP BY j.id
+      ORDER BY j.start_time ASC
+      `,
+      [req.user!.id]
+    );
+    return res.json({ jobs: result.rows });
+  } catch (error) {
+    console.error("job board error", error);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.post("/:jobId/claim", requireAuth, requireRole("employee"), async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const userId = req.user!.id;
+
+    const jobResult = await pool.query(
+      `SELECT * FROM jobs WHERE id = $1 AND status = 'scheduled' LIMIT 1`,
+      [jobId]
+    );
+
+    if (jobResult.rows.length === 0) {
+      return res.status(404).json({ error: "Job not found or no longer available." });
+    }
+
+    await pool.query(
+      `INSERT INTO job_assignments (job_id, user_id) VALUES ($1, $2) ON CONFLICT (job_id, user_id) DO NOTHING`,
+      [jobId, userId]
+    );
+
+    return res.json({ claimed: true, jobId });
+  } catch (error) {
+    console.error("job claim error", error);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
 export default router;
+
