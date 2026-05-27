@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
@@ -7,45 +7,45 @@ import type { StoredNmdUser } from '@/lib/authStorage'
 import Link from 'next/link'
 
 const CLIENT_NAV = [
-  { href: '/client', label: 'Dashboard', icon: '⊞' },
-  { href: '/client/request-service', label: 'Request Service', icon: '✚' },
-  { href: '/client/estimates', label: 'My Estimates', icon: '📋' },
-  { href: '/client/quotes', label: 'My Quotes', icon: '💰' },
-  { href: '/client/invoices', label: 'My Invoices', icon: '🧾' },
-  { href: '/client/appointments', label: 'Appointments', icon: '📅' },
-  { href: '/client/recurring', label: 'Recurring Plan', icon: '🔄' },
-  { href: '/client/requests', label: 'Service Requests', icon: '📝' },
-  { href: '/client/photos', label: 'My Photos', icon: '📷' },
+  { href: '/client', label: 'Dashboard', icon: 'âŠž' },
+  { href: '/client/request-service', label: 'Request Service', icon: 'âœš' },
+  { href: '/client/estimates', label: 'My Estimates', icon: 'ðŸ“‹' },
+  { href: '/client/quotes', label: 'My Quotes', icon: 'ðŸ’°' },
+  { href: '/client/invoices', label: 'My Invoices', icon: 'ðŸ§¾' },
+  { href: '/client/appointments', label: 'Appointments', icon: 'ðŸ“…' },
+  { href: '/client/recurring', label: 'Recurring Plan', icon: 'ðŸ”„' },
+  { href: '/client/requests', label: 'Service Requests', icon: 'ðŸ“' },
+  { href: '/client/photos', label: 'My Photos', icon: 'ðŸ“·' },
 ]
 
 const ADMIN_NAV = [
-  { href: '/dashboard', label: 'Dashboard', icon: '⊞' },
-  { href: '/clients', label: 'Clients', icon: '👥' },
-  { href: '/quotes', label: 'Quotes', icon: '💰' },
-  { href: '/invoices', label: 'Invoices', icon: '🧾' },
-  { href: '/requests', label: 'Requests', icon: '📝' },
-  { href: '/schedule', label: 'Schedule', icon: '📅' },
-  { href: '/recurring', label: 'Recurring', icon: '🔄' },
-  { href: '/employees', label: 'Employees', icon: '👤' },
-  { href: '/treatments', label: 'Treatments', icon: '🧪' },
-  { href: '/photos', label: 'Job Photos', icon: '📷' },
-  { href: '/chat', label: 'Chat', icon: '💬' },
-  { href: '/pricing', label: 'Pricing', icon: '🏷' },
-  { href: '/mileage', label: 'Mileage', icon: '🚗' },
-  { href: '/timeclock', label: 'Time Clock', icon: '⏱' },
-  { href: '/expenses', label: 'Expenses', icon: '💳' },
-  { href: '/payroll', label: 'Payroll', icon: '💵' },
-  { href: '/bonus', label: 'Bonus Tracker', icon: '🏆' },
-  { href: '/guru-training', label: 'Guru Training', icon: '🧠' },
+  { href: '/dashboard', label: 'Dashboard', icon: 'âŠž' },
+  { href: '/clients', label: 'Clients', icon: 'ðŸ‘¥' },
+  { href: '/quotes', label: 'Quotes', icon: 'ðŸ’°' },
+  { href: '/invoices', label: 'Invoices', icon: 'ðŸ§¾' },
+  { href: '/requests', label: 'Requests', icon: 'ðŸ“' },
+  { href: '/schedule', label: 'Schedule', icon: 'ðŸ“…' },
+  { href: '/recurring', label: 'Recurring', icon: 'ðŸ”„' },
+  { href: '/employees', label: 'Employees', icon: 'ðŸ‘¤' },
+  { href: '/treatments', label: 'Treatments', icon: 'ðŸ§ª' },
+  { href: '/photos', label: 'Job Photos', icon: 'ðŸ“·' },
+  { href: '/chat', label: 'Chat', icon: 'ðŸ’¬' },
+  { href: '/pricing', label: 'Pricing', icon: 'ðŸ·' },
+  { href: '/mileage', label: 'Mileage', icon: 'ðŸš—' },
+  { href: '/timeclock', label: 'Time Clock', icon: 'â±' },
+  { href: '/expenses', label: 'Expenses', icon: 'ðŸ’³' },
+  { href: '/payroll', label: 'Payroll', icon: 'ðŸ’µ' },
+  { href: '/bonus', label: 'Bonus Tracker', icon: 'ðŸ†' },
+  { href: '/guru-training', label: 'Guru Training', icon: 'ðŸ§ ' },
 ]
 
 const EMPLOYEE_NAV = [
-  { href: '/employee', label: 'Dashboard', icon: '⊞' },
-  { href: '/employee/schedule', label: 'My Schedule', icon: '📅' },
-  { href: '/employee/treatments', label: 'Treatments', icon: '🧪' },
-  { href: '/employee/chat', label: 'Chat', icon: '💬' },
-  { href: '/employee/timeclock', label: 'Time Clock', icon: '⏱' },
-  { href: '/employee/bonus', label: 'My Bonus', icon: '🏆' },
+  { href: '/employee', label: 'Dashboard', icon: 'âŠž' },
+  { href: '/employee/schedule', label: 'My Schedule', icon: 'ðŸ“…' },
+  { href: '/employee/treatments', label: 'Treatments', icon: 'ðŸ§ª' },
+  { href: '/employee/chat', label: 'Chat', icon: 'ðŸ’¬' },
+  { href: '/employee/timeclock', label: 'Time Clock', icon: 'â±' },
+  { href: '/employee/bonus', label: 'My Bonus', icon: 'ðŸ†' },
 ]
 
 export default function PortalShell({
@@ -210,7 +210,7 @@ export default function PortalShell({
                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.4rem', color: '#0e1117', padding: 0, lineHeight: 1, display: 'flex', alignItems: 'center' }}
                 aria-label="Toggle menu"
               >
-                {sidebarOpen ? '✕' : '☰'}
+                {sidebarOpen ? 'âœ•' : 'â˜°'}
               </button>
             )}
             <div style={{ fontSize: '0.82rem', color: '#8494b0' }}>NMD Pressure Washing Services LLC</div>
