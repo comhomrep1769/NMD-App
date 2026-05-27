@@ -118,7 +118,7 @@ export default function InvoicesPage() {
       setInvoices(p => p.map(i => i.id === uploadInvoice.id ? data.invoice : i))
       setUploadInvoice(null)
       setUploadFile(null)
-      alert(`Invoice uploaded successfully. Client has been notified by email.`)
+      alert('Invoice uploaded. Client has been notified by email.')
     } catch (err) { setUploadError(err instanceof Error ? err.message : 'Upload failed') }
     setUploading(false)
   }
@@ -142,7 +142,6 @@ export default function InvoicesPage() {
   return (
     <PortalShell requiredRole={['admin', 'superadmin']}>
 
-      {/* Create Modal */}
       {showCreate && (
         <div style={modalOverlay}>
           <div style={modalBox}>
@@ -184,7 +183,6 @@ export default function InvoicesPage() {
         </div>
       )}
 
-      {/* Upload Modal */}
       {uploadInvoice && (
         <div style={modalOverlay}>
           <div style={modalBox}>
@@ -192,10 +190,10 @@ export default function InvoicesPage() {
               <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#0e1117' }}>Upload Invoice</div>
               <button onClick={() => { setUploadInvoice(null); setUploadFile(null); setUploadError('') }} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#8494b0' }}>x</button>
             </div>
-            <div style={{ padding: '1.25rem 1.5rem', background: '#f8fbff', borderBottom: '1px solid #dde4ef' }}>
+            <div style={{ padding: '1rem 1.5rem', background: '#f8fbff', borderBottom: '1px solid #dde4ef' }}>
               <div style={{ fontSize: '0.8rem', color: '#5a6a88', marginBottom: 2 }}>Uploading for</div>
               <div style={{ fontWeight: 700, color: '#0e1117', fontFamily: 'Syne, sans-serif' }}>{uploadInvoice.clientName}</div>
-              <div style={{ fontSize: '0.82rem', color: '#5a6a88' }}>Invoice #{uploadInvoice.invoiceNumber} · {uploadInvoice.jobName} · {`${Number(uploadInvoice.total).toFixed(2)}}</div>
+              <div style={{ fontSize: '0.82rem', color: '#5a6a88' }}>Invoice #{uploadInvoice.invoiceNumber} · {uploadInvoice.jobName} · ${Number(uploadInvoice.total).toFixed(2)}</div>
             </div>
             <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {uploadError && <div style={{ background: '#fff0f0', border: '1.5px solid #ffc0c0', borderRadius: 8, padding: '0.65rem 1rem', fontSize: '0.82rem', color: '#c0392b' }}>{uploadError}</div>}
@@ -203,16 +201,11 @@ export default function InvoicesPage() {
                 <label style={labelStyle}>Invoice File (PDF or Image)</label>
                 <input ref={fileRef} type="file" accept="image/*,.pdf" style={{ display: 'none' }} onChange={e => handleFileSelect(e.target.files)} />
                 <button type="button" onClick={() => fileRef.current?.click()} style={{ width: '100%', padding: '0.75rem', borderRadius: 8, border: '1.5px dashed #b0c0d8', background: '#f4f7fb', color: '#3a4660', fontWeight: 500, fontSize: '0.875rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
-                  {uploadFile ? uploadFile.name : '+ Select Invoice File'}
+                  {uploadFile ? uploadFile.name : '+ Select Invoice File (PDF or Image)'}
                 </button>
-                {uploadFile && (
-                  <div style={{ marginTop: 8, fontSize: '0.8rem', color: '#1f6132', fontWeight: 500 }}>
-                    Selected: {uploadFile.name}
-                  </div>
-                )}
               </div>
               <div style={{ fontSize: '0.78rem', color: '#8494b0', background: '#f8fbff', borderRadius: 8, padding: '0.65rem 0.9rem', border: '1px solid #dde4ef' }}>
-                After uploading, the client will automatically receive an email notification to view their invoice in the portal.
+                After uploading, the client will automatically receive an email notification.
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
                 <button onClick={() => { setUploadInvoice(null); setUploadFile(null); setUploadError('') }} style={{ flex: 1, padding: '0.7rem', borderRadius: 8, border: '1.5px solid #dde4ef', background: 'white', color: '#5a6a88', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Cancel</button>
@@ -225,12 +218,11 @@ export default function InvoicesPage() {
         </div>
       )}
 
-      {/* View Invoice Modal */}
       {viewInvoice?.uploadedInvoiceUrl && (
         <div onClick={() => setViewInvoice(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', cursor: 'zoom-out' }}>
           <div onClick={e => e.stopPropagation()} style={{ maxWidth: 800, width: '100%' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div style={{ color: 'white', fontFamily: 'Syne, sans-serif', fontWeight: 700 }}>Invoice #{viewInvoice.invoiceNumber} — {viewInvoice.clientName}</div>
+              <div style={{ color: 'white', fontFamily: 'Syne, sans-serif', fontWeight: 700 }}>Invoice #{viewInvoice.invoiceNumber} - {viewInvoice.clientName}</div>
               <button onClick={() => setViewInvoice(null)} style={{ background: 'none', border: 'none', color: 'white', fontSize: '1.5rem', cursor: 'pointer' }}>x</button>
             </div>
             {viewInvoice.uploadedInvoiceUrl.startsWith('data:image') ? (
@@ -277,30 +269,18 @@ export default function InvoicesPage() {
             <span key="num" style={{ fontWeight: 700, color: '#124d83' }}>#{inv.invoiceNumber}</span>,
             <span key="client" style={{ fontWeight: 500 }}>{inv.clientName || '—'}</span>,
             <span key="job" style={{ color: '#5a6a88' }}>{inv.jobName || '—'}</span>,
-            <span key="total" style={{ fontWeight: 600 }}>{money(inv.total).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</span>,
+            <span key="total" style={{ fontWeight: 600 }}>${Number(inv.total).toFixed(2)}</span>,
             <StatusBadge key="status" status={inv.status} />,
             <span key="date" style={{ color: '#8494b0', whiteSpace: 'nowrap' }}>{fmtDate(inv.createdAt)}</span>,
             <div key="actions" style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-              <button
-                onClick={() => setUploadInvoice(inv)}
-                style={{ padding: '0.3rem 0.65rem', borderRadius: 6, border: 'none', background: '#e8f0fe', color: '#124d83', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}
-              >
+              <button onClick={() => setUploadInvoice(inv)} style={{ padding: '0.3rem 0.65rem', borderRadius: 6, border: 'none', background: '#e8f0fe', color: '#124d83', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
                 {inv.uploadedInvoiceUrl ? 'Re-upload' : 'Upload'}
               </button>
               {inv.uploadedInvoiceUrl && (
-                <button
-                  onClick={() => setViewInvoice(inv)}
-                  style={{ padding: '0.3rem 0.65rem', borderRadius: 6, border: 'none', background: '#f4f7fb', color: '#3a4660', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}
-                >
-                  View
-                </button>
+                <button onClick={() => setViewInvoice(inv)} style={{ padding: '0.3rem 0.65rem', borderRadius: 6, border: 'none', background: '#f4f7fb', color: '#3a4660', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>View</button>
               )}
               {inv.status !== 'paid' && (
-                <button
-                  onClick={() => handleMarkPaid(inv.id)}
-                  disabled={markPaidId === inv.id}
-                  style={{ padding: '0.3rem 0.65rem', borderRadius: 6, border: 'none', background: '#e8f5e9', color: '#1f6132', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}
-                >
+                <button onClick={() => handleMarkPaid(inv.id)} disabled={markPaidId === inv.id} style={{ padding: '0.3rem 0.65rem', borderRadius: 6, border: 'none', background: '#e8f5e9', color: '#1f6132', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
                   {markPaidId === inv.id ? '...' : 'Mark Paid'}
                 </button>
               )}
@@ -311,4 +291,3 @@ export default function InvoicesPage() {
     </PortalShell>
   )
 }
-
