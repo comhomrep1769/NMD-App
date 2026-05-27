@@ -195,7 +195,7 @@ export default function InvoicesPage() {
             <div style={{ padding: '1.25rem 1.5rem', background: '#f8fbff', borderBottom: '1px solid #dde4ef' }}>
               <div style={{ fontSize: '0.8rem', color: '#5a6a88', marginBottom: 2 }}>Uploading for</div>
               <div style={{ fontWeight: 700, color: '#0e1117', fontFamily: 'Syne, sans-serif' }}>{uploadInvoice.clientName}</div>
-              <div style={{ fontSize: '0.82rem', color: '#5a6a88' }}>Invoice #{uploadInvoice.invoiceNumber} · {uploadInvoice.jobName} · {money(uploadInvoice.total).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</div>
+              <div style={{ fontSize: '0.82rem', color: '#5a6a88' }}>Invoice #{uploadInvoice.invoiceNumber} · {uploadInvoice.jobName} · {`${Number(uploadInvoice.total).toFixed(2)}}</div>
             </div>
             <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {uploadError && <div style={{ background: '#fff0f0', border: '1.5px solid #ffc0c0', borderRadius: 8, padding: '0.65rem 1rem', fontSize: '0.82rem', color: '#c0392b' }}>{uploadError}</div>}
@@ -311,3 +311,4 @@ export default function InvoicesPage() {
     </PortalShell>
   )
 }
+
