@@ -1,5 +1,5 @@
-'use client'
-import { useEffect, useState } from 'react'
+﻿'use client'
+import { useEffect, useState, useCallback } from 'react'
 import { getNmdToken } from '@/lib/authStorage'
 
 export type ClientPortalData = {
@@ -19,7 +19,9 @@ export function useClientPortal() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  useEffect(() => {
+  const fetchData = useCallback(() => {
+    setLoading(true)
+    setError('')
     const token = getNmdToken()
     const API = process.env.NEXT_PUBLIC_API_URL || ''
     fetch(`${API}/api/client-portal/me`, {
@@ -30,5 +32,7 @@ export function useClientPortal() {
       .catch(() => { setError('Could not load your portal data.'); setLoading(false) })
   }, [])
 
-  return { data, loading, error }
+  useEffect(() => { fetchData() }, [fetchData])
+
+  return { data, loading, error, reload: fetchData }
 }
