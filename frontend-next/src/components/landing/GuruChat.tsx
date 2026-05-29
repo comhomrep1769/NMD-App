@@ -26,15 +26,168 @@ const EMPTY_FORM: EstimateForm = {
 }
 
 const QUICK_PROMPTS = [
-  'What areas do you serve?',
+  'How much to wash my house?',
   'How does recurring pricing work?',
-  'What\'s included in house washing?',
+  'I have rust stains on my driveway',
   'Start an estimate',
 ]
 
 const GURU_INTRO: Message = {
   role: 'guru',
-  text: 'Hey! I\'m Guru, the NMD assistant 👋 I can help you figure out which service you need, explain our recurring plans, or get you started with a free estimate. What can I help you with?',
+  text: 'Hey! I\'m Guru, the NMD assistant 👋 I can help you get a price estimate, explain our services, or get you started with a free quote. What can I help you with?',
+}
+
+// Pricing rates per sqft
+const RATES: Record<string, { low: number; high: number; unit: string }> = {
+  'mobile home':  { low: 0.62, high: 0.77, unit: 'sqft' },
+  'tile roof':    { low: 0.51, high: 0.63, unit: 'sqft' },
+  'two story':    { low: 0.48, high: 0.59, unit: 'sqft' },
+  '2 story':      { low: 0.48, high: 0.59, unit: 'sqft' },
+  'deck':         { low: 0.46, high: 0.57, unit: 'sqft' },
+  'one story':    { low: 0.45, high: 0.56, unit: 'sqft' },
+  '1 story':      { low: 0.45, high: 0.56, unit: 'sqft' },
+  'house':        { low: 0.45, high: 0.56, unit: 'sqft' },
+  'home':         { low: 0.45, high: 0.56, unit: 'sqft' },
+  'fence':        { low: 0.43, high: 0.53, unit: 'sqft' },
+  'driveway':     { low: 0.42, high: 0.52, unit: 'sqft' },
+  'concrete':     { low: 0.42, high: 0.52, unit: 'sqft' },
+  'brick':        { low: 0.40, high: 0.50, unit: 'sqft' },
+  'pool deck':    { low: 0.40, high: 0.50, unit: 'sqft' },
+  'patio':        { low: 0.39, high: 0.49, unit: 'sqft' },
+  'roof':         { low: 0.39, high: 0.49, unit: 'sqft' },
+  'gutter':       { low: 1.10, high: 1.35, unit: 'linear ft' },
+  'gutters':      { low: 1.10, high: 1.35, unit: 'linear ft' },
+  'moss':         { low: 0.72, high: 1.39, unit: 'sqft' },
+  'soffit':       { low: 1.12, high: 1.38, unit: 'sqft' },
+  'shutter':      { low: 26.25, high: 32.79, unit: 'per shutter' },
+  'shutters':     { low: 26.25, high: 32.79, unit: 'per shutter' },
+}
+
+const DEFAULT_SQFT: Record<string, number> = {
+  'house': 1500, 'home': 1500,
+  'one story': 1500, '1 story': 1500,
+  'two story': 2400, '2 story': 2400,
+  'driveway': 500, 'concrete': 500,
+  'deck': 300, 'patio': 300,
+  'fence': 400,
+  'roof': 2000, 'tile roof': 2000,
+  'mobile home': 1200,
+}
+
+function getSmartReply(text: string): string {
+  const t = text.toLowerCase()
+
+  // Extract sqft if mentioned
+  const sqftMatch = t.match(/(\d[\d,]*)\s*(sqft|sq\.?\s*ft|square\s*feet|sf)\b/)
+  const mentionedSqft = sqftMatch ? parseInt(sqftMatch[1].replace(/,/g, '')) : null
+
+  // Detect estimate intent
+  const isEstimate =
+    t.includes('how much') || t.includes('price') || t.includes('cost') ||
+    t.includes('estimate') || t.includes('quote') || t.includes('charge') ||
+    t.includes('what would') || t.includes('pricing')
+
+  // Rust / orange stains
+  if (t.includes('rust') || t.includes('orange stain') || t.includes('fertilizer stain') || t.includes('irrigation stain')) {
+    return `Rust and orange staining from irrigation or fertilizer is a specialty service we treat with F9 BARC — the industry\'s top rust remover.\n\nPricing:\n• Single spot treatment: $50 – $100\n• Walkway/entry area: $125 – $300\n• Heavy irrigation staining: $300 – $800+\n• Minimum charge: $125\n\nWe power wash first, then apply F9 BARC which reverses 80–100% of orange staining. Submit an estimate below and include photos if you can!`
+  }
+
+  // Estimate requests
+  if (isEstimate) {
+    // Find which surface was mentioned
+    let matchedSurface: string | null = null
+    let matchedRate: { low: number; high: number; unit: string } | null = null
+
+    for (const [keyword, rate] of Object.entries(RATES)) {
+      if (t.includes(keyword)) {
+        matchedSurface = keyword
+        matchedRate = rate
+        break
+      }
+    }
+
+    // Shutters
+    if (matchedSurface === 'shutter' || matchedSurface === 'shutters') {
+      const countMatch = t.match(/(\d+)\s*shutter/)
+      const count = countMatch ? parseInt(countMatch[1]) : null
+      if (count) {
+        const low = Math.round(count * 26.25)
+        const high = Math.round(count * 32.79)
+        return `For ${count} shutters, the estimated range is $${low} – $${high} ($26.25–$32.79 per shutter).\n\nThis is a soft-clean service — no pressure washing.\n\nClick "Start a Guru Estimate" below and we\'ll send you a firm quote within 24 hours.`
+      }
+      return `Shutter cleaning is priced at $26.25 – $32.79 per shutter.\n\nHow many shutters do you have? I can give you a total estimate.`
+    }
+
+    // Gutters
+    if (matchedSurface === 'gutter' || matchedSurface === 'gutters') {
+      const linearMatch = t.match(/(\d+)\s*(linear|lin|lf|ft|feet)/)
+      const linearFt = linearMatch ? parseInt(linearMatch[1]) : null
+      if (linearFt) {
+        const low = Math.round(linearFt * 1.10)
+        const high = Math.round(linearFt * 1.35)
+        return `For ${linearFt} linear feet of gutters, the estimated range is $${low} – $${high} ($1.10–$1.35/linear ft).\n\nClick "Start a Guru Estimate" below to get a firm quote.`
+      }
+      return `Gutter cleaning is priced at $1.10 – $1.35 per linear foot.\n\nHow many linear feet of gutters do you have? A typical home is 100–200 linear feet.`
+    }
+
+    // Sqft-based surfaces
+    if (matchedRate && matchedRate.unit === 'sqft') {
+      const sqft = mentionedSqft || DEFAULT_SQFT[matchedSurface!] || 1500
+      const low = Math.round(sqft * matchedRate.low)
+      const high = Math.round(sqft * matchedRate.high)
+      const usedDefault = !mentionedSqft
+
+      let reply = `Here\'s an estimate for ${matchedSurface} cleaning:\n\n`
+      reply += `• Area: ~${sqft.toLocaleString()} sqft${usedDefault ? ' (estimated)' : ''}\n`
+      reply += `• Rate: $${matchedRate.low.toFixed(2)} – $${matchedRate.high.toFixed(2)}/sqft\n`
+      reply += `• Estimate: $${low.toLocaleString()} – $${high.toLocaleString()}\n\n`
+      if (usedDefault) reply += `If you know your exact square footage, I can tighten that range.\n\n`
+      reply += `Click "Start a Guru Estimate" below and we\'ll send a firm quote within 24 hours.`
+      return reply
+    }
+
+    // No surface detected
+    return `I can give you a price estimate! Just tell me:\n\n1. Surface type — house, driveway, roof, deck, fence, patio, etc.\n2. Approximate size — square footage if you know it (optional)\n\nWhat surface are you looking to have cleaned?`
+  }
+
+  // Chemical / soft wash
+  if (t.includes('chemical') || t.includes('bleach') || t.includes('soft wash') || t.includes('pressure') || t.includes('psi')) {
+    return `We use professional-grade chemicals for every job:\n\n• House/siding: Sodium hypochlorite 1–2% + surfactant at soft wash pressure (100–500 PSI)\n• Roof: SH 4–6% — soft wash only, never high pressure on shingles\n• Rust removal: F9 BARC (industry standard)\n• Wood restoration: Sodium percarbonate + oxalic acid brightener\n• Grease/oil: Purple Power or Dragon Juice degreaser\n\nWhat surface are you dealing with?`
+  }
+
+  // Mold / algae / treatment
+  if (t.includes('mold') || t.includes('mildew') || t.includes('algae') || t.includes('moss') || t.includes('stain') || t.includes('oxidation')) {
+    if (t.includes('roof') || t.includes('shingle')) {
+      return `For roof algae and moss we use soft wash only — sodium hypochlorite 4–6% with surfactant. High pressure is never used on shingles as it strips granules and voids warranties.\n\nRoof cleaning estimate: $300 – $900+ depending on size, pitch, and moss level.\n\nWant to start an estimate?`
+    }
+    if (t.includes('siding') || t.includes('house') || t.includes('wall')) {
+      return `For algae and mold on siding we use soft wash — sodium hypochlorite 1–2% + Elemonator surfactant at 100–500 PSI. Safe for all siding types.\n\nHouse washing estimate: $200 – $500+ depending on size.\n\nWant to start an estimate?`
+    }
+    return `For mold, algae, and organic growth we use a soft wash treatment with sodium hypochlorite and surfactant. Results last 12–18 months.\n\nTell me the surface type and I\'ll give you a price estimate.`
+  }
+
+  // Recurring plans
+  if (t.includes('recurring') || t.includes('discount') || t.includes('plan') || t.includes('monthly') || t.includes('weekly')) {
+    return `Our recurring plans save you 20% on every visit after your first service.\n\nOptions: Weekly, Biweekly, Monthly, Quarterly, Bi-Annual, or Annual.\n\nBest candidates: driveways, roofs, dumpster pads, commercial storefronts, pool decks, and HOA properties.\n\nWant to include a recurring plan in your estimate?`
+  }
+
+  // Service area
+  if (t.includes('area') || t.includes('serve') || t.includes('location') || t.includes('orlando') || t.includes('brevard')) {
+    return `We serve Orange County (Orlando, Winter Park, Kissimmee, Ocoee) and Brevard County (Melbourne, Cocoa, Palm Bay, Titusville), FL.\n\nNot sure if we cover your area? Submit an estimate and we\'ll confirm!`
+  }
+
+  // House washing info
+  if (t.includes('house wash') || t.includes('what\'s included') || t.includes('whats included')) {
+    return `House washing includes exterior soft washing of all siding — removing algae, mold, mildew, and dirt buildup. We use low-pressure chemicals safe for all siding types including vinyl, stucco, Hardie board, and brick.\n\nTypical estimate: $200 – $500+\n\nWant a specific estimate for your home?`
+  }
+
+  // Greeting
+  if (t.length < 15 || t.includes('hello') || t.includes('hi') || t.includes('hey')) {
+    return `Hi! I can help you with:\n\n• Price estimates — tell me the surface and size\n• Treatment questions — what method for your problem\n• Service info — what\'s included, how it works\n\nWhat can I help you with?`
+  }
+
+  // Default
+  return `I can help with price estimates, treatment questions, and service info. Try asking:\n\n• "How much to wash a 1-story house?"\n• "What\'s the cost for a 500 sqft driveway?"\n• "I have rust stains on my driveway"\n• "What is soft washing?"`
 }
 
 export default function GuruChat() {
@@ -56,27 +209,6 @@ export default function GuruChat() {
     }
   }, [open, messages])
 
-  const getFallback = (text: string): string => {
-    const t = text.toLowerCase()
-    if (t.includes('area') || t.includes('serve') || t.includes('location') || t.includes('orlando') || t.includes('brevard'))
-      return 'We primarily serve Orange County (Orlando, Winter Park, Kissimmee, Ocoee) and Brevard County (Melbourne, Cocoa, Palm Bay, Titusville), FL. Not sure if we cover your area? Just request a quote and we\'ll confirm!'
-    if (t.includes('recurring') || t.includes('discount') || t.includes('plan'))
-      return 'Our recurring plans save you 20% on every visit after your first service. Choose Weekly, Biweekly, Monthly, Quarterly, Bi-Annual, or Annual. Your first service is at the standard rate — pricing is based on your property size and scope.'
-    if (t.includes('quote') || t.includes('price') || t.includes('cost') || t.includes('how much'))
-      return 'Getting a quote is easy — just click "Get a Free Quote" or tell me a little about your property and I\'ll help you start an estimate right here!'
-    if (t.includes('house') || t.includes('wash'))
-      return 'House washing includes exterior soft washing of all siding, removing algae, mold, mildew, and dirt buildup. We use low-pressure soft wash chemicals that are safe for all siding types. Want to start an estimate?'
-    if (t.includes('roof'))
-      return 'Roof cleaning uses a low-pressure soft wash process — no high pressure that could damage shingles. We treat algae, moss, lichen, and black streaks. Want an estimate for your roof?'
-    if (t.includes('driveway') || t.includes('concrete') || t.includes('paver'))
-      return 'We clean driveways, concrete pads, pavers, and all flatwork. We can also do paver sanding and sealing after cleaning. Want to start an estimate?'
-    if (t.includes('commercial') || t.includes('business'))
-      return 'We serve commercial properties including storefronts, restaurants, parking lots, apartment complexes, hotels, and more. We offer property management maintenance programs too. Ready for a quote?'
-    if (t.includes('estimate') || t.includes('start'))
-      return 'I can start an estimate for you right now! Click the "Start an Estimate" button below and fill in a few details about your property.'
-    return 'Great question! I can start an estimate for you right now, or you can click "Get a Free Quote" at the top of the page. Want to tell me a bit about your property?'
-  }
-
   const sendMessage = async (text: string) => {
     if (!text.trim() || loading) return
     if (text === 'Start an estimate') { setEstimateMode(true); return }
@@ -86,23 +218,9 @@ export default function GuruChat() {
     setInput('')
     setLoading(true)
 
-    try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
-      const res = await fetch(`${API_URL}/api/guru/messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ body: text }),
-      })
-      if (res.ok) {
-        const data = await res.json()
-        const reply = data.guruMessage?.body || data.reply || data.message || getFallback(text)
-        setMessages(prev => [...prev, { role: 'guru', text: reply }])
-      } else {
-        setMessages(prev => [...prev, { role: 'guru', text: getFallback(text) }])
-      }
-    } catch {
-      setMessages(prev => [...prev, { role: 'guru', text: getFallback(text) }])
-    }
+    // Use smart frontend reply — no auth needed, always works
+    const reply = getSmartReply(text)
+    setMessages(prev => [...prev, { role: 'guru', text: reply }])
     setLoading(false)
   }
 
@@ -124,11 +242,11 @@ export default function GuruChat() {
         const low = data.estimate?.preliminaryEstimateLow
         const high = data.estimate?.preliminaryEstimateHigh
         const rangeText = low && high
-          ? ` Early range: $${Number(low).toFixed(2)} – $${Number(high).toFixed(2)}.`
+          ? ` Early range: $${Number(low).toFixed(0)} – $${Number(high).toFixed(0)}.`
           : ''
         setMessages(prev => [...prev,
           { role: 'user', text: `Submitted estimate for ${estimateForm.serviceType} at ${estimateForm.address}.` },
-          { role: 'guru', text: `Thanks ${estimateForm.clientName}! Your estimate was submitted for NMD review.${rangeText} This is not a final quote — NMD will review and confirm official pricing. We'll be in touch soon!` },
+          { role: 'guru', text: `Thanks ${estimateForm.clientName}! Your estimate was submitted for NMD review.${rangeText} This is not a final quote — NMD will confirm official pricing and be in touch soon!` },
         ])
       } else {
         setMessages(prev => [...prev,
@@ -307,6 +425,7 @@ export default function GuruChat() {
                       fontSize: '0.875rem', lineHeight: 1.5,
                       boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
                       border: msg.role === 'guru' ? '1px solid #dde4ef' : 'none',
+                      whiteSpace: 'pre-line',
                     }}>
                       {msg.text}
                     </div>
