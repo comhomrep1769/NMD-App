@@ -45,7 +45,7 @@ router.post("/public", async (req, res) => {
       photoNote?: string; waiverAccepted?: boolean; waiverSignature?: string;
     };
 
-    if (!firstName || !lastName || !address || !serviceType) {
+    if (!firstName || !address || !serviceType) {
       return res.status(400).json({ error: "First name, last name, address, and service type are required" });
     }
 
