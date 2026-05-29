@@ -76,6 +76,15 @@ function normalizeRole(value: unknown): UserRole {
   return "client";
 }
 
+// Maps portalRole (sent by frontend) to the allowed DB roles for that portal
+function getAllowedRolesForPortal(portalRole: string): UserRole[] {
+  if (portalRole === "admin" || portalRole === "superadmin") return ["admin", "superadmin"];
+  if (portalRole === "employee") return ["employee"];
+  if (portalRole === "client") return ["client"];
+  // No portalRole sent — allow all (fallback, shouldn't happen)
+  return ["superadmin", "admin", "employee", "client"];
+}
+
 async function ensureUsersTable() {
   await pool.query(`CREATE EXTENSION IF NOT EXISTS pgcrypto;`);
   await pool.query(`
@@ -189,16 +198,40 @@ router.post("/login", async (req, res) => {
     const email = String(req.body?.email || "").trim().toLowerCase();
     const password = String(req.body?.password || "");
     const rememberMe = Boolean(req.body?.rememberMe);
+    const portalRole = String(req.body?.portalRole || "").trim().toLowerCase();
 
     if (!email || !password) {
       return res.status(400).json({ message: "Email and password are required." });
     }
 
     const user = await findUserByEmail(email);
-    if (!user) return res.status(401).json({ message: "Invalid email or password." });
+
+    // Use the same error for wrong email AND wrong password — prevents email enumeration
+    if (!user) {
+      return res.status(401).json({ message: "Invalid email or password." });
+    }
 
     const passwordValid = await bcrypt.compare(password, user.password_hash);
-    if (!passwordValid) return res.status(401).json({ message: "Invalid email or password." });
+    if (!passwordValid) {
+      return res.status(401).json({ message: "Invalid email or password." });
+    }
+
+    // ── PORTAL ROLE ENFORCEMENT ──────────────────────────────────────────────
+    // If the frontend told us which portal this login is for, enforce it.
+    if (portalRole) {
+      const allowedRoles = getAllowedRolesForPortal(portalRole);
+      if (!allowedRoles.includes(user.role)) {
+        // Give a clear message so the user knows they're on the wrong portal
+        const portalName =
+          portalRole === "client" ? "client portal" :
+          portalRole === "employee" ? "employee portal" :
+          "admin portal";
+        return res.status(403).json({
+          message: `This account does not have access to the ${portalName}. Please use the correct login page.`
+        });
+      }
+    }
+    // ────────────────────────────────────────────────────────────────────────
 
     const token = signToken(user, rememberMe);
     return res.json({ token, user: mapUser(user) });
