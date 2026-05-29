@@ -64,7 +64,7 @@ router.post("/public", async (req, res) => {
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, TRUE, $12, NOW())
       RETURNING *`,
       [
-        firstName.trim(), lastName.trim(), phone?.trim() || null, email?.trim() || null,
+        firstName.trim(), lastName?.trim() || null, phone?.trim() || null, email?.trim() || null,
         address.trim(), serviceType.trim(), preferredDate || null, preferredTime?.trim() || null,
         notes?.trim() || null, photoDataUrl || null, photoNote?.trim() || null, waiverSignature.trim()
       ]
