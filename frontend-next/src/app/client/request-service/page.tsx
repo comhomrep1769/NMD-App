@@ -83,7 +83,6 @@ function compressImage(dataUrl: string, maxWidth = 1200, quality = 0.7): Promise
   })
 }
 
-// ── Signature Pad Component ────────────────────────────────────────────────
 function SignaturePad({
   onSigned,
   onCleared,
@@ -178,22 +177,14 @@ function SignaturePad({
           onTouchMove={draw}
           onTouchEnd={stopDraw}
         />
-        <div style={{
-          position: 'absolute', bottom: 8, left: 12,
-          fontSize: '0.72rem', color: '#b0bfd0', pointerEvents: 'none',
-          fontStyle: 'italic',
-        }}>
+        <div style={{ position: 'absolute', bottom: 8, left: 12, fontSize: '0.72rem', color: '#b0bfd0', pointerEvents: 'none', fontStyle: 'italic' }}>
           Sign above
         </div>
       </div>
       <button
         type="button"
         onClick={clear}
-        style={{
-          marginTop: 8, padding: '0.35rem 0.85rem', borderRadius: 6,
-          border: '1px solid #dde4ef', background: 'white', color: '#5a6a88',
-          fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif',
-        }}
+        style={{ marginTop: 8, padding: '0.35rem 0.85rem', borderRadius: 6, border: '1px solid #dde4ef', background: 'white', color: '#5a6a88', fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}
       >
         Clear Signature
       </button>
@@ -201,13 +192,21 @@ function SignaturePad({
   )
 }
 
-// ── Main Page ──────────────────────────────────────────────────────────────
 export default function ServiceRequestPage() {
   const [form, setForm] = useState({
-    selectedService: '', customerName: '', email: '', phone: '',
-    serviceAddress: '', preferredDate: '', preferredTime: '',
-    propertyType: '', surfaceDetails: '', problemDescription: '',
-    estimatedSize: '', specialConcerns: '',
+    selectedService: '',
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    serviceAddress: '',
+    preferredDate: '',
+    preferredTime: '',
+    propertyType: '',
+    surfaceDetails: '',
+    problemDescription: '',
+    estimatedSize: '',
+    specialConcerns: '',
   })
   const [photos, setPhotos] = useState<Array<{ id: string; name: string; note: string; dataUrl: string }>>([])
   const [showDisclaimer, setShowDisclaimer] = useState(false)
@@ -252,7 +251,7 @@ export default function ServiceRequestPage() {
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.selectedService || !form.customerName || !form.email || !form.serviceAddress) {
+    if (!form.selectedService || !form.firstName || !form.lastName || !form.email || !form.serviceAddress) {
       setError('Please fill in all required fields.')
       return
     }
@@ -276,9 +275,6 @@ export default function ServiceRequestPage() {
     setModalError('')
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
-      const nameParts = form.customerName.trim().split(' ')
-      const firstName = nameParts[0] || form.customerName
-      const lastName = nameParts.slice(1).join(' ') || ''
       const firstPhoto = photos[0] || null
 
       let photoDataUrl: string | null = null
@@ -290,8 +286,8 @@ export default function ServiceRequestPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          firstName,
-          lastName,
+          firstName: form.firstName.trim(),
+          lastName: form.lastName.trim(),
           email: form.email,
           phone: form.phone,
           address: form.serviceAddress,
@@ -343,7 +339,7 @@ export default function ServiceRequestPage() {
           <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
           <h2 style={{ fontFamily: 'Syne, sans-serif', fontSize: '1.4rem', fontWeight: 700, color: '#0e1117', marginBottom: '0.75rem', letterSpacing: '-0.02em' }}>Estimate Request Submitted!</h2>
           <p style={{ color: '#5a6a88', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '1.5rem' }}>
-            Thanks {form.customerName}! Your estimate request has been received along with your signed agreement and photos. Our team will review and reach out to confirm pricing and scheduling.
+            Thanks {form.firstName} {form.lastName}! Your estimate request has been received along with your signed agreement and photos. Our team will review and reach out to confirm pricing and scheduling.
           </p>
           <Link href="/" style={{ display: 'inline-block', padding: '0.7rem 1.5rem', borderRadius: 10, background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 600, fontSize: '0.9rem', textDecoration: 'none' }}>
             Back to Home
@@ -361,7 +357,6 @@ export default function ServiceRequestPage() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(14,17,23,0.75)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
           <div style={{ background: 'white', borderRadius: 16, width: '100%', maxWidth: 640, maxHeight: '92vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(14,17,23,0.3)' }}>
 
-            {/* Modal header */}
             <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #dde4ef' }}>
               <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '1.1rem', fontWeight: 700, color: '#0e1117' }}>
                 Service Agreement & Liability Waiver
@@ -371,7 +366,6 @@ export default function ServiceRequestPage() {
               </div>
             </div>
 
-            {/* Scrollable disclaimer text */}
             <div
               ref={disclaimerRef}
               onScroll={handleDisclaimerScroll}
@@ -380,14 +374,12 @@ export default function ServiceRequestPage() {
               {DISCLAIMER}
             </div>
 
-            {/* Scroll prompt */}
             {!disclaimerScrolled && (
               <div style={{ padding: '0.6rem 1.5rem', background: '#fff9e6', borderTop: '1px solid #f5e6a0', fontSize: '0.78rem', color: '#8a6a00', textAlign: 'center' }}>
                 ↓ Scroll to read the full agreement before signing
               </div>
             )}
 
-            {/* Signature section */}
             <div style={{ padding: '1.25rem 1.5rem', borderTop: '1px solid #dde4ef', display: 'flex', flexDirection: 'column', gap: 12 }}>
 
               {modalError && (
@@ -401,7 +393,7 @@ export default function ServiceRequestPage() {
                   Draw your signature below to confirm you have read and agree to all terms:
                 </div>
                 <div style={{ fontSize: '0.78rem', color: '#8494b0', marginBottom: 10 }}>
-                  Signing as: <strong style={{ color: '#0e1117' }}>{form.customerName}</strong>
+                  Signing as: <strong style={{ color: '#0e1117' }}>{form.firstName} {form.lastName}</strong>
                 </div>
                 <SignaturePad
                   onSigned={(url) => setSignatureDataUrl(url)}
@@ -490,8 +482,12 @@ export default function ServiceRequestPage() {
             <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '0.95rem', color: '#0e1117', marginBottom: '1rem' }}>Your Information</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
-                <label style={labelStyle}>Full Name *</label>
-                <input style={inputStyle} value={form.customerName} onChange={e => update('customerName', e.target.value)} placeholder="John Smith" required />
+                <label style={labelStyle}>First Name *</label>
+                <input style={inputStyle} value={form.firstName} onChange={e => update('firstName', e.target.value)} placeholder="John" required />
+              </div>
+              <div>
+                <label style={labelStyle}>Last Name *</label>
+                <input style={inputStyle} value={form.lastName} onChange={e => update('lastName', e.target.value)} placeholder="Smith" required />
               </div>
               <div>
                 <label style={labelStyle}>Email *</label>
@@ -501,7 +497,7 @@ export default function ServiceRequestPage() {
                 <label style={labelStyle}>Phone</label>
                 <input style={inputStyle} value={form.phone} onChange={e => update('phone', e.target.value)} placeholder="(555) 000-0000" />
               </div>
-              <div>
+              <div style={{ gridColumn: '1 / -1' }}>
                 <label style={labelStyle}>Service Address *</label>
                 <input style={inputStyle} value={form.serviceAddress} onChange={e => update('serviceAddress', e.target.value)} placeholder="123 Main St, Orlando, FL" required />
               </div>
