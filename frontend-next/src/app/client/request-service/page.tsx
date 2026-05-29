@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useRef } from 'react'
 import Link from 'next/link'
@@ -14,7 +14,7 @@ const SERVICES = [
   'Wood Restoration','Other',
 ]
 
-const DISCLAIMER = `NMD Pressure Washing Services LLC — Service Agreement, Liability Waiver, and Booking Disclaimer
+const DISCLAIMER = `NMD Pressure Washing Services LLC -- Service Agreement, Liability Waiver, and Booking Disclaimer
 
 By requesting, scheduling, approving, or receiving services from NMD Pressure Washing Services LLC, the client/customer agrees to the following terms and conditions:
 
@@ -60,6 +60,26 @@ The client agrees to provide safe access to the property, secure pets, remove fr
 14. ACCEPTANCE OF TERMS
 By submitting this estimate request, the client confirms they have read and understood this agreement, accept all terms and conditions, and authorize NMD Pressure Washing Services LLC to perform the requested services.`
 
+function compressImage(dataUrl: string, maxWidth = 1200, quality = 0.7): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      let { width, height } = img
+      if (width > maxWidth) {
+        height = Math.round((height * maxWidth) / width)
+        width = maxWidth
+      }
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d')!
+      ctx.drawImage(img, 0, 0, width, height)
+      resolve(canvas.toDataURL('image/jpeg', quality))
+    }
+    img.src = dataUrl
+  })
+}
+
 export default function ServiceRequestPage() {
   const [form, setForm] = useState({
     selectedService: '', customerName: '', email: '', phone: '',
@@ -74,6 +94,7 @@ export default function ServiceRequestPage() {
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [modalError, setModalError] = useState('')
   const disclaimerRef = useRef<HTMLDivElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -119,18 +140,25 @@ export default function ServiceRequestPage() {
       return
     }
     setError('')
+    setModalError('')
     setShowDisclaimer(true)
   }
 
   const submitWithAgreement = async () => {
     if (!disclaimerAgreed) return
     setLoading(true)
+    setModalError('')
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
       const nameParts = form.customerName.trim().split(' ')
       const firstName = nameParts[0] || form.customerName
       const lastName = nameParts.slice(1).join(' ') || ''
       const firstPhoto = photos[0] || null
+
+      let photoDataUrl: string | null = null
+      if (firstPhoto) {
+        photoDataUrl = await compressImage(firstPhoto.dataUrl, 1200, 0.7)
+      }
 
       const res = await fetch(`${API_URL}/api/requests/public`, {
         method: 'POST',
@@ -151,7 +179,7 @@ export default function ServiceRequestPage() {
             form.problemDescription ? `Problem: ${form.problemDescription}` : '',
             form.specialConcerns ? `Special Concerns: ${form.specialConcerns}` : '',
           ].filter(Boolean).join('\n'),
-          photoDataUrl: firstPhoto?.dataUrl || null,
+          photoDataUrl,
           photoNote: firstPhoto?.note || null,
           waiverAccepted: true,
           waiverSignature: form.customerName,
@@ -159,14 +187,14 @@ export default function ServiceRequestPage() {
       })
 
       if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || 'Submission failed')
+        const data = await res.json().catch(() => ({ error: `Server error (${res.status})` }))
+        throw new Error(data.error || `Submission failed (${res.status})`)
       }
 
       setShowDisclaimer(false)
       setSuccess(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Submission failed. Please try again.')
+      setModalError(err instanceof Error ? err.message : 'Submission failed. Please try again.')
     }
     setLoading(false)
   }
@@ -202,7 +230,6 @@ export default function ServiceRequestPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#f4f7fb', fontFamily: 'DM Sans, sans-serif' }}>
 
-      {/* Disclaimer Modal */}
       {showDisclaimer && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(14,17,23,0.7)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
           <div style={{ background: 'white', borderRadius: 16, width: '100%', maxWidth: 620, maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(14,17,23,0.3)' }}>
@@ -223,6 +250,11 @@ export default function ServiceRequestPage() {
               </div>
             )}
             <div style={{ padding: '1.25rem 1.5rem', borderTop: '1px solid #dde4ef', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {modalError && (
+                <div style={{ background: '#fff0f0', border: '1.5px solid #ffc0c0', borderRadius: 8, padding: '0.65rem 1rem', fontSize: '0.82rem', color: '#c0392b' }}>
+                  {modalError}
+                </div>
+              )}
               <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: disclaimerScrolled ? 'pointer' : 'not-allowed', opacity: disclaimerScrolled ? 1 : 0.5 }}>
                 <input
                   type="checkbox"
@@ -237,7 +269,7 @@ export default function ServiceRequestPage() {
               </label>
               <div style={{ display: 'flex', gap: 10 }}>
                 <button
-                  onClick={() => { setShowDisclaimer(false); setDisclaimerAgreed(false); setDisclaimerScrolled(false) }}
+                  onClick={() => { setShowDisclaimer(false); setDisclaimerAgreed(false); setDisclaimerScrolled(false); setModalError('') }}
                   style={{ flex: 1, padding: '0.7rem', borderRadius: 8, border: '1.5px solid #dde4ef', background: 'white', color: '#5a6a88', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}
                 >
                   Cancel
@@ -255,7 +287,6 @@ export default function ServiceRequestPage() {
         </div>
       )}
 
-      {/* Nav */}
       <div style={{ background: 'white', borderBottom: '1px solid #dde4ef', padding: '1rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Link href="/" style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1.1rem', color: '#0e1117', textDecoration: 'none' }}>
           NMD Pressure Washing
@@ -265,7 +296,6 @@ export default function ServiceRequestPage() {
         </Link>
       </div>
 
-      {/* Form */}
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '2.5rem 1.5rem' }}>
         <div style={{ marginBottom: '2rem' }}>
           <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: '1.8rem', fontWeight: 700, color: '#0e1117', marginBottom: '0.5rem', letterSpacing: '-0.02em' }}>
@@ -283,21 +313,14 @@ export default function ServiceRequestPage() {
         )}
 
         <form onSubmit={handleFormSubmit}>
-          {/* Service Selection */}
           <div style={{ background: 'white', borderRadius: 12, border: '1px solid #dde4ef', padding: '1.5rem', marginBottom: '1.25rem' }}>
             <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '0.95rem', color: '#0e1117', marginBottom: '1rem' }}>Service Needed *</div>
-            <select
-              value={form.selectedService}
-              onChange={e => update('selectedService', e.target.value)}
-              style={{ ...inputStyle }}
-              required
-            >
+            <select value={form.selectedService} onChange={e => update('selectedService', e.target.value)} style={{ ...inputStyle }} required>
               <option value="">Select a service...</option>
               {SERVICES.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
 
-          {/* Contact Info */}
           <div style={{ background: 'white', borderRadius: 12, border: '1px solid #dde4ef', padding: '1.5rem', marginBottom: '1.25rem' }}>
             <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '0.95rem', color: '#0e1117', marginBottom: '1rem' }}>Your Information</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
@@ -320,7 +343,6 @@ export default function ServiceRequestPage() {
             </div>
           </div>
 
-          {/* Scheduling */}
           <div style={{ background: 'white', borderRadius: 12, border: '1px solid #dde4ef', padding: '1.5rem', marginBottom: '1.25rem' }}>
             <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '0.95rem', color: '#0e1117', marginBottom: '1rem' }}>Preferred Schedule</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
@@ -339,7 +361,6 @@ export default function ServiceRequestPage() {
             </div>
           </div>
 
-          {/* Property Details */}
           <div style={{ background: 'white', borderRadius: 12, border: '1px solid #dde4ef', padding: '1.5rem', marginBottom: '1.25rem' }}>
             <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '0.95rem', color: '#0e1117', marginBottom: '1rem' }}>Property Details</div>
             <div style={{ display: 'grid', gap: '1rem' }}>
@@ -364,48 +385,22 @@ export default function ServiceRequestPage() {
               </div>
               <div>
                 <label style={labelStyle}>Problem Description</label>
-                <textarea
-                  value={form.problemDescription}
-                  onChange={e => update('problemDescription', e.target.value)}
-                  placeholder="Describe what needs to be cleaned or treated..."
-                  rows={3}
-                  style={{ ...inputStyle, resize: 'vertical' }}
-                />
+                <textarea value={form.problemDescription} onChange={e => update('problemDescription', e.target.value)} placeholder="Describe what needs to be cleaned or treated..." rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
               </div>
               <div>
                 <label style={labelStyle}>Special Concerns</label>
-                <textarea
-                  value={form.specialConcerns}
-                  onChange={e => update('specialConcerns', e.target.value)}
-                  placeholder="Pets, plants, fragile surfaces, access restrictions..."
-                  rows={2}
-                  style={{ ...inputStyle, resize: 'vertical' }}
-                />
+                <textarea value={form.specialConcerns} onChange={e => update('specialConcerns', e.target.value)} placeholder="Pets, plants, fragile surfaces, access restrictions..." rows={2} style={{ ...inputStyle, resize: 'vertical' }} />
               </div>
             </div>
           </div>
 
-          {/* Photos */}
           <div style={{ background: 'white', borderRadius: 12, border: '1px solid #dde4ef', padding: '1.5rem', marginBottom: '1.25rem' }}>
             <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '0.95rem', color: '#0e1117', marginBottom: '0.5rem' }}>Photos *</div>
             <p style={{ fontSize: '0.82rem', color: '#8494b0', marginBottom: '1rem' }}>Upload at least one photo of the area to be cleaned. This helps us provide an accurate estimate.</p>
-
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              multiple
-              style={{ display: 'none' }}
-              onChange={e => addPhotos(e.target.files)}
-            />
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              style={{ padding: '0.65rem 1.25rem', borderRadius: 8, border: '1.5px dashed #b0c0d8', background: '#f4f7fb', color: '#3a4660', fontWeight: 500, fontSize: '0.875rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', marginBottom: '1rem' }}
-            >
+            <input ref={fileRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={e => addPhotos(e.target.files)} />
+            <button type="button" onClick={() => fileRef.current?.click()} style={{ padding: '0.65rem 1.25rem', borderRadius: 8, border: '1.5px dashed #b0c0d8', background: '#f4f7fb', color: '#3a4660', fontWeight: 500, fontSize: '0.875rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', marginBottom: '1rem' }}>
               + Add Photos
             </button>
-
             {photos.length > 0 && (
               <div style={{ display: 'grid', gap: '0.75rem' }}>
                 {photos.map(photo => (
@@ -413,30 +408,16 @@ export default function ServiceRequestPage() {
                     <img src={photo.dataUrl} alt={photo.name} style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: '0.8rem', color: '#3a4660', fontWeight: 500, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{photo.name}</div>
-                      <input
-                        style={{ ...inputStyle, fontSize: '0.8rem', padding: '0.4rem 0.7rem' }}
-                        placeholder="Add a note about this photo (optional)"
-                        value={photo.note}
-                        onChange={e => updateNote(photo.id, e.target.value)}
-                      />
+                      <input style={{ ...inputStyle, fontSize: '0.8rem', padding: '0.4rem 0.7rem' }} placeholder="Add a note about this photo (optional)" value={photo.note} onChange={e => updateNote(photo.id, e.target.value)} />
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => removePhoto(photo.id)}
-                      style={{ background: 'none', border: 'none', color: '#c0392b', cursor: 'pointer', fontSize: '1.1rem', flexShrink: 0, padding: '0 0.25rem' }}
-                    >
-                      x
-                    </button>
+                    <button type="button" onClick={() => removePhoto(photo.id)} style={{ background: 'none', border: 'none', color: '#c0392b', cursor: 'pointer', fontSize: '1.1rem', flexShrink: 0, padding: '0 0.25rem' }}>x</button>
                   </div>
                 ))}
               </div>
             )}
           </div>
 
-          <button
-            type="submit"
-            style={{ width: '100%', padding: '0.9rem', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 700, fontSize: '1rem', cursor: 'pointer', fontFamily: 'Syne, sans-serif', letterSpacing: '-0.01em' }}
-          >
+          <button type="submit" style={{ width: '100%', padding: '0.9rem', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 700, fontSize: '1rem', cursor: 'pointer', fontFamily: 'Syne, sans-serif', letterSpacing: '-0.01em' }}>
             Review Agreement & Submit
           </button>
         </form>

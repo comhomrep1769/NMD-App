@@ -174,78 +174,208 @@ async function buildGuruReply(input: {
   role: UserRole;
   body: string;
 }): Promise<string> {
-  try {
-    const lower = input.body.toLowerCase();
+  const lower = input.body.toLowerCase();
 
-    // Search guru_training table for relevant entries first
-    const keywords = lower.split(" ").filter(w => w.length > 3).slice(0, 3);
-    const searchTerm = keywords.length > 0 ? `%${keywords.join("%")}%` : null;
+  // PRICING RATES
+  const rates: Record<string, { low: number; high: number; unit: string }> = {
+    mobile_home:  { low: 0.62, high: 0.77, unit: "sqft" },
+    tile_roof:    { low: 0.51, high: 0.63, unit: "sqft" },
+    "2_story":    { low: 0.48, high: 0.59, unit: "sqft" },
+    "two story":  { low: 0.48, high: 0.59, unit: "sqft" },
+    deck:         { low: 0.46, high: 0.57, unit: "sqft" },
+    "1_story":    { low: 0.45, high: 0.56, unit: "sqft" },
+    "one story":  { low: 0.45, high: 0.56, unit: "sqft" },
+    house:        { low: 0.45, high: 0.56, unit: "sqft" },
+    home:         { low: 0.45, high: 0.56, unit: "sqft" },
+    fence:        { low: 0.43, high: 0.53, unit: "sqft" },
+    driveway:     { low: 0.42, high: 0.52, unit: "sqft" },
+    concrete:     { low: 0.42, high: 0.52, unit: "sqft" },
+    brick:        { low: 0.40, high: 0.50, unit: "sqft" },
+    "pool deck":  { low: 0.40, high: 0.50, unit: "sqft" },
+    patio:        { low: 0.39, high: 0.49, unit: "sqft" },
+    roof:         { low: 0.39, high: 0.49, unit: "sqft" },
+    gutter:       { low: 1.10, high: 1.35, unit: "linear ft" },
+    gutters:      { low: 1.10, high: 1.35, unit: "linear ft" },
+    moss:         { low: 0.72, high: 1.39, unit: "sqft" },
+    soffit:       { low: 1.12, high: 1.38, unit: "sqft" },
+    shutter:      { low: 26.25, high: 32.79, unit: "per shutter" },
+    shutters:     { low: 26.25, high: 32.79, unit: "per shutter" },
+  };
 
-    if (searchTerm) {
-      const trainingResult = await pool.query<GuruTrainingRow>(
-        `SELECT category, title, content FROM guru_training
-         WHERE LOWER(title) LIKE $1 OR LOWER(content) LIKE $1
-         ORDER BY category, title
-         LIMIT 5`,
-        [searchTerm]
-      );
+  // Default sqft by surface type
+  const defaultSqft: Record<string, number> = {
+    house: 1500, home: 1500,
+    "1_story": 1500, "one story": 1500,
+    "2_story": 2400, "two story": 2400,
+    driveway: 500, concrete: 500,
+    deck: 300, patio: 300,
+    fence: 400,
+    roof: 2000, tile_roof: 2000,
+    mobile_home: 1200,
+  };
 
-      if (trainingResult.rows.length > 0) {
-        return trainingResult.rows
-          .map(r => `**${r.title}**\n${r.content}`)
-          .join("\n\n");
+  // Extract sqft from message
+  const sqftMatch = lower.match(/(\d[\d,]*)\s*(sqft|sq\.?\s*ft|square\s*feet|sf)\b/);
+  const mentionedSqft = sqftMatch ? parseInt(sqftMatch[1].replace(/,/g, "")) : null;
+
+  // Detect intent
+  const isEstimateRequest =
+    lower.includes("how much") ||
+    lower.includes("price") ||
+    lower.includes("cost") ||
+    lower.includes("estimate") ||
+    lower.includes("quote") ||
+    lower.includes("charge") ||
+    lower.includes("what would") ||
+    lower.includes("how much would") ||
+    lower.includes("pricing");
+
+  const isRustQuestion =
+    lower.includes("rust") ||
+    lower.includes("orange stain") ||
+    lower.includes("fertilizer stain") ||
+    lower.includes("irrigation stain");
+
+  const isChemicalQuestion =
+    lower.includes("chemical") ||
+    lower.includes("bleach") ||
+    lower.includes("soft wash") ||
+    lower.includes("sodium") ||
+    lower.includes("mix ratio") ||
+    lower.includes("dilut");
+
+  const isTreatmentQuestion =
+    lower.includes("treatment") ||
+    lower.includes("how to clean") ||
+    lower.includes("how do you clean") ||
+    lower.includes("mold") ||
+    lower.includes("mildew") ||
+    lower.includes("algae") ||
+    lower.includes("oxidation") ||
+    lower.includes("stain");
+
+  const isSafetyQuestion =
+    lower.includes("safe") ||
+    lower.includes("ppe") ||
+    lower.includes("protect") ||
+    lower.includes("danger") ||
+    lower.includes("hazard");
+
+  // ESTIMATE REQUESTS
+  if (isEstimateRequest) {
+    let matchedSurface: string | null = null;
+    let matchedRate: { low: number; high: number; unit: string } | null = null;
+
+    for (const [keyword, rate] of Object.entries(rates)) {
+      if (lower.includes(keyword)) {
+        matchedSurface = keyword;
+        matchedRate = rate;
+        break;
       }
     }
 
-    // Fallback keyword-based replies
-    if (
-      lower.includes("treatment") ||
-      lower.includes("chemical") ||
-      lower.includes("mix") ||
-      lower.includes("roof") ||
-      lower.includes("rust") ||
-      lower.includes("concrete") ||
-      lower.includes("oxidation")
-    ) {
-      return "I can help with treatment guidance. Open the Treatments page and use Guru Search, Treatment Cases, Field Mode, or the SH Calculator. Employees can view approved guidance only. Admin/Super Admin can seed or upload treatment records.";
-    }
-
-    if (lower.includes("price") || lower.includes("cost") || lower.includes("how much")) {
-      return "For pricing info, please check the Pricing section or contact NMD directly. Pricing depends on surface type, size, and condition.";
-    }
-
-    if (lower.includes("estimate") || lower.includes("quote")) {
-      if (input.role === "client") {
-        return "I can help start a preliminary estimate. Please provide service type, surface, condition, address, photos if available, and preferred schedule. NMD will review before sending an official quote.";
+    if (matchedSurface === "shutter" || matchedSurface === "shutters") {
+      const countMatch = lower.match(/(\d+)\s*shutter/);
+      const count = countMatch ? parseInt(countMatch[1]) : null;
+      if (count) {
+        const low = (count * 26.25).toFixed(0);
+        const high = (count * 32.79).toFixed(0);
+        return `For ${count} shutters, the estimated range is **$${low} - $${high}** ($26.25-$32.79 per shutter).\n\nThis is a soft-clean service — no pressure washing, just a brush and mild cleaner.\n\nSubmit a service request and we'll confirm the exact price after seeing the job.`;
       }
-      return "I can help review estimates, treatment risks, and quote workflow. Use Guru Review for submitted estimates and Treatments/Pricing for job-specific guidance.";
+      return `Shutter cleaning is priced at **$26.25 - $32.79 per shutter**.\n\nHow many shutters do you have? I can give you a total estimate.`;
     }
 
-    if (lower.includes("schedule") || lower.includes("appointment") || lower.includes("book")) {
-      return "To schedule a service, please submit a service request from your client portal or contact NMD directly. We will confirm your appointment within 24 hours.";
+    if (matchedSurface === "gutter" || matchedSurface === "gutters") {
+      const linearMatch = lower.match(/(\d+)\s*(linear|lin|lf|ft|feet)/);
+      const linearFt = linearMatch ? parseInt(linearMatch[1]) : null;
+      if (linearFt) {
+        const low = (linearFt * 1.10).toFixed(0);
+        const high = (linearFt * 1.35).toFixed(0);
+        return `For ${linearFt} linear feet of gutters, the estimated range is **$${low} - $${high}** ($1.10-$1.35/linear ft).\n\nSubmit a service request and we'll confirm the price.`;
+      }
+      return `Gutter cleaning is priced at **$1.10 - $1.35 per linear foot**.\n\nHow many linear feet of gutters do you have? A typical home is 100-200 linear feet.`;
     }
 
-    if (lower.includes("recurring") || lower.includes("monthly") || lower.includes("weekly")) {
-      return "NMD offers recurring service plans with 20% off. Options include weekly, bi-weekly, and monthly scheduling. Contact NMD or submit a request through your portal to set one up.";
+    if (matchedRate && matchedRate.unit === "sqft") {
+      const sqft = mentionedSqft || defaultSqft[matchedSurface!] || 1500;
+      const low = Math.round(sqft * matchedRate.low);
+      const high = Math.round(sqft * matchedRate.high);
+      const usedDefault = !mentionedSqft;
+
+      let reply = `Here's an estimate for **${matchedSurface}** cleaning:\n\n`;
+      reply += `- Area: ~${sqft.toLocaleString()} sqft${usedDefault ? " (estimated)" : ""}\n`;
+      reply += `- Rate: $${matchedRate.low.toFixed(2)} - $${matchedRate.high.toFixed(2)}/sqft\n`;
+      reply += `- **Estimate: $${low.toLocaleString()} - $${high.toLocaleString()}**\n\n`;
+      if (usedDefault) {
+        reply += `If you know your exact square footage, I can give a tighter range.\n\n`;
+      }
+      reply += `Submit a service request above and we'll send you a firm quote within 24 hours.`;
+      return reply;
     }
 
-    if (input.role === "employee") {
-      return "I can help with field workflow, treatments, safety reminders, and service guidance. For high-risk treatment decisions, escalate to Admin or Super Admin.";
-    }
-
-    if (input.role === "superadmin") {
-      return "Owner mode is active. I can help with operations, estimates, quotes, treatments, pricing, payments, employees, expenses, mileage, recurring services, and business analysis.";
-    }
-
-    if (input.role === "admin") {
-      return "I can help with admin operations, estimates, quotes, treatments, pricing, payments, schedules, expenses, mileage, and client follow-up.";
-    }
-
-    return "I have this noted. For estimates, please provide the service type, surface, condition, address, photos if available, and preferred schedule.";
-  } catch (err) {
-    console.error("Guru reply error:", err);
-    return "I'm here to help. Please contact NMD directly at nmdpowash@gmail.com if you need immediate assistance.";
+    return `I can give you a price estimate! To calculate it I need:\n\n1. **Surface type** — house, driveway, roof, deck, fence, patio, concrete, etc.\n2. **Approximate size** — square footage if you know it (optional)\n\nWhat surface are you looking to have cleaned?`;
   }
+
+  // RUST / ORANGE STAINS
+  if (isRustQuestion) {
+    return `Rust and orange staining from irrigation or fertilizer is a specialty service we treat with **F9 BARC** — the industry's top rust remover.\n\n**Pricing:**\n- Single spot treatment: $50 - $100\n- Walkway/entry area: $125 - $300\n- Heavy irrigation staining: $300 - $800+\n- Minimum charge: $125\n\nWe power wash the surface first, then apply F9 BARC which reverses 80-100% of orange staining.\n\nSubmit a service request with photos if you can — it helps us give you an accurate quote.`;
+  }
+
+  // CHEMICAL / SOFT WASH QUESTIONS
+  if (isChemicalQuestion) {
+    const dbResult = await pool.query<GuruTrainingRow>(
+      `SELECT category, title, content FROM guru_training
+       WHERE category = 'chemical' AND (LOWER(title) ILIKE $1 OR LOWER(content) ILIKE $1)
+       ORDER BY title LIMIT 3`,
+      [`%${lower.split(" ").slice(0, 4).join("%")}%`]
+    );
+    if (dbResult.rows.length > 0) {
+      return dbResult.rows.map(r => `**${r.title}**\n${r.content}`).join("\n\n");
+    }
+    return `We use professional-grade chemicals for all jobs:\n\n- **House/siding washing**: Sodium hypochlorite (SH) 1-2% + Elemonator surfactant at soft wash pressure (100-500 PSI)\n- **Roof cleaning**: SH 4-6% — soft wash only, never high pressure on shingles\n- **Rust removal**: F9 BARC (the industry standard)\n- **Wood restoration**: Sodium percarbonate cleaner + oxalic acid brightener\n- **Grease/oil**: Purple Power or Dragon Juice degreaser\n\nWhat surface or problem are you dealing with? I can give you the specific treatment.`;
+  }
+
+  // TREATMENT / HOW TO CLEAN QUESTIONS
+  if (isTreatmentQuestion) {
+    const dbResult = await pool.query<GuruTrainingRow>(
+      `SELECT category, title, content FROM guru_training
+       WHERE category = 'decision_matrix' AND (LOWER(title) ILIKE $1 OR LOWER(content) ILIKE $1)
+       ORDER BY title LIMIT 3`,
+      [`%${lower.split(" ").slice(0, 4).join("%")}%`]
+    );
+    if (dbResult.rows.length > 0) {
+      return dbResult.rows.map(r => `**${r.title.replace("DECISION | ", "")}**\n${r.content}`).join("\n\n");
+    }
+    return `For treatment guidance, describe the surface and problem (e.g. "algae on vinyl siding" or "mold on concrete driveway") and I'll tell you the right approach and what it costs.`;
+  }
+
+  // SAFETY QUESTIONS
+  if (isSafetyQuestion) {
+    return `**Safety requirements for our jobs:**\n\n- Gloves and eye protection on every job\n- Respirator when handling SH, acids, or sodium hydroxide\n- Long sleeves when working with bleach or acids\n- Never mix SH with acids (produces toxic chlorine gas)\n- Never spray electrical fixtures directly\n- Never walk unsafe roofs\n- Soft wash only on shingles, stucco, painted surfaces, and tile roofs\n\nAnything specific you're asking about?`;
+  }
+
+  // GREETING
+  if (lower.length < 20 || lower.includes("hello") || lower.includes("hi") || lower.includes("hey")) {
+    return `Hi! I'm Guru, NMD's assistant. I can help you with:\n\n- **Price estimates** — just tell me what surface and size\n- **Treatment questions** — what method/chemical for your problem\n- **Service info** — what's included, how it works\n\nWhat can I help you with?`;
+  }
+
+  // FALLBACK: DB SEARCH
+  const words = lower.split(/\s+/).filter(w => w.length > 3).slice(0, 4);
+  if (words.length > 0) {
+    const searchTerm = `%${words.join("%")}%`;
+    const dbResult = await pool.query<GuruTrainingRow>(
+      `SELECT category, title, content FROM guru_training
+       WHERE LOWER(title) ILIKE $1 OR LOWER(content) ILIKE $1
+       ORDER BY category LIMIT 3`,
+      [searchTerm]
+    );
+    if (dbResult.rows.length > 0) {
+      return dbResult.rows.map(r => `**${r.title}**\n${r.content}`).join("\n\n");
+    }
+  }
+
+  // FINAL FALLBACK
+  return `I can help with price estimates, treatment questions, and service info. Try asking something like:\n\n- "How much to wash a 1-story house?"\n- "What's the cost to clean a 500 sqft driveway?"\n- "How do you treat rust stains?"\n- "What's soft washing?"`;
 }
 
 async function ensureGuruTables() {
@@ -417,7 +547,6 @@ router.post("/messages", requireAuth, async (req: AuthenticatedRequest, res) => 
 
     const roleContext = getRoleContext(userRole);
 
-    // Now async — checks guru_training table before falling back to keywords
     const reply = await buildGuruReply({
       role: userRole,
       body
