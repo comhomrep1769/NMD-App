@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 
 const SERVICES = [
@@ -14,51 +14,54 @@ const SERVICES = [
   'Wood Restoration','Other',
 ]
 
-const DISCLAIMER = `NMD Pressure Washing Services LLC -- Service Agreement, Liability Waiver, and Booking Disclaimer
+const DISCLAIMER = `NMD Pressure Washing Services LLC — Service Agreement, Liability Waiver, and Booking Disclaimer
 
 By requesting, scheduling, approving, or receiving services from NMD Pressure Washing Services LLC, the client/customer agrees to the following terms and conditions:
 
 1. PRE-EXISTING CONDITIONS DISCLAIMER
 The client acknowledges that exterior cleaning services may reveal or expose pre-existing damage, deterioration, oxidation, defects, wear, improper installation, aging materials, or structural weaknesses that existed prior to service. NMD Pressure Washing Services LLC is not responsible for damage or issues resulting from pre-existing conditions including loose/cracked/brittle siding, oxidized surfaces, loose mortar, aging roofs, cracked windows, improperly sealed doors/windows, existing rust, loose gutters, previously weakened wood, rot, mold, algae, or decay.
 
-2. SOFT WASHING & PRESSURE WASHING RISKS
+2. ESTIMATES AND QUOTES DISCLAIMER
+All estimates, quotes, and preliminary pricing provided by NMD Pressure Washing Services LLC — whether provided verbally, in writing, through the website, through the Guru AI assistant, or through any other means — are estimates only and are NOT guaranteed final prices. The final amount on your invoice may differ from any estimate or quote provided prior to service. Final pricing is determined after physical on-site assessment, and may be adjusted based on actual surface conditions, additional problem areas discovered during service, changes in scope of work, material or chemical costs, and any other factors not apparent at the time of estimation. By signing this agreement, the client acknowledges and accepts that the final invoice amount may be higher or lower than any previously provided estimate or quote.
+
+3. SOFT WASHING & PRESSURE WASHING RISKS
 The client understands that pressure washing, soft washing, chemical treatment, and surface restoration involve inherent risks including surface discoloration, oxidation exposure, paint peeling, water spotting, wood fuzzing, concrete etching, and sealant failure. No guarantee is made that all stains, discoloration, or contaminants can be completely removed.
 
-3. ROOF CLEANING DISCLAIMER
+4. ROOF CLEANING DISCLAIMER
 Roof cleaning services are performed using low-pressure soft wash methods whenever appropriate. NMD Pressure Washing Services LLC is not responsible for fragile/brittle/aging roofing materials, existing leaks, improper roof installation, or pre-existing roof deterioration.
 
-4. WATER USAGE & UTILITIES
+5. WATER USAGE & UTILITIES
 The client agrees to provide access to functioning water utilities. NMD Pressure Washing Services LLC is not responsible for utility interruptions, low water pressure, or property drainage limitations.
 
-5. CHEMICAL USAGE NOTICE
+6. CHEMICAL USAGE NOTICE
 Professional cleaning solutions may be used including sodium hypochlorite, surfactants, degreasers, rust removers, and specialty restoration chemicals. The client agrees to close all windows/doors, remove or protect sensitive items, and keep pets and individuals away from active work areas.
 
-6. LANDSCAPING & PLANT DISCLAIMER
+7. LANDSCAPING & PLANT DISCLAIMER
 NMD Pressure Washing Services LLC is not responsible for existing unhealthy vegetation, previously stressed landscaping, seasonal sensitivity, or plant reactions to environmental conditions or chemicals.
 
-7. STAIN REMOVAL & RESTORATION DISCLAIMER
+8. STAIN REMOVAL & RESTORATION DISCLAIMER
 Some stains may be permanent or only partially removable including rust, battery acid, deep oil, efflorescence, artillery fungus, hard water stains, and calcium/mineral deposits. No guarantee is made regarding complete restoration.
 
-8. APPOINTMENT, CANCELLATION, & RESCHEDULING POLICY
+9. APPOINTMENT, CANCELLATION, & RESCHEDULING POLICY
 Cancellation or rescheduling fees may apply if the appointment is canceled within the restricted cancellation window, access to the property is unavailable, or utilities are unavailable.
 
-9. WEATHER DELAYS
+10. WEATHER DELAYS
 NMD Pressure Washing Services LLC reserves the right to reschedule services due to unsafe weather or delay sealing applications due to moisture or humidity.
 
-10. PHOTO & DOCUMENTATION AUTHORIZATION
+11. PHOTO & DOCUMENTATION AUTHORIZATION
 The client authorizes NMD Pressure Washing Services LLC to document the property before, during, and after service for service records, liability protection, quality assurance, training, and marketing purposes unless otherwise requested in writing.
 
-11. PAYMENT TERMS
+12. PAYMENT TERMS
 Payment is due according to the agreed invoice terms. Failure to pay may result in late fees, collections, suspension of future services, or legal action.
 
-12. LIMITATION OF LIABILITY
+13. LIMITATION OF LIABILITY
 To the fullest extent permitted by law, NMD Pressure Washing Services LLC shall not be liable for pre-existing property damage, hidden defects, improperly maintained surfaces, manufacturer defects, or cosmetic changes caused by removal of contaminants. Any liability proven to be directly caused solely by negligence shall be limited to the amount paid for the specific service performed.
 
-13. CLIENT RESPONSIBILITY
+14. CLIENT RESPONSIBILITY
 The client agrees to provide safe access to the property, secure pets, remove fragile or valuable items, notify the company of any concerns prior to service, and disclose known property issues before work begins.
 
-14. ACCEPTANCE OF TERMS
-By submitting this estimate request, the client confirms they have read and understood this agreement, accept all terms and conditions, and authorize NMD Pressure Washing Services LLC to perform the requested services.`
+15. ACCEPTANCE OF TERMS
+By signing this agreement, the client confirms they have read and understood this entire agreement, accept all terms and conditions including the estimates disclaimer in Section 2, and authorize NMD Pressure Washing Services LLC to perform the requested services. This signed agreement is logged and stored as a record of acceptance.`
 
 function compressImage(dataUrl: string, maxWidth = 1200, quality = 0.7): Promise<string> {
   return new Promise((resolve) => {
@@ -80,6 +83,125 @@ function compressImage(dataUrl: string, maxWidth = 1200, quality = 0.7): Promise
   })
 }
 
+// ── Signature Pad Component ────────────────────────────────────────────────
+function SignaturePad({
+  onSigned,
+  onCleared,
+}: {
+  onSigned: (dataUrl: string) => void
+  onCleared: () => void
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const drawing = useRef(false)
+  const hasDrawn = useRef(false)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')!
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+    ctx.strokeStyle = '#0e1117'
+    ctx.lineWidth = 2
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+  }, [])
+
+  const getPos = (e: React.MouseEvent | React.TouchEvent, canvas: HTMLCanvasElement) => {
+    const rect = canvas.getBoundingClientRect()
+    const scaleX = canvas.width / rect.width
+    const scaleY = canvas.height / rect.height
+    if ('touches' in e) {
+      return {
+        x: (e.touches[0].clientX - rect.left) * scaleX,
+        y: (e.touches[0].clientY - rect.top) * scaleY,
+      }
+    }
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY,
+    }
+  }
+
+  const startDraw = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault()
+    const canvas = canvasRef.current!
+    const ctx = canvas.getContext('2d')!
+    const { x, y } = getPos(e, canvas)
+    ctx.beginPath()
+    ctx.moveTo(x, y)
+    drawing.current = true
+    hasDrawn.current = true
+  }
+
+  const draw = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault()
+    if (!drawing.current) return
+    const canvas = canvasRef.current!
+    const ctx = canvas.getContext('2d')!
+    const { x, y } = getPos(e, canvas)
+    ctx.lineTo(x, y)
+    ctx.stroke()
+  }
+
+  const stopDraw = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault()
+    if (!drawing.current) return
+    drawing.current = false
+    if (hasDrawn.current) {
+      onSigned(canvasRef.current!.toDataURL('image/png'))
+    }
+  }
+
+  const clear = () => {
+    const canvas = canvasRef.current!
+    const ctx = canvas.getContext('2d')!
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
+    hasDrawn.current = false
+    onCleared()
+  }
+
+  return (
+    <div>
+      <div style={{ position: 'relative', border: '2px solid #dde4ef', borderRadius: 10, overflow: 'hidden', background: '#fff', touchAction: 'none' }}>
+        <canvas
+          ref={canvasRef}
+          width={560}
+          height={160}
+          style={{ display: 'block', width: '100%', height: 160, cursor: 'crosshair', touchAction: 'none' }}
+          onMouseDown={startDraw}
+          onMouseMove={draw}
+          onMouseUp={stopDraw}
+          onMouseLeave={stopDraw}
+          onTouchStart={startDraw}
+          onTouchMove={draw}
+          onTouchEnd={stopDraw}
+        />
+        <div style={{
+          position: 'absolute', bottom: 8, left: 12,
+          fontSize: '0.72rem', color: '#b0bfd0', pointerEvents: 'none',
+          fontStyle: 'italic',
+        }}>
+          Sign above
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={clear}
+        style={{
+          marginTop: 8, padding: '0.35rem 0.85rem', borderRadius: 6,
+          border: '1px solid #dde4ef', background: 'white', color: '#5a6a88',
+          fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif',
+        }}
+      >
+        Clear Signature
+      </button>
+    </div>
+  )
+}
+
+// ── Main Page ──────────────────────────────────────────────────────────────
 export default function ServiceRequestPage() {
   const [form, setForm] = useState({
     selectedService: '', customerName: '', email: '', phone: '',
@@ -87,10 +209,10 @@ export default function ServiceRequestPage() {
     propertyType: '', surfaceDetails: '', problemDescription: '',
     estimatedSize: '', specialConcerns: '',
   })
-  const [photos, setPhotos] = useState<Array<{ id: string; name: string; note: string; dataUrl: string; file: File }>>([])
+  const [photos, setPhotos] = useState<Array<{ id: string; name: string; note: string; dataUrl: string }>>([])
   const [showDisclaimer, setShowDisclaimer] = useState(false)
   const [disclaimerScrolled, setDisclaimerScrolled] = useState(false)
-  const [disclaimerAgreed, setDisclaimerAgreed] = useState(false)
+  const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -111,7 +233,6 @@ export default function ServiceRequestPage() {
           name: file.name,
           note: '',
           dataUrl: e.target?.result as string,
-          file,
         }])
       }
       reader.readAsDataURL(file)
@@ -141,11 +262,16 @@ export default function ServiceRequestPage() {
     }
     setError('')
     setModalError('')
+    setSignatureDataUrl(null)
+    setDisclaimerScrolled(false)
     setShowDisclaimer(true)
   }
 
   const submitWithAgreement = async () => {
-    if (!disclaimerAgreed) return
+    if (!signatureDataUrl) {
+      setModalError('Please draw your signature to continue.')
+      return
+    }
     setLoading(true)
     setModalError('')
     try {
@@ -182,7 +308,7 @@ export default function ServiceRequestPage() {
           photoDataUrl,
           photoNote: firstPhoto?.note || null,
           waiverAccepted: true,
-          waiverSignature: form.customerName,
+          waiverSignature: signatureDataUrl,
         }),
       })
 
@@ -217,7 +343,7 @@ export default function ServiceRequestPage() {
           <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
           <h2 style={{ fontFamily: 'Syne, sans-serif', fontSize: '1.4rem', fontWeight: 700, color: '#0e1117', marginBottom: '0.75rem', letterSpacing: '-0.02em' }}>Estimate Request Submitted!</h2>
           <p style={{ color: '#5a6a88', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '1.5rem' }}>
-            Thanks {form.customerName}! Your estimate request has been received along with your photos. Our team will review and reach out to confirm pricing and scheduling. A copy of your signed agreement has been sent to {form.email}.
+            Thanks {form.customerName}! Your estimate request has been received along with your signed agreement and photos. Our team will review and reach out to confirm pricing and scheduling.
           </p>
           <Link href="/" style={{ display: 'inline-block', padding: '0.7rem 1.5rem', borderRadius: 10, background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 600, fontSize: '0.9rem', textDecoration: 'none' }}>
             Back to Home
@@ -230,13 +356,22 @@ export default function ServiceRequestPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#f4f7fb', fontFamily: 'DM Sans, sans-serif' }}>
 
+      {/* Disclaimer Modal */}
       {showDisclaimer && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(14,17,23,0.7)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ background: 'white', borderRadius: 16, width: '100%', maxWidth: 620, maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(14,17,23,0.3)' }}>
-            <div style={{ padding: '1.5rem', borderBottom: '1px solid #dde4ef' }}>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '1.1rem', fontWeight: 700, color: '#0e1117' }}>Service Agreement & Liability Waiver</div>
-              <div style={{ fontSize: '0.82rem', color: '#8494b0', marginTop: 4 }}>Please read the full agreement before submitting your estimate request.</div>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(14,17,23,0.75)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ background: 'white', borderRadius: 16, width: '100%', maxWidth: 640, maxHeight: '92vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(14,17,23,0.3)' }}>
+
+            {/* Modal header */}
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #dde4ef' }}>
+              <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '1.1rem', fontWeight: 700, color: '#0e1117' }}>
+                Service Agreement & Liability Waiver
+              </div>
+              <div style={{ fontSize: '0.82rem', color: '#8494b0', marginTop: 4 }}>
+                Read the full agreement, then draw your signature at the bottom to submit.
+              </div>
             </div>
+
+            {/* Scrollable disclaimer text */}
             <div
               ref={disclaimerRef}
               onScroll={handleDisclaimerScroll}
@@ -244,42 +379,68 @@ export default function ServiceRequestPage() {
             >
               {DISCLAIMER}
             </div>
+
+            {/* Scroll prompt */}
             {!disclaimerScrolled && (
-              <div style={{ padding: '0.75rem 1.5rem', background: '#fff9e6', borderTop: '1px solid #f5e6a0', fontSize: '0.8rem', color: '#8a6a00', textAlign: 'center' }}>
-                Please scroll to the bottom to read the full agreement.
+              <div style={{ padding: '0.6rem 1.5rem', background: '#fff9e6', borderTop: '1px solid #f5e6a0', fontSize: '0.78rem', color: '#8a6a00', textAlign: 'center' }}>
+                ↓ Scroll to read the full agreement before signing
               </div>
             )}
+
+            {/* Signature section */}
             <div style={{ padding: '1.25rem 1.5rem', borderTop: '1px solid #dde4ef', display: 'flex', flexDirection: 'column', gap: 12 }}>
+
               {modalError && (
                 <div style={{ background: '#fff0f0', border: '1.5px solid #ffc0c0', borderRadius: 8, padding: '0.65rem 1rem', fontSize: '0.82rem', color: '#c0392b' }}>
                   {modalError}
                 </div>
               )}
-              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: disclaimerScrolled ? 'pointer' : 'not-allowed', opacity: disclaimerScrolled ? 1 : 0.5 }}>
-                <input
-                  type="checkbox"
-                  checked={disclaimerAgreed}
-                  onChange={e => disclaimerScrolled && setDisclaimerAgreed(e.target.checked)}
-                  disabled={!disclaimerScrolled}
-                  style={{ marginTop: 2, flexShrink: 0 }}
+
+              <div style={{ opacity: disclaimerScrolled ? 1 : 0.45, pointerEvents: disclaimerScrolled ? 'auto' : 'none', transition: 'opacity 0.3s' }}>
+                <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#0e1117', marginBottom: 8 }}>
+                  Draw your signature below to confirm you have read and agree to all terms:
+                </div>
+                <div style={{ fontSize: '0.78rem', color: '#8494b0', marginBottom: 10 }}>
+                  Signing as: <strong style={{ color: '#0e1117' }}>{form.customerName}</strong>
+                </div>
+                <SignaturePad
+                  onSigned={(url) => setSignatureDataUrl(url)}
+                  onCleared={() => setSignatureDataUrl(null)}
                 />
-                <span style={{ fontSize: '0.85rem', color: '#0e1117', lineHeight: 1.5 }}>
-                  I, <strong>{form.customerName}</strong>, have read and agree to the NMD Pressure Washing Services LLC Service Agreement, Liability Waiver, and Booking Disclaimer.
-                </span>
-              </label>
-              <div style={{ display: 'flex', gap: 10 }}>
+                {signatureDataUrl && (
+                  <div style={{ marginTop: 8, fontSize: '0.78rem', color: '#1a7a3c', fontWeight: 500 }}>
+                    ✓ Signature captured
+                  </div>
+                )}
+              </div>
+
+              {!disclaimerScrolled && (
+                <div style={{ fontSize: '0.78rem', color: '#8494b0', textAlign: 'center' }}>
+                  Please scroll through the full agreement above to enable signing.
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                 <button
-                  onClick={() => { setShowDisclaimer(false); setDisclaimerAgreed(false); setDisclaimerScrolled(false); setModalError('') }}
+                  type="button"
+                  onClick={() => { setShowDisclaimer(false); setSignatureDataUrl(null); setDisclaimerScrolled(false); setModalError('') }}
                   style={{ flex: 1, padding: '0.7rem', borderRadius: 8, border: '1.5px solid #dde4ef', background: 'white', color: '#5a6a88', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}
                 >
                   Cancel
                 </button>
                 <button
+                  type="button"
                   onClick={submitWithAgreement}
-                  disabled={!disclaimerAgreed || loading}
-                  style={{ flex: 2, padding: '0.7rem', borderRadius: 8, border: 'none', background: disclaimerAgreed ? 'linear-gradient(135deg, #1f6132, #124d83)' : '#dde4ef', color: disclaimerAgreed ? 'white' : '#8494b0', fontWeight: 600, cursor: disclaimerAgreed ? 'pointer' : 'not-allowed', fontFamily: 'DM Sans, sans-serif' }}
+                  disabled={!signatureDataUrl || loading}
+                  style={{
+                    flex: 2, padding: '0.7rem', borderRadius: 8, border: 'none',
+                    background: signatureDataUrl && !loading ? 'linear-gradient(135deg, #1f6132, #124d83)' : '#dde4ef',
+                    color: signatureDataUrl && !loading ? 'white' : '#8494b0',
+                    fontWeight: 600, cursor: signatureDataUrl && !loading ? 'pointer' : 'not-allowed',
+                    fontFamily: 'DM Sans, sans-serif',
+                  }}
                 >
-                  {loading ? 'Submitting...' : 'I Agree & Submit Estimate Request'}
+                  {loading ? 'Submitting...' : 'Sign & Submit Estimate Request'}
                 </button>
               </div>
             </div>
@@ -287,6 +448,7 @@ export default function ServiceRequestPage() {
         </div>
       )}
 
+      {/* Top nav */}
       <div style={{ background: 'white', borderBottom: '1px solid #dde4ef', padding: '1rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Link href="/" style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1.1rem', color: '#0e1117', textDecoration: 'none' }}>
           NMD Pressure Washing
@@ -313,14 +475,17 @@ export default function ServiceRequestPage() {
         )}
 
         <form onSubmit={handleFormSubmit}>
+
+          {/* Service selection */}
           <div style={{ background: 'white', borderRadius: 12, border: '1px solid #dde4ef', padding: '1.5rem', marginBottom: '1.25rem' }}>
             <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '0.95rem', color: '#0e1117', marginBottom: '1rem' }}>Service Needed *</div>
-            <select value={form.selectedService} onChange={e => update('selectedService', e.target.value)} style={{ ...inputStyle }} required>
+            <select value={form.selectedService} onChange={e => update('selectedService', e.target.value)} style={inputStyle} required>
               <option value="">Select a service...</option>
               {SERVICES.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
 
+          {/* Client info */}
           <div style={{ background: 'white', borderRadius: 12, border: '1px solid #dde4ef', padding: '1.5rem', marginBottom: '1.25rem' }}>
             <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '0.95rem', color: '#0e1117', marginBottom: '1rem' }}>Your Information</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
@@ -338,11 +503,12 @@ export default function ServiceRequestPage() {
               </div>
               <div>
                 <label style={labelStyle}>Service Address *</label>
-                <input style={inputStyle} value={form.serviceAddress} onChange={e => update('serviceAddress', e.target.value)} placeholder="123 Main St, Atlanta, GA" required />
+                <input style={inputStyle} value={form.serviceAddress} onChange={e => update('serviceAddress', e.target.value)} placeholder="123 Main St, Orlando, FL" required />
               </div>
             </div>
           </div>
 
+          {/* Schedule */}
           <div style={{ background: 'white', borderRadius: 12, border: '1px solid #dde4ef', padding: '1.5rem', marginBottom: '1.25rem' }}>
             <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '0.95rem', color: '#0e1117', marginBottom: '1rem' }}>Preferred Schedule</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
@@ -361,6 +527,7 @@ export default function ServiceRequestPage() {
             </div>
           </div>
 
+          {/* Property details */}
           <div style={{ background: 'white', borderRadius: 12, border: '1px solid #dde4ef', padding: '1.5rem', marginBottom: '1.25rem' }}>
             <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '0.95rem', color: '#0e1117', marginBottom: '1rem' }}>Property Details</div>
             <div style={{ display: 'grid', gap: '1rem' }}>
@@ -394,6 +561,7 @@ export default function ServiceRequestPage() {
             </div>
           </div>
 
+          {/* Photos */}
           <div style={{ background: 'white', borderRadius: 12, border: '1px solid #dde4ef', padding: '1.5rem', marginBottom: '1.25rem' }}>
             <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '0.95rem', color: '#0e1117', marginBottom: '0.5rem' }}>Photos *</div>
             <p style={{ fontSize: '0.82rem', color: '#8494b0', marginBottom: '1rem' }}>Upload at least one photo of the area to be cleaned. This helps us provide an accurate estimate.</p>
@@ -410,11 +578,16 @@ export default function ServiceRequestPage() {
                       <div style={{ fontSize: '0.8rem', color: '#3a4660', fontWeight: 500, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{photo.name}</div>
                       <input style={{ ...inputStyle, fontSize: '0.8rem', padding: '0.4rem 0.7rem' }} placeholder="Add a note about this photo (optional)" value={photo.note} onChange={e => updateNote(photo.id, e.target.value)} />
                     </div>
-                    <button type="button" onClick={() => removePhoto(photo.id)} style={{ background: 'none', border: 'none', color: '#c0392b', cursor: 'pointer', fontSize: '1.1rem', flexShrink: 0, padding: '0 0.25rem' }}>x</button>
+                    <button type="button" onClick={() => removePhoto(photo.id)} style={{ background: 'none', border: 'none', color: '#c0392b', cursor: 'pointer', fontSize: '1.1rem', flexShrink: 0, padding: '0 0.25rem' }}>×</button>
                   </div>
                 ))}
               </div>
             )}
+          </div>
+
+          {/* Disclaimer notice */}
+          <div style={{ background: '#fff9e6', border: '1px solid #f5e6a0', borderRadius: 10, padding: '0.85rem 1rem', marginBottom: '1.25rem', fontSize: '0.82rem', color: '#7a5c00', lineHeight: 1.5 }}>
+            <strong>Note:</strong> By submitting this form you will be asked to read our full Service Agreement & Liability Waiver and draw your physical signature. Estimates provided are not guaranteed final prices — the final invoice amount may differ based on actual site conditions.
           </div>
 
           <button type="submit" style={{ width: '100%', padding: '0.9rem', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 700, fontSize: '1rem', cursor: 'pointer', fontFamily: 'Syne, sans-serif', letterSpacing: '-0.01em' }}>
