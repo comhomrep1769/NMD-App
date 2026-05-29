@@ -22,6 +22,7 @@ type BuildNmdEmailTemplateInput = {
   actionHref?: string;
   footerNote?: string;
   footer?: string;
+  signatureImageUrl?: string; // base64 PNG or URL — renders as image in email
 };
 
 function escapeHtml(value: string) {
@@ -58,7 +59,28 @@ export function buildNmdEmailTemplate(input: BuildNmdEmailTemplateInput | string
     ? `<div style="margin:24px 0;text-align:center;"><a href="${escapeHtml(buttonUrl)}" style="display:inline-block;background:linear-gradient(135deg,#1f6132,#124d83);color:#ffffff;text-decoration:none;font-weight:800;padding:14px 24px;border-radius:12px;font-size:15px;">${escapeHtml(buttonText)}</a></div>`
     : "";
 
-  return `<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${escapeHtml(title)}</title></head><body style="margin:0;padding:0;background:#eef7ff;font-family:Arial,sans-serif;"><div style="display:none;max-height:0;overflow:hidden;color:transparent;">${escapeHtml(config.preheader || heading)}</div><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#eef7ff;padding:28px 12px;"><tr><td align="center"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;background:#ffffff;border:1px solid rgba(37,99,235,.18);border-radius:18px;overflow:hidden;box-shadow:0 20px 48px rgba(15,89,150,.14);"><tr><td style="padding:28px 24px 20px;background:linear-gradient(135deg,#1f6132,#124d83);text-align:center;"><img src="https://nmdpowash.com/nmd-logo-email.png" alt="NMD Pressure Washing Services" width="120" style="display:block;margin:0 auto 14px;height:auto;" /><h1 style="margin:0;font-size:22px;line-height:1.3;color:#ffffff;font-weight:800;">${escapeHtml(heading)}</h1></td></tr><tr><td style="padding:26px;">${paragraphsFromText(body)}${buttonHtml}</td></tr><tr><td style="padding:18px 26px;background:#f8fbff;border-top:1px solid rgba(37,99,235,.12);"><p style="margin:0;color:#64748b;font-size:13px;line-height:1.5;">${escapeHtml(footerNote)}</p></td></tr></table></td></tr></table></body></html>`;
+  // Signature block — renders as image if base64/URL, or styled text fallback
+  let signatureHtml = "";
+  if (config.signatureImageUrl) {
+    if (config.signatureImageUrl.startsWith("data:image") || config.signatureImageUrl.startsWith("http")) {
+      signatureHtml = `
+        <div style="margin-top:24px;padding:16px;background:#f8fbff;border:1px solid #dde4ef;border-radius:10px;">
+          <p style="margin:0 0 10px;font-size:13px;font-weight:700;color:#3a4660;text-transform:uppercase;letter-spacing:0.05em;">Client Signature</p>
+          <img src="${config.signatureImageUrl}" alt="Client Signature" style="max-width:300px;max-height:120px;display:block;border:1px solid #dde4ef;border-radius:6px;background:#fff;" />
+          <p style="margin:8px 0 0;font-size:12px;color:#8494b0;">Signed as part of the NMD Service Agreement &amp; Liability Waiver</p>
+        </div>`;
+    } else {
+      // Plain text signature (legacy)
+      signatureHtml = `
+        <div style="margin-top:24px;padding:16px;background:#f8fbff;border:1px solid #dde4ef;border-radius:10px;">
+          <p style="margin:0 0 6px;font-size:13px;font-weight:700;color:#3a4660;text-transform:uppercase;letter-spacing:0.05em;">Client Signature</p>
+          <p style="margin:0;font-family:Georgia,serif;font-size:20px;font-style:italic;color:#0e1117;">${escapeHtml(config.signatureImageUrl)}</p>
+          <p style="margin:8px 0 0;font-size:12px;color:#8494b0;">Signed as part of the NMD Service Agreement &amp; Liability Waiver</p>
+        </div>`;
+    }
+  }
+
+  return `<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>${escapeHtml(title)}</title></head><body style="margin:0;padding:0;background:#eef7ff;font-family:Arial,sans-serif;"><div style="display:none;max-height:0;overflow:hidden;color:transparent;">${escapeHtml(config.preheader || heading)}</div><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#eef7ff;padding:28px 12px;"><tr><td align="center"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;background:#ffffff;border:1px solid rgba(37,99,235,.18);border-radius:18px;overflow:hidden;box-shadow:0 20px 48px rgba(15,89,150,.14);"><tr><td style="padding:28px 24px 20px;background:linear-gradient(135deg,#1f6132,#124d83);text-align:center;"><img src="https://nmdpowash.com/nmd-logo-email.png" alt="NMD Pressure Washing Services" width="120" style="display:block;margin:0 auto 14px;height:auto;" /><h1 style="margin:0;font-size:22px;line-height:1.3;color:#ffffff;font-weight:800;">${escapeHtml(heading)}</h1></td></tr><tr><td style="padding:26px;">${paragraphsFromText(body)}${buttonHtml}${signatureHtml}</td></tr><tr><td style="padding:18px 26px;background:#f8fbff;border-top:1px solid rgba(37,99,235,.12);"><p style="margin:0;color:#64748b;font-size:13px;line-height:1.5;">${escapeHtml(footerNote)}</p></td></tr></table></td></tr></table></body></html>`;
 }
 
 function getResendClient() {

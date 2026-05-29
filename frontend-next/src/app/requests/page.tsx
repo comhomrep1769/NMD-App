@@ -28,6 +28,263 @@ const modalOverlay: React.CSSProperties = {
   zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ADD THIS FUNCTION to frontend-next/src/app/requests/page.tsx
+// Place it just before the `export default function RequestsPage()` line.
+//
+// It uses jsPDF loaded from CDN — no npm install needed.
+// ─────────────────────────────────────────────────────────────────────────────
+
+declare global {
+  interface Window {
+    jspdf?: { jsPDF: new (options?: object) => jsPDFInstance }
+  }
+}
+
+interface jsPDFInstance {
+  setFont: (font: string, style?: string) => void
+  setFontSize: (size: number) => void
+  setTextColor: (r: number, g: number, b: number) => void
+  setDrawColor: (r: number, g: number, b: number) => void
+  setLineWidth: (width: number) => void
+  text: (text: string | string[], x: number, y: number, options?: object) => void
+  line: (x1: number, y1: number, x2: number, y2: number) => void
+  rect: (x: number, y: number, w: number, h: number, style?: string) => void
+  addImage: (data: string, format: string, x: number, y: number, w: number, h: number) => void
+  splitTextToSize: (text: string, maxWidth: number) => string[]
+  addPage: () => void
+  save: (filename: string) => void
+  internal: { pageSize: { getWidth: () => number; getHeight: () => number } }
+}
+
+const DISCLAIMER_TEXT = `NMD Pressure Washing Services LLC - Service Agreement, Liability Waiver, and Booking Disclaimer
+
+By requesting, scheduling, approving, or receiving services from NMD Pressure Washing Services LLC, the client/customer agrees to the following terms and conditions:
+
+1. PRE-EXISTING CONDITIONS DISCLAIMER
+The client acknowledges that exterior cleaning services may reveal or expose pre-existing damage, deterioration, oxidation, defects, wear, improper installation, aging materials, or structural weaknesses that existed prior to service. NMD Pressure Washing Services LLC is not responsible for damage or issues resulting from pre-existing conditions including loose/cracked/brittle siding, oxidized surfaces, loose mortar, aging roofs, cracked windows, improperly sealed doors/windows, existing rust, loose gutters, previously weakened wood, rot, mold, algae, or decay.
+
+2. ESTIMATES AND QUOTES DISCLAIMER
+All estimates, quotes, and preliminary pricing provided by NMD Pressure Washing Services LLC are estimates only and are NOT guaranteed final prices. The final amount on your invoice may differ from any estimate or quote provided prior to service. Final pricing is determined after physical on-site assessment, and may be adjusted based on actual surface conditions, additional problem areas discovered during service, changes in scope of work, material or chemical costs, and any other factors not apparent at the time of estimation. By signing this agreement, the client acknowledges and accepts that the final invoice amount may be higher or lower than any previously provided estimate or quote.
+
+3. SOFT WASHING & PRESSURE WASHING RISKS
+The client understands that pressure washing, soft washing, chemical treatment, and surface restoration involve inherent risks including surface discoloration, oxidation exposure, paint peeling, water spotting, wood fuzzing, concrete etching, and sealant failure. No guarantee is made that all stains, discoloration, or contaminants can be completely removed.
+
+4. ROOF CLEANING DISCLAIMER
+Roof cleaning services are performed using low-pressure soft wash methods whenever appropriate. NMD Pressure Washing Services LLC is not responsible for fragile/brittle/aging roofing materials, existing leaks, improper roof installation, or pre-existing roof deterioration.
+
+5. WATER USAGE & UTILITIES
+The client agrees to provide access to functioning water utilities. NMD Pressure Washing Services LLC is not responsible for utility interruptions, low water pressure, or property drainage limitations.
+
+6. CHEMICAL USAGE NOTICE
+Professional cleaning solutions may be used including sodium hypochlorite, surfactants, degreasers, rust removers, and specialty restoration chemicals. The client agrees to close all windows/doors, remove or protect sensitive items, and keep pets and individuals away from active work areas.
+
+7. LANDSCAPING & PLANT DISCLAIMER
+NMD Pressure Washing Services LLC is not responsible for existing unhealthy vegetation, previously stressed landscaping, seasonal sensitivity, or plant reactions to environmental conditions or chemicals.
+
+8. STAIN REMOVAL & RESTORATION DISCLAIMER
+Some stains may be permanent or only partially removable including rust, battery acid, deep oil, efflorescence, artillery fungus, hard water stains, and calcium/mineral deposits. No guarantee is made regarding complete restoration.
+
+9. APPOINTMENT, CANCELLATION, & RESCHEDULING POLICY
+Cancellation or rescheduling fees may apply if the appointment is canceled within the restricted cancellation window, access to the property is unavailable, or utilities are unavailable.
+
+10. WEATHER DELAYS
+NMD Pressure Washing Services LLC reserves the right to reschedule services due to unsafe weather or delay sealing applications due to moisture or humidity.
+
+11. PHOTO & DOCUMENTATION AUTHORIZATION
+The client authorizes NMD Pressure Washing Services LLC to document the property before, during, and after service for service records, liability protection, quality assurance, training, and marketing purposes unless otherwise requested in writing.
+
+12. PAYMENT TERMS
+Payment is due according to the agreed invoice terms. Failure to pay may result in late fees, collections, suspension of future services, or legal action.
+
+13. LIMITATION OF LIABILITY
+To the fullest extent permitted by law, NMD Pressure Washing Services LLC shall not be liable for pre-existing property damage, hidden defects, improperly maintained surfaces, manufacturer defects, or cosmetic changes caused by removal of contaminants. Any liability proven to be directly caused solely by negligence shall be limited to the amount paid for the specific service performed.
+
+14. CLIENT RESPONSIBILITY
+The client agrees to provide safe access to the property, secure pets, remove fragile or valuable items, notify the company of any concerns prior to service, and disclose known property issues before work begins.
+
+15. ACCEPTANCE OF TERMS
+By signing this agreement, the client confirms they have read and understood this entire agreement, accept all terms and conditions including the estimates disclaimer in Section 2, and authorize NMD Pressure Washing Services LLC to perform the requested services. This signed agreement is logged and stored as a record of acceptance.`
+
+async function downloadAgreementPdf(r: {
+  firstName: string; lastName: string; email: string; phone: string
+  address: string; serviceType: string; createdAt: string
+  waiverSignedAt: string | null; waiverSignature: string | null
+}) {
+  // Load jsPDF from CDN if not already loaded
+  if (!window.jspdf) {
+    await new Promise<void>((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
+      script.onload = () => resolve()
+      script.onerror = () => reject(new Error('Failed to load jsPDF'))
+      document.head.appendChild(script)
+    })
+  }
+
+  const { jsPDF } = window.jspdf!
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+  const pageW = doc.internal.pageSize.getWidth()
+  const margin = 20
+  const contentW = pageW - margin * 2
+  let y = 20
+
+  const addText = (text: string, fontSize: number, bold = false, color: [number,number,number] = [14,17,23]) => {
+    doc.setFont('helvetica', bold ? 'bold' : 'normal')
+    doc.setFontSize(fontSize)
+    doc.setTextColor(...color)
+    const lines = doc.splitTextToSize(text, contentW)
+    doc.text(lines, margin, y)
+    y += lines.length * (fontSize * 0.4) + 2
+  }
+
+  const checkPage = (needed = 20) => {
+    if (y + needed > 270) { doc.addPage(); y = 20 }
+  }
+
+  // ── Header ──────────────────────────────────────────────────────────────
+  doc.setDrawColor(31, 97, 50)
+  doc.setLineWidth(0.5)
+  doc.rect(margin - 2, y - 4, contentW + 4, 18, 'S')
+
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(14)
+  doc.setTextColor(31, 97, 50)
+  doc.text('NMD PRESSURE WASHING SERVICES LLC', pageW / 2, y + 4, { align: 'center' })
+  y += 8
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(10)
+  doc.setTextColor(100, 100, 100)
+  doc.text('Service Agreement & Liability Waiver', pageW / 2, y + 2, { align: 'center' })
+  y += 12
+
+  // ── Client Info ──────────────────────────────────────────────────────────
+  doc.setDrawColor(220, 228, 239)
+  doc.setLineWidth(0.3)
+  doc.rect(margin - 2, y - 2, contentW + 4, 36, 'S')
+
+  addText('CLIENT INFORMATION', 8, true, [58, 70, 96])
+  y += 1
+
+  const infoRows = [
+    [`Name:`, `${r.firstName} ${r.lastName}`.trim()],
+    [`Email:`, r.email || 'N/A'],
+    [`Phone:`, r.phone || 'N/A'],
+    [`Service Address:`, r.address || 'N/A'],
+    [`Service Requested:`, r.serviceType || 'N/A'],
+    [`Submitted:`, r.createdAt ? new Date(r.createdAt).toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' }) : 'N/A'],
+    [`Signed At:`, r.waiverSignedAt ? new Date(r.waiverSignedAt).toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' }) : new Date(r.createdAt).toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' })],
+  ]
+
+  for (const [label, value] of infoRows) {
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(9)
+    doc.setTextColor(58, 70, 96)
+    doc.text(label, margin + 2, y)
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(14, 17, 23)
+    doc.text(value, margin + 42, y)
+    y += 5
+  }
+
+  y += 4
+
+  // ── Agreement Text ───────────────────────────────────────────────────────
+  checkPage(10)
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(10)
+  doc.setTextColor(31, 97, 50)
+  doc.text('FULL AGREEMENT TEXT', margin, y)
+  y += 1
+  doc.setDrawColor(31, 97, 50)
+  doc.setLineWidth(0.4)
+  doc.line(margin, y, margin + contentW, y)
+  y += 5
+
+  // Render disclaimer paragraph by paragraph
+  for (const para of DISCLAIMER_TEXT.split('\n\n')) {
+    checkPage(15)
+    const trimmed = para.trim()
+    if (!trimmed) continue
+
+    // Section headers (ALL CAPS lines like "1. PRE-EXISTING...")
+    if (/^\d+\./.test(trimmed) || trimmed === trimmed.toUpperCase()) {
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(8.5)
+      doc.setTextColor(14, 17, 23)
+    } else {
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(8)
+      doc.setTextColor(60, 60, 60)
+    }
+
+    const lines = doc.splitTextToSize(trimmed, contentW)
+    for (const line of lines) {
+      checkPage(6)
+      doc.text(line, margin, y)
+      y += 4
+    }
+    y += 2
+  }
+
+  // ── Signature ────────────────────────────────────────────────────────────
+  checkPage(60)
+  y += 4
+  doc.setDrawColor(220, 228, 239)
+  doc.setLineWidth(0.3)
+  doc.rect(margin - 2, y - 4, contentW + 4, 52, 'S')
+
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(9)
+  doc.setTextColor(58, 70, 96)
+  doc.text('CLIENT SIGNATURE', margin + 2, y + 2)
+  y += 8
+
+  if (r.waiverSignature && r.waiverSignature.startsWith('data:image')) {
+    try {
+      doc.addImage(r.waiverSignature, 'PNG', margin + 2, y, 80, 32)
+      y += 36
+    } catch {
+      doc.setFont('helvetica', 'italic')
+      doc.setFontSize(9)
+      doc.setTextColor(100, 100, 100)
+      doc.text('[Signature image could not be rendered]', margin + 2, y + 8)
+      y += 20
+    }
+  } else if (r.waiverSignature) {
+    doc.setFont('helvetica', 'bolditalic')
+    doc.setFontSize(16)
+    doc.setTextColor(14, 17, 23)
+    doc.text(r.waiverSignature, margin + 2, y + 10)
+    y += 20
+  } else {
+    doc.setFont('helvetica', 'italic')
+    doc.setFontSize(9)
+    doc.setTextColor(150, 150, 150)
+    doc.text('[No signature on file]', margin + 2, y + 8)
+    y += 20
+  }
+
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(8)
+  doc.setTextColor(100, 100, 100)
+  const sigDate = r.waiverSignedAt || r.createdAt
+  doc.text(`Digitally signed on ${new Date(sigDate).toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' })}`, margin + 2, y + 2)
+  y += 8
+  doc.text('This signature was collected electronically as part of the NMD Service Agreement & Liability Waiver.', margin + 2, y)
+
+  // ── Footer ───────────────────────────────────────────────────────────────
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(7.5)
+  doc.setTextColor(150, 150, 150)
+  doc.text('NMD Pressure Washing Services LLC | nmdpowash.com | 321-888-6586', pageW / 2, 285, { align: 'center' })
+  doc.text('Clean Results. Reliable Service. Every Time.', pageW / 2, 289, { align: 'center' })
+
+  // Save
+  const filename = `NMD-Agreement-${r.firstName}-${r.lastName}-${new Date(r.createdAt).toISOString().slice(0,10)}.pdf`
+  doc.save(filename)
+}
+
 export default function RequestsPage() {
   const [requests, setRequests] = useState<Request[]>([])
   const [loading, setLoading] = useState(true)
@@ -171,7 +428,15 @@ export default function RequestsPage() {
                 <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem', color: 'white' }}>Signed Agreement</div>
                 <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>Service Agreement & Liability Waiver</div>
               </div>
-              <button onClick={() => setViewSignature(null)} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', borderRadius: 8, padding: '4px 10px', cursor: 'pointer', fontSize: '0.85rem' }}>Close</button>
+              <div style={{ display: 'flex', gap: 8 }}>
+  <button
+    onClick={() => downloadAgreementPdf(viewSignature)}
+    style={{ padding: '4px 12px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' }}
+  >
+    Download PDF
+  </button>
+  <button onClick={() => setViewSignature(null)} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', borderRadius: 8, padding: '4px 10px', cursor: 'pointer', fontSize: '0.85rem' }}>Close</button>
+</div>
             </div>
 
             {/* Client info */}
@@ -450,6 +715,12 @@ export default function RequestsPage() {
                         onClick={() => setViewSignature(r)}
                         style={{ padding: '0.35rem 0.85rem', borderRadius: 6, border: '1px solid #dde4ef', background: 'white', color: '#3a4660', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}
                       >
+                        <button
+  onClick={() => downloadAgreementPdf(r)}
+  style={{ padding: '0.35rem 0.85rem', borderRadius: 6, border: 'none', background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}
+>
+  Download PDF
+</button>
                         View Signature
                       </button>
                     </div>

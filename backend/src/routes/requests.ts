@@ -88,7 +88,7 @@ router.post("/public", async (req, res) => {
     if (email) {
       try {
         console.log("[requests/public] creating client account for:", email);
-        const displayName = `${firstName} ${lastName}`.trim();
+        const displayName = `${firstName} ${lastName || ""}`.trim();
         const { token: setPasswordToken, isNew } = await createClientAccountAndToken({
           email: email.trim().toLowerCase(),
           displayName,
@@ -132,14 +132,16 @@ router.post("/public", async (req, res) => {
       }
     }
 
+    // ── Admin notification — signature rendered as image, not raw base64 ──
     await sendEmail({
       to: process.env.NMD_ADMIN_EMAIL || "nmdpowash@gmail.com",
       subject: `New NMD service request: ${serviceType}`,
       html: buildNmdEmailTemplate({
         title: "New Service Request",
-        message: `Client: ${firstName} ${lastName}\nPhone: ${phone || "N/A"}\nEmail: ${email || "N/A"}\nAddress: ${address}\nService: ${serviceType}\nPreferred: ${preferredDate || "N/A"} ${preferredTime || ""}\nNotes: ${notes || "N/A"}\nWaiver Signature: ${waiverSignature}`
+        message: `Client: ${firstName} ${lastName || ""}\nPhone: ${phone || "N/A"}\nEmail: ${email || "N/A"}\nAddress: ${address}\nService: ${serviceType}\nPreferred: ${preferredDate || "N/A"} ${preferredTime || ""}\nNotes: ${notes || "N/A"}`,
+        signatureImageUrl: waiverSignature || undefined
       }),
-      text: `New service request from ${firstName} ${lastName}: ${serviceType} at ${address}`
+      text: `New service request from ${firstName} ${lastName || ""}: ${serviceType} at ${address}`
     });
     console.log("[requests/public] admin notification sent");
 
