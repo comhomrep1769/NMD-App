@@ -127,7 +127,7 @@ export default function PortalShell({
       )}
 
       {sidebarVisible && (
-        <div style={{ width: 240, minHeight: '100vh', background: '#0e1117', display: 'flex', flexDirection: 'column', position: 'fixed', top: 0, left: 0, zIndex: 40, flexShrink: 0, transition: 'transform 0.25s ease' }}>
+        <div style={{ width: 240, height: '100vh', background: '#0e1117', display: 'flex', flexDirection: 'column', position: 'fixed', top: 0, left: 0, zIndex: 40, flexShrink: 0, transition: 'transform 0.25s ease', overflow: 'hidden' }}>
 
           <div style={{ padding: '1.25rem 1.25rem 1rem', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
             <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
