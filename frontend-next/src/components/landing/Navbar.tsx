@@ -25,7 +25,7 @@ export default function Navbar() {
         </ul>
 
         <div className="nmd-nav-ctas">
-          <a href="/client/login" className="btn-ghost">Portal Login</a>
+          <a href="/client/login" className="btn-ghost">Client Login</a>
           <a href="/client/request-service" className="btn-primary">
             Get a Free Quote
           </a>
@@ -80,7 +80,7 @@ export default function Navbar() {
           ))}
           <div style={{ display: 'flex', gap: '0.75rem', paddingTop: '0.5rem' }}>
             <a href="/client/login" className="btn-outline" style={{ flex: 1, justifyContent: 'center' }}>
-              Portal Login
+              Client Login
             </a>
             <a
               href="/client/request-service"
