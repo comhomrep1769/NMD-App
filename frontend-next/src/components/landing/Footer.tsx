@@ -105,7 +105,7 @@ export default function Footer() {
           </p>
           <div className="nmd-footer-portal-links">
             <a href="/admin">Admin Portal</a>
-            <a href="/employee">Employee Portal</a>
+            <a href="/employee/login">Employee Portal</a>
             <a href="/client">Client Portal</a>
           </div>
         </div>
