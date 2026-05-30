@@ -136,13 +136,19 @@ router.post("/public", async (req, res) => {
     await sendEmail({
       to: process.env.NMD_ADMIN_EMAIL || "nmdpowash@gmail.com",
       subject: `New NMD service request: ${serviceType}`,
+
+
       html: buildNmdEmailTemplate({
-        title: "New Service Request",
-        message: `Client: ${firstName} ${lastName || ""}\nPhone: ${phone || "N/A"}\nEmail: ${email || "N/A"}\nAddress: ${address}\nService: ${serviceType}\nPreferred: ${preferredDate || "N/A"} ${preferredTime || ""}\nNotes: ${notes || "N/A"}`,
-        signatureImageUrl: waiverSignature || undefined
-      }),
+  title: "New Service Request",
+  message: `Client: ${firstName} ${lastName || ""}\nPhone: ${phone || "N/A"}\nEmail: ${email || "N/A"}\nAddress: ${address}\nService: ${serviceType}\nPreferred: ${preferredDate || "N/A"} ${preferredTime || ""}\nNotes: ${notes || "N/A"}`,
+}),
+
+
+
+
       text: `New service request from ${firstName} ${lastName || ""}: ${serviceType} at ${address}`
     });
+  
     console.log("[requests/public] admin notification sent");
 
     return res.status(201).json({ request });
