@@ -7,45 +7,45 @@ import type { StoredNmdUser } from '@/lib/authStorage'
 import Link from 'next/link'
 
 const CLIENT_NAV = [
-  { href: '/client', label: 'Dashboard', icon: 'âŠž' },
-  { href: '/client/request-service', label: 'Request Service', icon: 'âœš' },
-  { href: '/client/estimates', label: 'My Estimates', icon: 'ðŸ“‹' },
-  { href: '/client/quotes', label: 'My Quotes', icon: 'ðŸ’°' },
-  { href: '/client/invoices', label: 'My Invoices', icon: 'ðŸ§¾' },
-  { href: '/client/appointments', label: 'Appointments', icon: 'ðŸ“…' },
-  { href: '/client/recurring', label: 'Recurring Plan', icon: 'ðŸ”„' },
-  { href: '/client/requests', label: 'Service Requests', icon: 'ðŸ“' },
-  { href: '/client/photos', label: 'My Photos', icon: 'ðŸ“·' },
+  { href: '/client', label: 'Dashboard', icon: 'H' },
+  { href: '/client/request-service', label: 'Request Service', icon: '+' },
+  { href: '/client/estimates', label: 'My Estimates', icon: '~' },
+  { href: '/client/quotes', label: 'My Quotes', icon: 'Q' },
+  { href: '/client/invoices', label: 'My Invoices', icon: 'Inv' },
+  { href: '/client/appointments', label: 'Appointments', icon: 'Apt' },
+  { href: '/client/recurring', label: 'Recurring Plan', icon: 'R' },
+  { href: '/client/requests', label: 'Service Requests', icon: 'Req' },
+  { href: '/client/photos', label: 'My Photos', icon: 'Pho' },
 ]
 
 const ADMIN_NAV = [
-  { href: '/dashboard', label: 'Dashboard', icon: 'âŠž' },
-  { href: '/clients', label: 'Clients', icon: 'ðŸ‘¥' },
-  { href: '/quotes', label: 'Quotes', icon: 'ðŸ’°' },
-  { href: '/invoices', label: 'Invoices', icon: 'ðŸ§¾' },
-  { href: '/requests', label: 'Requests', icon: 'ðŸ“' },
-  { href: '/schedule', label: 'Schedule', icon: 'ðŸ“…' },
-  { href: '/recurring', label: 'Recurring', icon: 'ðŸ”„' },
-  { href: '/employees', label: 'Employees', icon: 'ðŸ‘¤' },
-  { href: '/treatments', label: 'Treatments', icon: 'ðŸ§ª' },
-  { href: '/photos', label: 'Job Photos', icon: 'ðŸ“·' },
-  { href: '/chat', label: 'Chat', icon: 'ðŸ’¬' },
-  { href: '/pricing', label: 'Pricing', icon: 'ðŸ·' },
-  { href: '/mileage', label: 'Mileage', icon: 'ðŸš—' },
-  { href: '/timeclock', label: 'Time Clock', icon: 'â±' },
-  { href: '/expenses', label: 'Expenses', icon: 'ðŸ’³' },
-  { href: '/payroll', label: 'Payroll', icon: 'ðŸ’µ' },
-  { href: '/bonus', label: 'Bonus Tracker', icon: 'ðŸ†' },
-  { href: '/guru-training', label: 'Guru Training', icon: 'ðŸ§ ' },
+  { href: '/dashboard', label: 'Dashboard', icon: 'H' },
+  { href: '/clients', label: 'Clients', icon: 'C' },
+  { href: '/quotes', label: 'Quotes', icon: 'Q' },
+  { href: '/invoices', label: 'Invoices', icon: 'Inv' },
+  { href: '/requests', label: 'Requests', icon: 'Req' },
+  { href: '/schedule', label: 'Schedule', icon: 'Sch' },
+  { href: '/recurring', label: 'Recurring', icon: 'R' },
+  { href: '/employees', label: 'Employees', icon: 'Emp' },
+  { href: '/treatments', label: 'Treatments', icon: 'Tx' },
+  { href: '/photos', label: 'Job Photos', icon: 'Pho' },
+  { href: '/chat', label: 'Chat', icon: 'Msg' },
+  { href: '/pricing', label: 'Pricing', icon: 'Pri' },
+  { href: '/mileage', label: 'Mileage', icon: 'Mi' },
+  { href: '/timeclock', label: 'Time Clock', icon: 'TC' },
+  { href: '/expenses', label: 'Expenses', icon: 'Ex' },
+  { href: '/payroll', label: 'Payroll', icon: 'Pay' },
+  { href: '/bonus', label: 'Bonus Tracker', icon: 'Bon' },
+  { href: '/guru-training', label: 'Guru Training', icon: 'AI' },
 ]
 
 const EMPLOYEE_NAV = [
-  { href: '/employee', label: 'Dashboard', icon: 'âŠž' },
-  { href: '/employee/schedule', label: 'My Schedule', icon: 'ðŸ“…' },
-  { href: '/employee/treatments', label: 'Treatments', icon: 'ðŸ§ª' },
-  { href: '/employee/chat', label: 'Chat', icon: 'ðŸ’¬' },
-  { href: '/employee/timeclock', label: 'Time Clock', icon: 'â±' },
-  { href: '/employee/bonus', label: 'My Bonus', icon: 'ðŸ†' },
+  { href: '/employee', label: 'Dashboard', icon: 'H' },
+  { href: '/employee/schedule', label: 'My Schedule', icon: 'Sch' },
+  { href: '/employee/treatments', label: 'Treatments', icon: 'Tx' },
+  { href: '/employee/chat', label: 'Chat', icon: 'Msg' },
+  { href: '/employee/timeclock', label: 'Time Clock', icon: 'TC' },
+  { href: '/employee/bonus', label: 'My Bonus', icon: 'Bon' },
 ]
 
 export default function PortalShell({
@@ -96,7 +96,6 @@ export default function PortalShell({
     setChecked(true)
   }, [router, requiredRole])
 
-  // Close sidebar on route change on mobile
   useEffect(() => {
     if (isMobile) setSidebarOpen(false)
   }, [pathname, isMobile])
@@ -123,30 +122,13 @@ export default function PortalShell({
   return (
     <div style={{ minHeight: '100vh', background: '#f4f7fb', fontFamily: 'DM Sans, sans-serif', display: 'flex' }}>
 
-      {/* Mobile overlay */}
       {isMobile && sidebarOpen && (
-        <div
-          onClick={() => setSidebarOpen(false)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 39 }}
-        />
+        <div onClick={() => setSidebarOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 39 }} />
       )}
 
-      {/* Sidebar */}
       {sidebarVisible && (
-        <div style={{
-          width: 240,
-          minHeight: '100vh',
-          background: '#0e1117',
-          display: 'flex',
-          flexDirection: 'column',
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          zIndex: 40,
-          flexShrink: 0,
-          transition: 'transform 0.25s ease',
-        }}>
-          {/* Logo */}
+        <div style={{ width: 240, minHeight: '100vh', background: '#0e1117', display: 'flex', flexDirection: 'column', position: 'fixed', top: 0, left: 0, zIndex: 40, flexShrink: 0, transition: 'transform 0.25s ease' }}>
+
           <div style={{ padding: '1.25rem 1.25rem 1rem', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
             <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
               <div style={{ width: 32, height: 32, borderRadius: 8, background: 'linear-gradient(135deg, #1f6132, #124d83)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.65rem', fontWeight: 800, flexShrink: 0 }}>NMD</div>
@@ -157,60 +139,38 @@ export default function PortalShell({
             </Link>
           </div>
 
-          {/* User info */}
           <div style={{ padding: '0.75rem 1.25rem', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
             <div style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)' }}>{portalLabel}</div>
             <div style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>{user?.displayName || user?.email}</div>
           </div>
 
-          {/* Nav items */}
           <nav style={{ flex: 1, padding: '0.75rem 0', overflowY: 'auto' }}>
             {navItems.map(item => {
               const active = pathname === item.href
               return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 10,
-                    padding: '0.6rem 1.25rem', textDecoration: 'none',
-                    background: active ? 'rgba(255,255,255,0.08)' : 'transparent',
-                    borderLeft: active ? '3px solid #2d9b50' : '3px solid transparent',
-                  }}
-                >
-                  <span style={{ fontSize: '0.9rem', width: 20, textAlign: 'center' }}>{item.icon}</span>
+                <Link key={item.href} href={item.href} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0.6rem 1.25rem', textDecoration: 'none', background: active ? 'rgba(255,255,255,0.08)' : 'transparent', borderLeft: active ? '3px solid #2d9b50' : '3px solid transparent' }}>
+                  <span style={{ fontSize: '0.62rem', width: 26, height: 20, borderRadius: 4, flexShrink: 0, background: active ? 'rgba(45,155,80,0.25)' : 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: active ? '#2d9b50' : 'rgba(255,255,255,0.4)', fontWeight: 700, letterSpacing: '-0.02em' }}>{item.icon}</span>
                   <span style={{ fontSize: '0.85rem', fontWeight: active ? 600 : 400, color: active ? 'white' : 'rgba(255,255,255,0.55)' }}>{item.label}</span>
                 </Link>
               )
             })}
           </nav>
 
-          {/* Sign out */}
           <div style={{ padding: '1rem 1.25rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-            <button
-              onClick={handleLogout}
-              style={{ width: '100%', padding: '0.6rem', borderRadius: 8, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.6)', fontSize: '0.82rem', fontWeight: 500, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}
-            >
-              Sign out
+            <button onClick={handleLogout} style={{ width: '100%', padding: '0.6rem', borderRadius: 8, background: 'rgba(220,50,50,0.15)', border: '1px solid rgba(220,50,50,0.3)', color: 'rgba(255,180,180,0.9)', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
+              Sign Out
             </button>
           </div>
         </div>
       )}
 
-      {/* Main content */}
       <div style={{ flex: 1, marginLeft: isMobile ? 0 : 240, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
 
-        {/* Top bar */}
         <div style={{ background: 'white', borderBottom: '1px solid #dde4ef', padding: '0 1.5rem', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 30 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            {/* Hamburger - always visible on mobile */}
             {isMobile && (
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.4rem', color: '#0e1117', padding: 0, lineHeight: 1, display: 'flex', alignItems: 'center' }}
-                aria-label="Toggle menu"
-              >
-                {sidebarOpen ? 'âœ•' : 'â˜°'}
+              <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ background: 'none', border: '1px solid #dde4ef', cursor: 'pointer', color: '#0e1117', padding: '4px 8px', lineHeight: 1, display: 'flex', alignItems: 'center', fontSize: '0.82rem', fontWeight: 700, borderRadius: 6 }} aria-label="Toggle menu">
+                {sidebarOpen ? 'X' : 'Menu'}
               </button>
             )}
             <div style={{ fontSize: '0.82rem', color: '#8494b0' }}>NMD Pressure Washing Services LLC</div>
@@ -224,7 +184,6 @@ export default function PortalShell({
           </div>
         </div>
 
-        {/* Page content */}
         <div style={{ flex: 1, padding: isMobile ? '1rem' : '2rem' }}>
           {children}
         </div>
@@ -232,4 +191,3 @@ export default function PortalShell({
     </div>
   )
 }
-
