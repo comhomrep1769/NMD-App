@@ -37,12 +37,14 @@ router.post("/public", async (req, res) => {
     const {
       firstName, lastName, phone, email, address, serviceType,
       preferredDate, preferredTime, notes, photoDataUrl, photoNote,
-      waiverAccepted, waiverSignature
+      waiverAccepted, waiverSignature,
+      client_phone, sms_consent,
     } = req.body as {
       firstName?: string; lastName?: string; phone?: string; email?: string;
       address?: string; serviceType?: string; preferredDate?: string;
       preferredTime?: string; notes?: string; photoDataUrl?: string | null;
       photoNote?: string; waiverAccepted?: boolean; waiverSignature?: string;
+      client_phone?: string; sms_consent?: boolean;
     };
 
     if (!firstName || !address || !serviceType) {
@@ -57,16 +59,21 @@ router.post("/public", async (req, res) => {
       return res.status(400).json({ error: "Photo is too large. Please upload a smaller image." });
     }
 
+    // ── Insert service request (including SMS consent columns) ──
     const result = await pool.query(
       `INSERT INTO service_requests
         (first_name, last_name, phone, email, address, service_type, preferred_date,
-        preferred_time, notes, photo_data_url, photo_note, waiver_accepted, waiver_signature, waiver_signed_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, TRUE, $12, NOW())
+        preferred_time, notes, photo_data_url, photo_note, waiver_accepted,
+        waiver_signature, waiver_signed_at, client_phone, sms_consent)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, TRUE, $12, NOW(), $13, $14)
       RETURNING *`,
       [
         firstName.trim(), lastName?.trim() || null, phone?.trim() || null, email?.trim() || null,
         address.trim(), serviceType.trim(), preferredDate || null, preferredTime?.trim() || null,
-        notes?.trim() || null, photoDataUrl || null, photoNote?.trim() || null, waiverSignature.trim()
+        notes?.trim() || null, photoDataUrl || null, photoNote?.trim() || null,
+        waiverSignature.trim(),
+        client_phone?.trim() || null,
+        sms_consent ?? false,
       ]
     );
 
@@ -83,6 +90,22 @@ router.post("/public", async (req, res) => {
 
     console.log("[requests/public] saved to DB, email:", email);
 
+    // ── Sync phone + SMS consent to clients table if client exists ──
+    if (email && client_phone) {
+      try {
+        await pool.query(
+          `UPDATE clients
+           SET phone = $1, sms_consent = $2
+           WHERE LOWER(email) = LOWER($3)`,
+          [client_phone.trim(), sms_consent ?? false, email.trim()]
+        );
+        console.log("[requests/public] synced phone/sms_consent to clients table for:", email);
+      } catch (syncErr) {
+        // Non-fatal — client row may not exist yet (created below during onboarding)
+        console.warn("[requests/public] sms sync skipped (client may not exist yet):", syncErr);
+      }
+    }
+
     const PORTAL_URL = process.env.FRONTEND_URL || "https://nmdpowash.com";
 
     if (email) {
@@ -95,6 +118,20 @@ router.post("/public", async (req, res) => {
           phone: phone || null
         });
         console.log("[requests/public] account ready, isNew:", isNew);
+
+        // ── After account is created/confirmed, sync SMS consent again now that the row exists ──
+        if (client_phone) {
+          try {
+            await pool.query(
+              `UPDATE clients
+               SET phone = $1, sms_consent = $2
+               WHERE LOWER(email) = LOWER($3)`,
+              [client_phone.trim(), sms_consent ?? false, email.trim()]
+            );
+          } catch (syncErr2) {
+            console.warn("[requests/public] post-account sms sync error:", syncErr2);
+          }
+        }
 
         if (isNew) {
           const setPasswordUrl = `${PORTAL_URL}/client/set-password?token=${setPasswordToken}`;
@@ -132,23 +169,17 @@ router.post("/public", async (req, res) => {
       }
     }
 
-    // ── Admin notification — signature rendered as image, not raw base64 ──
+    // ── Admin notification ──
     await sendEmail({
       to: process.env.NMD_ADMIN_EMAIL || "nmdpowash@gmail.com",
       subject: `New NMD service request: ${serviceType}`,
-
-
       html: buildNmdEmailTemplate({
-  title: "New Service Request",
-  message: `Client: ${firstName} ${lastName || ""}\nPhone: ${phone || "N/A"}\nEmail: ${email || "N/A"}\nAddress: ${address}\nService: ${serviceType}\nPreferred: ${preferredDate || "N/A"} ${preferredTime || ""}\nNotes: ${notes || "N/A"}`,
-}),
-
-
-
-
+        title: "New Service Request",
+        message: `Client: ${firstName} ${lastName || ""}\nPhone: ${phone || "N/A"}\nEmail: ${email || "N/A"}\nAddress: ${address}\nService: ${serviceType}\nPreferred: ${preferredDate || "N/A"} ${preferredTime || ""}\nNotes: ${notes || "N/A"}\nSMS Updates: ${sms_consent ? "Yes (consented)" : "No"}`,
+      }),
       text: `New service request from ${firstName} ${lastName || ""}: ${serviceType} at ${address}`
     });
-  
+
     console.log("[requests/public] admin notification sent");
 
     return res.status(201).json({ request });
@@ -207,10 +238,14 @@ router.post("/:requestId/convert-to-client", requireAuth, requireRole("admin"), 
     try {
       await client.query("BEGIN");
       const clientResult = await client.query(
-        `INSERT INTO clients (first_name, last_name, phone, email, address)
-        VALUES ($1, $2, $3, $4, $5)
+        `INSERT INTO clients (first_name, last_name, phone, email, address, sms_consent)
+        VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING id, first_name, last_name, phone, email, address, created_at`,
-        [request.first_name, request.last_name, request.phone, request.email, request.address]
+        [
+          request.first_name, request.last_name, request.phone,
+          request.email, request.address,
+          request.sms_consent ?? false,
+        ]
       );
       await client.query(`UPDATE service_requests SET status = 'reviewed' WHERE id = $1`, [requestId]);
       await client.query("COMMIT");

@@ -1,7 +1,6 @@
-﻿import "dotenv/config";
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
-
 import authRoutes from "./routes/auth.js";
 import guruRoutes from "./routes/guru.js";
 import guruTrainingRoutes from "./routes/guruTraining.js";
@@ -27,67 +26,50 @@ import recurringRoutes from "./routes/recurring.js";
 import pricingRoutes from "./routes/pricing.js";
 import bonusRoutes from "./routes/bonus.js";
 import requestsRoutes from "./routes/requests.js";
-
 const app = express();
-
 const PORT = Number(process.env.PORT || 10000);
-
 const allowedOrigins = [
-  process.env.FRONTEND_URL,
-  process.env.CLIENT_URL,
-  "http://localhost:5173",
-  "http://localhost:5174",
-  "http://localhost:3000"
-].filter(Boolean) as string[];
-
-app.use(
-  cors({
+    process.env.FRONTEND_URL,
+    process.env.CLIENT_URL,
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:3000"
+].filter(Boolean);
+app.use(cors({
     origin(origin, callback) {
-      if (!origin) {
+        if (!origin) {
+            callback(null, true);
+            return;
+        }
+        if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+            callback(null, true);
+            return;
+        }
         callback(null, true);
-        return;
-      }
-
-      if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
-        callback(null, true);
-        return;
-      }
-
-      callback(null, true);
     },
     credentials: true
-  })
-);
-
-app.use(
-  express.json({
+}));
+app.use(express.json({
     limit: "25mb"
-  })
-);
-
-app.use(
-  express.urlencoded({
+}));
+app.use(express.urlencoded({
     extended: true,
     limit: "25mb"
-  })
-);
-
+}));
 app.get("/", (_req, res) => {
-  res.json({
-    ok: true,
-    service: "NMD backend",
-    message: "NMD backend is running."
-  });
+    res.json({
+        ok: true,
+        service: "NMD backend",
+        message: "NMD backend is running."
+    });
 });
-
 app.get("/api/health", (_req, res) => {
-  res.json({
-    ok: true,
-    service: "NMD backend",
-    timestamp: new Date().toISOString()
-  });
+    res.json({
+        ok: true,
+        service: "NMD backend",
+        timestamp: new Date().toISOString()
+    });
 });
-
 app.use("/api/auth", authRoutes);
 app.use("/api/guru", guruRoutes);
 app.use("/api/guru-training", guruTrainingRoutes);
@@ -117,36 +99,22 @@ import smsRoutes from './routes/sms.js';
 // ...
 app.use('/api/sms', smsRoutes);
 app.use((req, res) => {
-  res.status(404).json({
-    message: `Route not found: ${req.method} ${req.originalUrl}`
-  });
-});
-
-app.use(
-  (
-    err: unknown,
-    _req: express.Request,
-    res: express.Response,
-    _next: express.NextFunction
-  ) => {
-    console.error("Unhandled backend error:", err);
-
-    const message =
-      err instanceof Error ? err.message : "Unexpected backend server error.";
-
-    if (message.toLowerCase().includes("request entity too large")) {
-      return res.status(413).json({
-        message:
-          "Upload file is too large for the backend request limit. The backend limit has been increased to 25mb, redeploy and try again."
-      });
-    }
-
-    return res.status(500).json({
-      message
+    res.status(404).json({
+        message: `Route not found: ${req.method} ${req.originalUrl}`
     });
-  }
-);
-
+});
+app.use((err, _req, res, _next) => {
+    console.error("Unhandled backend error:", err);
+    const message = err instanceof Error ? err.message : "Unexpected backend server error.";
+    if (message.toLowerCase().includes("request entity too large")) {
+        return res.status(413).json({
+            message: "Upload file is too large for the backend request limit. The backend limit has been increased to 25mb, redeploy and try again."
+        });
+    }
+    return res.status(500).json({
+        message
+    });
+});
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`NMD backend listening on port ${PORT}`);
+    console.log(`NMD backend listening on port ${PORT}`);
 });

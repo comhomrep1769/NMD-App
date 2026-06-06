@@ -156,7 +156,28 @@ export default function PortalShell({
             })}
           </nav>
 
-          <div style={{ padding: '1rem 1.25rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          {/* ── Our Mission link at bottom of sidebar ── */}
+          <div style={{ padding: '0.75rem 1.25rem', borderTop: '1px solid rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <Link
+              href="/mission"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                textDecoration: 'none',
+              }}
+            >
+              <span style={{
+                fontSize: '0.62rem', width: 26, height: 20, borderRadius: 4, flexShrink: 0,
+                background: 'rgba(255,255,255,0.08)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'rgba(255,255,255,0.4)', fontWeight: 700,
+              }}>★</span>
+              <span style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.45)', fontWeight: 400 }}>Our Mission</span>
+            </Link>
+          </div>
+
+          <div style={{ padding: '1rem 1.25rem' }}>
             <button onClick={handleLogout} style={{ width: '100%', padding: '0.6rem', borderRadius: 8, background: 'rgba(220,50,50,0.15)', border: '1px solid rgba(220,50,50,0.3)', color: 'rgba(255,180,180,0.9)', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
               Sign Out
             </button>
@@ -180,6 +201,22 @@ export default function PortalShell({
             <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'linear-gradient(135deg, #1f6132, #124d83)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.7rem', fontWeight: 700 }}>
               {(user?.displayName || user?.email || 'U')[0].toUpperCase()}
             </div>
+            {/* ── Our Mission link in top bar (visible on all screen sizes) ── */}
+            <Link
+              href="/mission"
+              style={{
+                fontSize: '0.78rem',
+                color: '#1f6132',
+                padding: '4px 10px',
+                borderRadius: 6,
+                border: '1px solid rgba(31,97,50,0.25)',
+                background: 'rgba(31,97,50,0.05)',
+                textDecoration: 'none',
+                fontWeight: 600,
+              }}
+            >
+              Our Mission
+            </Link>
             <Link href="/" style={{ fontSize: '0.78rem', color: '#8494b0', padding: '4px 10px', borderRadius: 6, border: '1px solid #dde4ef', textDecoration: 'none' }}>Home</Link>
           </div>
         </div>

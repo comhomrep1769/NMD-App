@@ -208,6 +208,9 @@ export default function ServiceRequestPage() {
     estimatedSize: '',
     specialConcerns: '',
   })
+  // ── SMS consent (separate from form to avoid TypeScript boolean/string conflict) ──
+  const [smsConsent, setSmsConsent] = useState(false)
+
   const [photos, setPhotos] = useState<Array<{ id: string; name: string; note: string; dataUrl: string }>>([])
   const [showDisclaimer, setShowDisclaimer] = useState(false)
   const [disclaimerScrolled, setDisclaimerScrolled] = useState(false)
@@ -305,6 +308,9 @@ export default function ServiceRequestPage() {
           photoNote: firstPhoto?.note || null,
           waiverAccepted: true,
           waiverSignature: signatureDataUrl,
+          // ── SMS consent ──
+          client_phone: form.phone,
+          sms_consent: smsConsent,
         }),
       })
 
@@ -501,6 +507,29 @@ export default function ServiceRequestPage() {
                 <label style={labelStyle}>Service Address *</label>
                 <input style={inputStyle} value={form.serviceAddress} onChange={e => update('serviceAddress', e.target.value)} placeholder="123 Main St, Orlando, FL" required />
               </div>
+            </div>
+
+            {/* ── SMS Consent ── */}
+            <div style={{
+              marginTop: '1rem',
+              background: 'rgba(22, 163, 74, 0.05)',
+              border: '1px solid rgba(22, 163, 74, 0.2)',
+              borderRadius: 10,
+              padding: '1rem',
+            }}>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={smsConsent}
+                  onChange={e => setSmsConsent(e.target.checked)}
+                  style={{ marginTop: 2, width: 18, height: 18, accentColor: '#16a34a', flexShrink: 0, cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: '0.82rem', color: '#3a5c42', lineHeight: 1.6 }}>
+                  I agree to receive SMS text message updates from NMD Pressure Washing Services LLC
+                  regarding my service appointment (technician on the way, arrival, and job completion).
+                  Message &amp; data rates may apply. Reply STOP at any time to opt out.
+                </span>
+              </label>
             </div>
           </div>
 
