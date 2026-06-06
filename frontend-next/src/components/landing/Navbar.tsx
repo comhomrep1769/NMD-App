@@ -22,6 +22,7 @@ export default function Navbar() {
           <li><a href="#recurring">Recurring Plans</a></li>
           <li><a href="#service-areas">Service Areas</a></li>
           <li><a href="#get-app">Get the App</a></li>
+          <li><Link href="/mission" style={{ color: 'var(--color-text-2)', fontWeight: 500, textDecoration: 'none' }}>Our Mission</Link></li>
         </ul>
 
         <div className="nmd-nav-ctas">
@@ -78,6 +79,23 @@ export default function Navbar() {
               {label}
             </a>
           ))}
+
+          {/* Our Mission — mobile */}
+          <Link
+            href="/mission"
+            onClick={() => setMobileOpen(false)}
+            style={{
+              fontSize: '1rem',
+              fontWeight: 500,
+              color: 'var(--color-text-2)',
+              padding: '0.5rem 0',
+              borderBottom: '1px solid var(--color-border)',
+              textDecoration: 'none',
+            }}
+          >
+            Our Mission
+          </Link>
+
           <div style={{ display: 'flex', gap: '0.75rem', paddingTop: '0.5rem' }}>
             <a href="/client/login" className="btn-outline" style={{ flex: 1, justifyContent: 'center' }}>
               Client Login
