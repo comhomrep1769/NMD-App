@@ -266,7 +266,7 @@ export default function MissionPage() {
             growing team — we'd love to hear from you.
           </p>
           <div className="cta-actions">
-            <a href="/#contact" className="btn-primary">
+            <a href="/client/request-service" className="btn-primary">
               Request a Quote
             </a>
             <a href="/employee/login" className="btn-secondary">
