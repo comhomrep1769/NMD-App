@@ -10,33 +10,18 @@ type Job = {
   start_time: string; lat?: number; lng?: number
   assigned_employees: { id: string; displayName: string }[]
 }
-
 type Employee = { id: string; name: string; email: string }
-
-type RouteStop = {
-  stopId: number; jobId: string; stopOrder: number
-  title: string; clientName: string; address: string
-  lat?: number; lng?: number; startTime: string
-  departedAt?: string; arrivedAt?: string; completedAt?: string
-}
-
-type Route = {
-  id: number; employee_id: string; employee_name: string; stops: RouteStop[]
-}
-
+type RouteStop = { stopId: number; jobId: string; stopOrder: number; title: string; clientName: string; address: string; lat?: number; lng?: number; startTime: string }
+type Route = { id: number; employee_id: string; employee_name: string; stops: RouteStop[] }
 type SearchResult = { display_name: string; lat: string; lon: string }
 
-declare global {
-  interface Window { L: any }
-}
+declare global { interface Window { L: any } }
 
 export default function AdminRoutesPage() {
   const API = process.env.NEXT_PUBLIC_API_URL || ''
-
-  // Always use today's date in YYYY-MM-DD format
   const getToday = () => {
     const d = new Date()
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
   }
 
   const [date, setDate] = useState(getToday)
@@ -50,67 +35,91 @@ export default function AdminRoutesPage() {
   const [error, setError] = useState('')
   const [savedMsg, setSavedMsg] = useState('')
   const [dragIndex, setDragIndex] = useState<number | null>(null)
-
-  // Address search
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [searching, setSearching] = useState(false)
-  const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [mapReady, setMapReady] = useState(false)
 
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<any>(null)
   const markersRef = useRef<any[]>([])
   const searchMarkerRef = useRef<any>(null)
+  const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const jobsRef = useRef<Job[]>([])
+  const routeJobIdsRef = useRef<string[]>([])
 
-  // Load Leaflet
+  jobsRef.current = jobs
+  routeJobIdsRef.current = routeJobIds
+
+  // ── Load Leaflet once ────────────────────────────────────────────────────
   useEffect(() => {
-    if (document.getElementById('leaflet-css')) return
-    const link = document.createElement('link')
-    link.id = 'leaflet-css'
-    link.rel = 'stylesheet'
-    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
-    document.head.appendChild(link)
-    const script = document.createElement('script')
-    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
-    script.onload = () => initMap()
-    document.head.appendChild(script)
+    const loadLeaflet = () => {
+      if (window.L) { setMapReady(true); return }
+
+      if (!document.getElementById('leaflet-css')) {
+        const link = document.createElement('link')
+        link.id = 'leaflet-css'
+        link.rel = 'stylesheet'
+        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
+        document.head.appendChild(link)
+      }
+
+      if (!document.getElementById('leaflet-js')) {
+        const script = document.createElement('script')
+        script.id = 'leaflet-js'
+        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
+        script.onload = () => setMapReady(true)
+        document.head.appendChild(script)
+      }
+    }
+    loadLeaflet()
   }, [])
 
-  const initMap = () => {
-    if (!mapRef.current || mapInstance.current) return
+  // ── Init map once Leaflet is ready AND div is mounted ───────────────────
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || mapInstance.current) return
     const L = window.L
-    mapInstance.current = L.map(mapRef.current).setView([28.5383, -81.3792], 10)
+    mapInstance.current = L.map(mapRef.current, { zoomControl: true }).setView([28.5383, -81.3792], 10)
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
+      attribution: '© OpenStreetMap contributors', maxZoom: 19
     }).addTo(mapInstance.current)
-  }
+    setTimeout(() => mapInstance.current?.invalidateSize(), 200)
+  }, [mapReady])
 
+  // ── Render markers ───────────────────────────────────────────────────────
   const updateMapMarkers = useCallback((jobList: Job[], selectedIds: string[]) => {
     if (!mapInstance.current || !window.L) return
     const L = window.L
     markersRef.current.forEach(m => m.remove())
     markersRef.current = []
-    const validJobs = jobList.filter(j => j.lat && j.lng)
-    if (validJobs.length === 0) return
-    validJobs.forEach(job => {
-      const orderIndex = selectedIds.indexOf(job.id)
-      const isInRoute = orderIndex >= 0
-      const color = isInRoute ? '#1f6132' : '#8494b0'
-      const label = isInRoute ? String(orderIndex + 1) : '•'
+    const valid = jobList.filter(j => j.lat && j.lng)
+    if (valid.length === 0) return
+    valid.forEach(job => {
+      const idx = selectedIds.indexOf(job.id)
+      const inRoute = idx >= 0
+      const color = inRoute ? '#1f6132' : '#8494b0'
+      const label = inRoute ? String(idx + 1) : '•'
       const icon = L.divIcon({
         className: '',
-        html: `<div style="width:32px;height:32px;border-radius:50%;background:${color};color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);font-family:Syne,sans-serif;">${label}</div>`,
-        iconSize: [32, 32], iconAnchor: [16, 16],
+        html: `<div style="width:34px;height:34px;border-radius:50%;background:${color};color:white;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;border:3px solid white;box-shadow:0 2px 10px rgba(0,0,0,0.3);">${label}</div>`,
+        iconSize: [34, 34], iconAnchor: [17, 17],
       })
-      const marker = L.marker([job.lat, job.lng], { icon })
+      const m = L.marker([job.lat, job.lng], { icon })
         .addTo(mapInstance.current)
-        .bindPopup(`<div style="font-family:DM Sans,sans-serif;min-width:180px"><div style="font-weight:700;margin-bottom:4px">${job.title}</div><div style="font-size:12px;color:#5a6a88;margin-bottom:4px">${job.client_name}</div><div style="font-size:12px;color:#3a4660">${job.address}</div></div>`)
-      markersRef.current.push(marker)
+        .bindPopup(`<div style="font-family:DM Sans,sans-serif;min-width:180px;padding:4px 0"><b>${job.title}</b><br><span style="color:#5a6a88;font-size:12px">${job.client_name}</span><br><span style="color:#3a4660;font-size:12px">${job.address}</span></div>`)
+      markersRef.current.push(m)
     })
-    const bounds = L.latLngBounds(validJobs.map(j => [j.lat, j.lng]))
-    mapInstance.current.fitBounds(bounds, { padding: [40, 40] })
+    if (valid.length > 0) {
+      const bounds = L.latLngBounds(valid.map(j => [j.lat, j.lng]))
+      mapInstance.current.fitBounds(bounds, { padding: [50, 50] })
+    }
   }, [])
 
+  useEffect(() => {
+    updateMapMarkers(jobs, routeJobIds)
+  }, [jobs, routeJobIds, updateMapMarkers])
+
+  // ── Load data ────────────────────────────────────────────────────────────
   const loadData = useCallback(async () => {
     setLoading(true)
     setError('')
@@ -121,29 +130,19 @@ export default function AdminRoutesPage() {
         fetch(`${API}/api/routes/employees`, { headers: { Authorization: `Bearer ${token}` } }),
         fetch(`${API}/api/routes?date=${date}`, { headers: { Authorization: `Bearer ${token}` } }),
       ])
-      const jobsData = await jobsRes.json()
-      const empData = await empRes.json()
-      const routesData = await routesRes.json()
-      setJobs(jobsData.jobs || [])
-      setEmployees(empData.employees || [])
-      setRoutes(routesData.routes || [])
-      setTimeout(() => {
-        if (window.L) {
-          initMap()
-          if (mapInstance.current) mapInstance.current.invalidateSize()
-        }
-        updateMapMarkers(jobsData.jobs || [], [])
-      }, 800)
-    } catch {
-      setError('Could not load route data.')
-    }
+      const jd = await jobsRes.json()
+      const ed = await empRes.json()
+      const rd = await routesRes.json()
+      setJobs(jd.jobs || [])
+      setEmployees(ed.employees || [])
+      setRoutes(rd.routes || [])
+    } catch { setError('Could not load route data.') }
     setLoading(false)
-  }, [date, API, updateMapMarkers])
+  }, [date, API])
 
   useEffect(() => { loadData() }, [loadData])
-  useEffect(() => { updateMapMarkers(jobs, routeJobIds) }, [routeJobIds, jobs, updateMapMarkers])
 
-  // Address search with debounce
+  // ── Address search ───────────────────────────────────────────────────────
   const handleSearchInput = (val: string) => {
     setSearchQuery(val)
     setSearchResults([])
@@ -152,66 +151,46 @@ export default function AdminRoutesPage() {
     searchTimeout.current = setTimeout(async () => {
       setSearching(true)
       try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(val)}&format=json&limit=5&countrycodes=us`,
-          { headers: { 'User-Agent': 'NMD-Pressure-Washing-App/1.0' } }
-        )
-        const data = await res.json()
-        setSearchResults(data)
-      } catch { }
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(val)}&format=json&limit=5`, { headers: { 'User-Agent': 'NMD-App/1.0' } })
+        setSearchResults(await res.json())
+      } catch {}
       setSearching(false)
-    }, 500)
+    }, 600)
   }
 
-  const flyToResult = (result: SearchResult) => {
+  const flyToResult = (r: SearchResult) => {
     if (!mapInstance.current || !window.L) return
     const L = window.L
-    const lat = parseFloat(result.lat)
-    const lng = parseFloat(result.lon)
-    mapInstance.current.flyTo([lat, lng], 15, { duration: 1 })
+    const lat = parseFloat(r.lat), lng = parseFloat(r.lon)
+    mapInstance.current.flyTo([lat, lng], 15, { duration: 1.2 })
     if (searchMarkerRef.current) searchMarkerRef.current.remove()
-    const icon = L.divIcon({
-      className: '',
-      html: `<div style="width:28px;height:28px;border-radius:50%;background:#e67e22;color:white;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);">📍</div>`,
-      iconSize: [28, 28], iconAnchor: [14, 14],
-    })
-    searchMarkerRef.current = L.marker([lat, lng], { icon })
-      .addTo(mapInstance.current)
-      .bindPopup(`<div style="font-family:DM Sans,sans-serif;font-size:12px;max-width:200px">${result.display_name}</div>`)
-      .openPopup()
-    setSearchQuery(result.display_name.split(',').slice(0, 2).join(','))
+    const icon = L.divIcon({ className: '', html: `<div style="width:28px;height:28px;border-radius:50%;background:#e67e22;color:white;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);">📍</div>`, iconSize: [28,28], iconAnchor: [14,14] })
+    searchMarkerRef.current = L.marker([lat, lng], { icon }).addTo(mapInstance.current).bindPopup(`<div style="font-size:12px;max-width:200px">${r.display_name}</div>`).openPopup()
+    setSearchQuery(r.display_name.split(',').slice(0,2).join(','))
     setSearchResults([])
   }
 
+  // ── Route actions ────────────────────────────────────────────────────────
   const selectEmployee = (emp: Employee) => {
     setSelectedEmployee(emp)
     const existing = routes.find(r => r.employee_id === emp.id)
-    const ids = existing ? existing.stops.map(s => s.jobId) : []
-    setRouteJobIds(ids)
+    setRouteJobIds(existing ? existing.stops.sort((a,b) => a.stopOrder - b.stopOrder).map(s => s.jobId) : [])
     setSavedMsg('')
-    setTimeout(() => {
-      if (mapInstance.current) mapInstance.current.invalidateSize()
-    }, 100)
+    setTimeout(() => mapInstance.current?.invalidateSize(), 150)
   }
 
-  const addJobToRoute = (jobId: string) => {
-    if (!routeJobIds.includes(jobId)) setRouteJobIds(p => [...p, jobId])
-  }
+  const addJob = (id: string) => setRouteJobIds(p => p.includes(id) ? p : [...p, id])
+  const removeJob = (id: string) => setRouteJobIds(p => p.filter(x => x !== id))
 
-  const removeJobFromRoute = (jobId: string) => {
-    setRouteJobIds(p => p.filter(id => id !== jobId))
-  }
-
-  const handleDragStart = (index: number) => setDragIndex(index)
-
-  const handleDragOver = (e: React.DragEvent, index: number) => {
+  const handleDragStart = (i: number) => setDragIndex(i)
+  const handleDragOver = (e: React.DragEvent, i: number) => {
     e.preventDefault()
-    if (dragIndex === null || dragIndex === index) return
-    const newOrder = [...routeJobIds]
-    const [moved] = newOrder.splice(dragIndex, 1)
-    newOrder.splice(index, 0, moved)
-    setRouteJobIds(newOrder)
-    setDragIndex(index)
+    if (dragIndex === null || dragIndex === i) return
+    const arr = [...routeJobIds]
+    const [m] = arr.splice(dragIndex, 1)
+    arr.splice(i, 0, m)
+    setRouteJobIds(arr)
+    setDragIndex(i)
   }
 
   const saveRoute = async () => {
@@ -224,19 +203,14 @@ export default function AdminRoutesPage() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ employeeId: selectedEmployee.id, date, jobIds: routeJobIds }),
       })
-      if (!res.ok) throw new Error('Save failed')
+      if (!res.ok) throw new Error()
       setSavedMsg(`Route saved for ${selectedEmployee.name}!`)
       loadData()
-    } catch {
-      setError('Failed to save route.')
-    }
+    } catch { setError('Failed to save route.') }
     setSaving(false)
   }
 
-  const fmt = (dt: string | null) => {
-    if (!dt) return '—'
-    return new Date(dt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-  }
+  const fmt = (dt?: string | null) => dt ? new Date(dt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '—'
 
   const routeJobs = routeJobIds.map(id => jobs.find(j => j.id === id)).filter(Boolean) as Job[]
   const unassignedJobs = jobs.filter(j => !routeJobIds.includes(j.id))
@@ -246,20 +220,13 @@ export default function AdminRoutesPage() {
       <div style={{ marginBottom: '1.5rem' }}>
         <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#1f6132', marginBottom: 6 }}>Admin Portal</div>
         <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: '1.75rem', fontWeight: 800, color: '#0e1117', letterSpacing: '-0.03em', marginBottom: 6 }}>Route Planner</h1>
-        <p style={{ color: '#5a6a88', fontSize: '0.875rem' }}>Build and assign employee routes for any date. Drag to reorder stops.</p>
+        <p style={{ color: '#5a6a88', fontSize: '0.875rem' }}>Build and assign employee routes. Select an employee, add jobs, drag to reorder, then save.</p>
       </div>
 
-      {/* Date picker */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-        <input
-          type="date"
-          value={date}
-          onChange={e => setDate(e.target.value)}
-          style={{ padding: '0.6rem 0.9rem', borderRadius: 8, border: '1.5px solid #dde4ef', fontSize: '0.875rem', fontFamily: 'DM Sans, sans-serif', color: '#0e1117', background: 'white' }}
-        />
-        <span style={{ fontSize: '0.85rem', color: '#8494b0' }}>
-          {jobs.length} scheduled job{jobs.length !== 1 ? 's' : ''} · {employees.length} employee{employees.length !== 1 ? 's' : ''}
-        </span>
+        <input type="date" value={date} onChange={e => setDate(e.target.value)}
+          style={{ padding: '0.6rem 0.9rem', borderRadius: 8, border: '1.5px solid #dde4ef', fontSize: '0.875rem', fontFamily: 'DM Sans, sans-serif', color: '#0e1117', background: 'white' }} />
+        <span style={{ fontSize: '0.85rem', color: '#8494b0' }}>{jobs.length} job{jobs.length !== 1 ? 's' : ''} available · {employees.length} employee{employees.length !== 1 ? 's' : ''}</span>
       </div>
 
       {loading && <LoadingCard />}
@@ -268,56 +235,41 @@ export default function AdminRoutesPage() {
       {!loading && !error && (
         <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '1.25rem', alignItems: 'start' }}>
 
-          {/* ── LEFT: Employee list ── */}
+          {/* Employee list */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8494b0' }}>Employees</div>
-            {employees.length === 0 && (
-              <div style={{ fontSize: '0.85rem', color: '#8494b0', padding: '1rem', background: 'white', borderRadius: 10, border: '1px solid #dde4ef' }}>No employees found.</div>
-            )}
+            <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8494b0', marginBottom: 2 }}>Employees</div>
             {employees.map(emp => {
               const hasRoute = routes.some(r => r.employee_id === emp.id)
-              const isSelected = selectedEmployee?.id === emp.id
+              const isSel = selectedEmployee?.id === emp.id
               return (
-                <button
-                  key={emp.id}
-                  onClick={() => selectEmployee(emp)}
-                  style={{ padding: '0.85rem 1rem', borderRadius: 10, border: `1.5px solid ${isSelected ? '#1f6132' : '#dde4ef'}`, background: isSelected ? 'rgba(31,97,50,0.05)' : 'white', textAlign: 'left', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', transition: 'all 0.15s' }}
-                >
+                <button key={emp.id} onClick={() => selectEmployee(emp)}
+                  style={{ padding: '0.85rem 1rem', borderRadius: 10, border: `1.5px solid ${isSel ? '#1f6132' : '#dde4ef'}`, background: isSel ? 'rgba(31,97,50,0.06)' : 'white', textAlign: 'left', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', transition: 'all 0.15s' }}>
                   <div style={{ fontWeight: 600, fontSize: '0.875rem', color: '#0e1117', marginBottom: 3 }}>{emp.name}</div>
-                  <div style={{ fontSize: '0.75rem', color: '#8494b0' }}>{hasRoute ? '✓ Route assigned' : 'No route yet'}</div>
+                  <div style={{ fontSize: '0.75rem', color: isSel ? '#1f6132' : '#8494b0' }}>{hasRoute ? '✓ Route assigned' : 'No route yet'}</div>
                 </button>
               )
             })}
           </div>
 
-          {/* ── RIGHT: Map + route builder ── */}
+          {/* Right panel */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
-            {/* Map with address search — always visible */}
-            <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid #dde4ef', overflow: 'visible', position: 'relative' }}>
-              {/* Search bar */}
-              <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #dde4ef' }}>
+            {/* Map */}
+            <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid #dde4ef' }}>
+              {/* Search */}
+              <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #dde4ef', position: 'relative', zIndex: 10 }}>
                 <div style={{ position: 'relative' }}>
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={e => handleSearchInput(e.target.value)}
-                    placeholder="🔍 Search address or location..."
-                    style={{ width: '100%', padding: '0.55rem 0.9rem', borderRadius: 8, border: '1.5px solid #dde4ef', fontSize: '0.875rem', fontFamily: 'DM Sans, sans-serif', color: '#0e1117', background: '#f4f7fb', boxSizing: 'border-box', outline: 'none' }}
-                  />
-                  {searching && (
-                    <div style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: '0.75rem', color: '#8494b0' }}>Searching...</div>
-                  )}
+                  <input type="text" value={searchQuery} onChange={e => handleSearchInput(e.target.value)}
+                    placeholder="🔍 Search address or location to jump on map..."
+                    style={{ width: '100%', padding: '0.55rem 2.5rem 0.55rem 0.9rem', borderRadius: 8, border: '1.5px solid #dde4ef', fontSize: '0.875rem', fontFamily: 'DM Sans, sans-serif', color: '#0e1117', background: '#f4f7fb', boxSizing: 'border-box', outline: 'none' }} />
+                  {searching && <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: '0.72rem', color: '#8494b0' }}>...</span>}
                   {searchResults.length > 0 && (
-                    <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: 'white', border: '1.5px solid #dde4ef', borderRadius: 8, boxShadow: '0 8px 24px rgba(14,17,23,0.15)', zIndex: 9999, overflow: 'hidden' }}>
+                    <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: 'white', border: '1.5px solid #dde4ef', borderRadius: 8, boxShadow: '0 8px 30px rgba(14,17,23,0.15)', zIndex: 999 }}>
                       {searchResults.map((r, i) => (
-                        <button
-                          key={i}
-                          onClick={() => flyToResult(r)}
-                          style={{ width: '100%', padding: '0.65rem 1rem', textAlign: 'left', background: 'none', border: 'none', borderBottom: i < searchResults.length - 1 ? '1px solid #f0f4f9' : 'none', fontSize: '0.82rem', color: '#3a4660', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', display: 'block' }}
+                        <button key={i} onClick={() => flyToResult(r)}
+                          style={{ width: '100%', padding: '0.65rem 1rem', textAlign: 'left', background: 'none', border: 'none', borderBottom: i < searchResults.length-1 ? '1px solid #f0f4f9' : 'none', fontSize: '0.82rem', color: '#3a4660', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', display: 'block' }}
                           onMouseEnter={e => (e.currentTarget.style.background = '#f4f7fb')}
-                          onMouseLeave={e => (e.currentTarget.style.background = 'none')}
-                        >
+                          onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
                           📍 {r.display_name}
                         </button>
                       ))}
@@ -325,19 +277,26 @@ export default function AdminRoutesPage() {
                   )}
                 </div>
               </div>
-              <div ref={mapRef} style={{ height: 400, width: '100%', borderRadius: '0 0 12px 12px', overflow: 'hidden' }} />
+              {/* Map container */}
+              <div ref={mapRef} style={{ height: 400, width: '100%', borderRadius: '0 0 12px 12px' }} />
+              {!mapReady && (
+                <div style={{ height: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8494b0', fontSize: '0.85rem' }}>
+                  Loading map...
+                </div>
+              )}
             </div>
 
-            {/* Prompt to select employee */}
+            {/* No employee selected */}
             {!selectedEmployee && (
-              <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid #dde4ef', padding: '2rem', textAlign: 'center', color: '#8494b0' }}>
-                <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>👈</div>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, color: '#0e1117', marginBottom: 6 }}>Select an employee</div>
-                <div style={{ fontSize: '0.875rem' }}>Choose an employee on the left to build or edit their route.</div>
+              <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid #dde4ef', padding: '2.5rem', textAlign: 'center' }}>
+                <div style={{ fontSize: '2rem', marginBottom: 12 }}>👈</div>
+                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, color: '#0e1117', marginBottom: 6 }}>Select an employee</div>
+                <div style={{ fontSize: '0.875rem', color: '#8494b0' }}>Choose an employee on the left to build their route.</div>
               </div>
             )}
 
-            {selectedEmployee ? (
+            {/* Route builder */}
+            {selectedEmployee && (
               <>
                 <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid #dde4ef', padding: '1.25rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: 8 }}>
@@ -347,71 +306,65 @@ export default function AdminRoutesPage() {
                     </div>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                       {savedMsg && <span style={{ fontSize: '0.8rem', color: '#1f6132', fontWeight: 600 }}>✓ {savedMsg}</span>}
-                      <button
-                        onClick={saveRoute}
-                        disabled={saving || routeJobIds.length === 0}
-                        style={{ padding: '0.6rem 1.25rem', borderRadius: 8, border: 'none', background: routeJobIds.length > 0 && !saving ? 'linear-gradient(135deg, #1f6132, #124d83)' : '#dde4ef', color: routeJobIds.length > 0 && !saving ? 'white' : '#8494b0', fontWeight: 700, fontSize: '0.85rem', cursor: routeJobIds.length > 0 && !saving ? 'pointer' : 'not-allowed', fontFamily: 'DM Sans, sans-serif' }}
-                      >
+                      <button onClick={saveRoute} disabled={saving || routeJobIds.length === 0}
+                        style={{ padding: '0.6rem 1.25rem', borderRadius: 8, border: 'none', background: routeJobIds.length > 0 && !saving ? 'linear-gradient(135deg,#1f6132,#124d83)' : '#dde4ef', color: routeJobIds.length > 0 && !saving ? 'white' : '#8494b0', fontWeight: 700, fontSize: '0.85rem', cursor: routeJobIds.length > 0 && !saving ? 'pointer' : 'not-allowed', fontFamily: 'DM Sans, sans-serif' }}>
                         {saving ? 'Saving...' : 'Save Route'}
                       </button>
                     </div>
                   </div>
 
-                  {routeJobs.length === 0 && (
+                  {routeJobs.length === 0 ? (
                     <div style={{ fontSize: '0.85rem', color: '#8494b0', textAlign: 'center', padding: '2rem', background: '#f4f7fb', borderRadius: 8, border: '1px dashed #dde4ef' }}>
                       Add jobs from the list below
                     </div>
-                  )}
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {routeJobs.map((job, index) => (
-                      <div
-                        key={job.id}
-                        draggable
-                        onDragStart={() => handleDragStart(index)}
-                        onDragOver={e => handleDragOver(e, index)}
-                        onDragEnd={() => setDragIndex(null)}
-                        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0.75rem 1rem', background: '#f4f7fb', borderRadius: 8, border: '1px solid #dde4ef', cursor: 'grab', userSelect: 'none', opacity: dragIndex === index ? 0.5 : 1 }}
-                      >
-                        <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 800, fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{index + 1}</div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#0e1117', marginBottom: 2 }}>{job.title}</div>
-                          <div style={{ fontSize: '0.75rem', color: '#5a6a88' }}>{job.client_name} · {fmt(job.start_time)}</div>
-                          <div style={{ fontSize: '0.72rem', color: '#8494b0', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.address}</div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {routeJobs.map((job, i) => (
+                        <div key={job.id} draggable onDragStart={() => handleDragStart(i)} onDragOver={e => handleDragOver(e, i)} onDragEnd={() => setDragIndex(null)}
+                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0.75rem 1rem', background: '#f4f7fb', borderRadius: 8, border: '1px solid #dde4ef', cursor: 'grab', userSelect: 'none', opacity: dragIndex === i ? 0.5 : 1 }}>
+                          <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'linear-gradient(135deg,#1f6132,#124d83)', color: 'white', fontWeight: 800, fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{i+1}</div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#0e1117', marginBottom: 2 }}>{job.title}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#5a6a88' }}>{job.client_name} · {fmt(job.start_time)}</div>
+                            <div style={{ fontSize: '0.72rem', color: '#8494b0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.address}</div>
+                          </div>
+                          <span style={{ color: '#b8c4d8', marginRight: 4, fontSize: '1rem' }}>⠿</span>
+                          <button onClick={() => removeJob(job.id)} style={{ background: 'none', border: 'none', color: '#c0392b', cursor: 'pointer', fontSize: '1.1rem', padding: '0 4px', flexShrink: 0 }}>×</button>
                         </div>
-                        <span style={{ fontSize: '0.72rem', color: '#8494b0', marginRight: 4 }}>⠿</span>
-                        <button onClick={() => removeJobFromRoute(job.id)} style={{ background: 'none', border: 'none', color: '#c0392b', cursor: 'pointer', fontSize: '1rem', padding: '0 4px', flexShrink: 0 }}>×</button>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                {unassignedJobs.length > 0 && (
-                  <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid #dde4ef', padding: '1.25rem' }}>
-                    <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '0.95rem', color: '#0e1117', marginBottom: '1rem' }}>
-                      Available Jobs — {date}
+                {/* Available jobs */}
+                <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid #dde4ef', padding: '1.25rem' }}>
+                  <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '0.95rem', color: '#0e1117', marginBottom: '1rem' }}>
+                    All Available Jobs ({unassignedJobs.length})
+                  </div>
+                  {unassignedJobs.length === 0 ? (
+                    <div style={{ fontSize: '0.85rem', color: '#8494b0', textAlign: 'center', padding: '1.5rem', background: '#f4f7fb', borderRadius: 8 }}>
+                      All jobs have been added to this route.
                     </div>
+                  ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {unassignedJobs.map(job => (
                         <div key={job.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0.75rem 1rem', background: '#f4f7fb', borderRadius: 8, border: '1px solid #dde4ef' }}>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#0e1117', marginBottom: 2 }}>{job.title}</div>
                             <div style={{ fontSize: '0.75rem', color: '#5a6a88' }}>{job.client_name} · {fmt(job.start_time)}</div>
-                            <div style={{ fontSize: '0.72rem', color: '#8494b0', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.address}</div>
+                            <div style={{ fontSize: '0.72rem', color: '#8494b0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.address}</div>
                           </div>
-                          <button
-                            onClick={() => addJobToRoute(job.id)}
-                            style={{ padding: '0.45rem 0.85rem', borderRadius: 7, border: '1.5px solid rgba(31,97,50,0.3)', background: 'rgba(31,97,50,0.06)', color: '#1f6132', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', whiteSpace: 'nowrap' }}
-                          >
+                          <button onClick={() => addJob(job.id)}
+                            style={{ padding: '0.45rem 0.85rem', borderRadius: 7, border: '1.5px solid rgba(31,97,50,0.3)', background: 'rgba(31,97,50,0.06)', color: '#1f6132', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', whiteSpace: 'nowrap' }}>
                             + Add
                           </button>
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </>
-            ) : null}
+            )}
           </div>
         </div>
       )}
