@@ -288,9 +288,9 @@ export default function AdminRoutesPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
             {/* Map with address search */}
-            <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid #dde4ef', overflow: 'hidden' }}>
+            <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid #dde4ef', overflow: 'visible', position: 'relative' }}>
               {/* Search bar */}
-              <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #dde4ef', position: 'relative' }}>
+              <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #dde4ef' }}>
                 <div style={{ position: 'relative' }}>
                   <input
                     type="text"
@@ -302,25 +302,25 @@ export default function AdminRoutesPage() {
                   {searching && (
                     <div style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: '0.75rem', color: '#8494b0' }}>Searching...</div>
                   )}
+                  {/* Search results dropdown — inside relative div so it positions correctly */}
+                  {searchResults.length > 0 && (
+                    <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: 'white', border: '1.5px solid #dde4ef', borderRadius: 8, boxShadow: '0 8px 24px rgba(14,17,23,0.15)', zIndex: 9999, overflow: 'hidden' }}>
+                      {searchResults.map((r, i) => (
+                        <button
+                          key={i}
+                          onClick={() => flyToResult(r)}
+                          style={{ width: '100%', padding: '0.65rem 1rem', textAlign: 'left', background: 'none', border: 'none', borderBottom: i < searchResults.length - 1 ? '1px solid #f0f4f9' : 'none', fontSize: '0.82rem', color: '#3a4660', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', display: 'block' }}
+                          onMouseEnter={e => (e.currentTarget.style.background = '#f4f7fb')}
+                          onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                        >
+                          📍 {r.display_name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                {/* Search results dropdown */}
-                {searchResults.length > 0 && (
-                  <div style={{ position: 'absolute', top: '100%', left: '1rem', right: '1rem', background: 'white', border: '1.5px solid #dde4ef', borderRadius: 8, boxShadow: '0 8px 24px rgba(14,17,23,0.1)', zIndex: 50, overflow: 'hidden' }}>
-                    {searchResults.map((r, i) => (
-                      <button
-                        key={i}
-                        onClick={() => flyToResult(r)}
-                        style={{ width: '100%', padding: '0.65rem 1rem', textAlign: 'left', background: 'none', border: 'none', borderBottom: i < searchResults.length - 1 ? '1px solid #f0f4f9' : 'none', fontSize: '0.82rem', color: '#3a4660', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', display: 'block' }}
-                        onMouseEnter={e => (e.currentTarget.style.background = '#f4f7fb')}
-                        onMouseLeave={e => (e.currentTarget.style.background = 'none')}
-                      >
-                        📍 {r.display_name}
-                      </button>
-                    ))}
-                  </div>
-                )}
               </div>
-              <div ref={mapRef} style={{ height: 360, width: '100%' }} />
+              <div ref={mapRef} style={{ height: 360, width: '100%', borderRadius: '0 0 12px 12px', overflow: 'hidden' }} />
             </div>
 
             {selectedEmployee ? (
