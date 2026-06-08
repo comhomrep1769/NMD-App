@@ -128,9 +128,12 @@ export default function AdminRoutesPage() {
       setEmployees(empData.employees || [])
       setRoutes(routesData.routes || [])
       setTimeout(() => {
-        if (window.L) initMap()
+        if (window.L) {
+          initMap()
+          if (mapInstance.current) mapInstance.current.invalidateSize()
+        }
         updateMapMarkers(jobsData.jobs || [], [])
-      }, 500)
+      }, 800)
     } catch {
       setError('Could not load route data.')
     }
@@ -186,6 +189,9 @@ export default function AdminRoutesPage() {
     const ids = existing ? existing.stops.map(s => s.jobId) : []
     setRouteJobIds(ids)
     setSavedMsg('')
+    setTimeout(() => {
+      if (mapInstance.current) mapInstance.current.invalidateSize()
+    }, 100)
   }
 
   const addJobToRoute = (jobId: string) => {
@@ -287,7 +293,7 @@ export default function AdminRoutesPage() {
           {/* ── RIGHT: Map + route builder ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
-            {/* Map with address search */}
+            {/* Map with address search — always visible */}
             <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid #dde4ef', overflow: 'visible', position: 'relative' }}>
               {/* Search bar */}
               <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #dde4ef' }}>
@@ -302,7 +308,6 @@ export default function AdminRoutesPage() {
                   {searching && (
                     <div style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: '0.75rem', color: '#8494b0' }}>Searching...</div>
                   )}
-                  {/* Search results dropdown — inside relative div so it positions correctly */}
                   {searchResults.length > 0 && (
                     <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: 'white', border: '1.5px solid #dde4ef', borderRadius: 8, boxShadow: '0 8px 24px rgba(14,17,23,0.15)', zIndex: 9999, overflow: 'hidden' }}>
                       {searchResults.map((r, i) => (
@@ -320,8 +325,17 @@ export default function AdminRoutesPage() {
                   )}
                 </div>
               </div>
-              <div ref={mapRef} style={{ height: 360, width: '100%', borderRadius: '0 0 12px 12px', overflow: 'hidden' }} />
+              <div ref={mapRef} style={{ height: 400, width: '100%', borderRadius: '0 0 12px 12px', overflow: 'hidden' }} />
             </div>
+
+            {/* Prompt to select employee */}
+            {!selectedEmployee && (
+              <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid #dde4ef', padding: '2rem', textAlign: 'center', color: '#8494b0' }}>
+                <div style={{ fontSize: '2rem', marginBottom: '0.75rem' }}>👈</div>
+                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, color: '#0e1117', marginBottom: 6 }}>Select an employee</div>
+                <div style={{ fontSize: '0.875rem' }}>Choose an employee on the left to build or edit their route.</div>
+              </div>
+            )}
 
             {selectedEmployee ? (
               <>
@@ -397,13 +411,7 @@ export default function AdminRoutesPage() {
                   </div>
                 )}
               </>
-            ) : (
-              <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid #dde4ef', padding: '3rem', textAlign: 'center', color: '#8494b0' }}>
-                <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>👈</div>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, color: '#0e1117', marginBottom: 8 }}>Select an employee</div>
-                <div style={{ fontSize: '0.875rem' }}>Choose an employee on the left to build or edit their route.</div>
-              </div>
-            )}
+            ) : null}
           </div>
         </div>
       )}
