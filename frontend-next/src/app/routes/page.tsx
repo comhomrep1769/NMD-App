@@ -6,23 +6,25 @@ import { LoadingCard, ErrorCard } from '@/components/portal/PortalUI'
 import { getNmdToken } from '@/lib/authStorage'
 
 type Job = {
-  id: number; title: string; client_name: string; address: string
+  id: string; title: string; client_name: string; address: string
   start_time: string; lat?: number; lng?: number
   assigned_employees: { id: string; displayName: string }[]
 }
 
-type Employee = { id: number; name: string; email: string }
+type Employee = { id: string; name: string; email: string }
 
 type RouteStop = {
-  stopId: number; jobId: number; stopOrder: number
+  stopId: number; jobId: string; stopOrder: number
   title: string; clientName: string; address: string
   lat?: number; lng?: number; startTime: string
   departedAt?: string; arrivedAt?: string; completedAt?: string
 }
 
 type Route = {
-  id: number; employee_id: number; employee_name: string; stops: RouteStop[]
+  id: number; employee_id: string; employee_name: string; stops: RouteStop[]
 }
+
+type SearchResult = { display_name: string; lat: string; lon: string }
 
 declare global {
   interface Window { L: any }
@@ -30,24 +32,37 @@ declare global {
 
 export default function AdminRoutesPage() {
   const API = process.env.NEXT_PUBLIC_API_URL || ''
-  const today = new Date().toISOString().split('T')[0]
 
-  const [date, setDate] = useState(today)
+  // Always use today's date in YYYY-MM-DD format
+  const getToday = () => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  }
+
+  const [date, setDate] = useState(getToday)
   const [jobs, setJobs] = useState<Job[]>([])
   const [employees, setEmployees] = useState<Employee[]>([])
   const [routes, setRoutes] = useState<Route[]>([])
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null)
-  const [routeJobIds, setRouteJobIds] = useState<number[]>([])
+  const [routeJobIds, setRouteJobIds] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [savedMsg, setSavedMsg] = useState('')
   const [dragIndex, setDragIndex] = useState<number | null>(null)
+
+  // Address search
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
+  const [searching, setSearching] = useState(false)
+  const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<any>(null)
   const markersRef = useRef<any[]>([])
+  const searchMarkerRef = useRef<any>(null)
 
-  // Load Leaflet CSS + JS
+  // Load Leaflet
   useEffect(() => {
     if (document.getElementById('leaflet-css')) return
     const link = document.createElement('link')
@@ -55,7 +70,6 @@ export default function AdminRoutesPage() {
     link.rel = 'stylesheet'
     link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
     document.head.appendChild(link)
-
     const script = document.createElement('script')
     script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
     script.onload = () => initMap()
@@ -71,50 +85,28 @@ export default function AdminRoutesPage() {
     }).addTo(mapInstance.current)
   }
 
-  const updateMapMarkers = useCallback((jobList: Job[], selectedIds: number[]) => {
+  const updateMapMarkers = useCallback((jobList: Job[], selectedIds: string[]) => {
     if (!mapInstance.current || !window.L) return
     const L = window.L
-
     markersRef.current.forEach(m => m.remove())
     markersRef.current = []
-
     const validJobs = jobList.filter(j => j.lat && j.lng)
     if (validJobs.length === 0) return
-
     validJobs.forEach(job => {
       const orderIndex = selectedIds.indexOf(job.id)
       const isInRoute = orderIndex >= 0
       const color = isInRoute ? '#1f6132' : '#8494b0'
       const label = isInRoute ? String(orderIndex + 1) : '•'
-
       const icon = L.divIcon({
         className: '',
-        html: `<div style="
-          width:32px;height:32px;border-radius:50%;
-          background:${color};color:white;
-          display:flex;align-items:center;justify-content:center;
-          font-weight:700;font-size:13px;
-          border:2px solid white;
-          box-shadow:0 2px 8px rgba(0,0,0,0.3);
-          font-family:Syne,sans-serif;
-        ">${label}</div>`,
-        iconSize: [32, 32],
-        iconAnchor: [16, 16],
+        html: `<div style="width:32px;height:32px;border-radius:50%;background:${color};color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);font-family:Syne,sans-serif;">${label}</div>`,
+        iconSize: [32, 32], iconAnchor: [16, 16],
       })
-
       const marker = L.marker([job.lat, job.lng], { icon })
         .addTo(mapInstance.current)
-        .bindPopup(`
-          <div style="font-family:DM Sans,sans-serif;min-width:180px">
-            <div style="font-weight:700;margin-bottom:4px">${job.title}</div>
-            <div style="font-size:12px;color:#5a6a88;margin-bottom:4px">${job.client_name}</div>
-            <div style="font-size:12px;color:#3a4660">${job.address}</div>
-          </div>
-        `)
-
+        .bindPopup(`<div style="font-family:DM Sans,sans-serif;min-width:180px"><div style="font-weight:700;margin-bottom:4px">${job.title}</div><div style="font-size:12px;color:#5a6a88;margin-bottom:4px">${job.client_name}</div><div style="font-size:12px;color:#3a4660">${job.address}</div></div>`)
       markersRef.current.push(marker)
     })
-
     const bounds = L.latLngBounds(validJobs.map(j => [j.lat, j.lng]))
     mapInstance.current.fitBounds(bounds, { padding: [40, 40] })
   }, [])
@@ -132,11 +124,9 @@ export default function AdminRoutesPage() {
       const jobsData = await jobsRes.json()
       const empData = await empRes.json()
       const routesData = await routesRes.json()
-
       setJobs(jobsData.jobs || [])
       setEmployees(empData.employees || [])
       setRoutes(routesData.routes || [])
-
       setTimeout(() => {
         if (window.L) initMap()
         updateMapMarkers(jobsData.jobs || [], [])
@@ -148,10 +138,47 @@ export default function AdminRoutesPage() {
   }, [date, API, updateMapMarkers])
 
   useEffect(() => { loadData() }, [loadData])
+  useEffect(() => { updateMapMarkers(jobs, routeJobIds) }, [routeJobIds, jobs, updateMapMarkers])
 
-  useEffect(() => {
-    updateMapMarkers(jobs, routeJobIds)
-  }, [routeJobIds, jobs, updateMapMarkers])
+  // Address search with debounce
+  const handleSearchInput = (val: string) => {
+    setSearchQuery(val)
+    setSearchResults([])
+    if (searchTimeout.current) clearTimeout(searchTimeout.current)
+    if (val.trim().length < 3) return
+    searchTimeout.current = setTimeout(async () => {
+      setSearching(true)
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(val)}&format=json&limit=5&countrycodes=us`,
+          { headers: { 'User-Agent': 'NMD-Pressure-Washing-App/1.0' } }
+        )
+        const data = await res.json()
+        setSearchResults(data)
+      } catch { }
+      setSearching(false)
+    }, 500)
+  }
+
+  const flyToResult = (result: SearchResult) => {
+    if (!mapInstance.current || !window.L) return
+    const L = window.L
+    const lat = parseFloat(result.lat)
+    const lng = parseFloat(result.lon)
+    mapInstance.current.flyTo([lat, lng], 15, { duration: 1 })
+    if (searchMarkerRef.current) searchMarkerRef.current.remove()
+    const icon = L.divIcon({
+      className: '',
+      html: `<div style="width:28px;height:28px;border-radius:50%;background:#e67e22;color:white;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);">📍</div>`,
+      iconSize: [28, 28], iconAnchor: [14, 14],
+    })
+    searchMarkerRef.current = L.marker([lat, lng], { icon })
+      .addTo(mapInstance.current)
+      .bindPopup(`<div style="font-family:DM Sans,sans-serif;font-size:12px;max-width:200px">${result.display_name}</div>`)
+      .openPopup()
+    setSearchQuery(result.display_name.split(',').slice(0, 2).join(','))
+    setSearchResults([])
+  }
 
   const selectEmployee = (emp: Employee) => {
     setSelectedEmployee(emp)
@@ -161,11 +188,11 @@ export default function AdminRoutesPage() {
     setSavedMsg('')
   }
 
-  const addJobToRoute = (jobId: number) => {
+  const addJobToRoute = (jobId: string) => {
     if (!routeJobIds.includes(jobId)) setRouteJobIds(p => [...p, jobId])
   }
 
-  const removeJobFromRoute = (jobId: number) => {
+  const removeJobFromRoute = (jobId: string) => {
     setRouteJobIds(p => p.filter(id => id !== jobId))
   }
 
@@ -248,17 +275,10 @@ export default function AdminRoutesPage() {
                 <button
                   key={emp.id}
                   onClick={() => selectEmployee(emp)}
-                  style={{
-                    padding: '0.85rem 1rem', borderRadius: 10, border: `1.5px solid ${isSelected ? '#1f6132' : '#dde4ef'}`,
-                    background: isSelected ? 'rgba(31,97,50,0.05)' : 'white',
-                    textAlign: 'left', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif',
-                    transition: 'all 0.15s',
-                  }}
+                  style={{ padding: '0.85rem 1rem', borderRadius: 10, border: `1.5px solid ${isSelected ? '#1f6132' : '#dde4ef'}`, background: isSelected ? 'rgba(31,97,50,0.05)' : 'white', textAlign: 'left', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', transition: 'all 0.15s' }}
                 >
                   <div style={{ fontWeight: 600, fontSize: '0.875rem', color: '#0e1117', marginBottom: 3 }}>{emp.name}</div>
-                  <div style={{ fontSize: '0.75rem', color: '#8494b0' }}>
-                    {hasRoute ? '✓ Route assigned' : 'No route yet'}
-                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#8494b0' }}>{hasRoute ? '✓ Route assigned' : 'No route yet'}</div>
                 </button>
               )
             })}
@@ -267,9 +287,40 @@ export default function AdminRoutesPage() {
           {/* ── RIGHT: Map + route builder ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
-            {/* Map */}
+            {/* Map with address search */}
             <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid #dde4ef', overflow: 'hidden' }}>
-              <div ref={mapRef} style={{ height: 380, width: '100%' }} />
+              {/* Search bar */}
+              <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #dde4ef', position: 'relative' }}>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={e => handleSearchInput(e.target.value)}
+                    placeholder="🔍 Search address or location..."
+                    style={{ width: '100%', padding: '0.55rem 0.9rem', borderRadius: 8, border: '1.5px solid #dde4ef', fontSize: '0.875rem', fontFamily: 'DM Sans, sans-serif', color: '#0e1117', background: '#f4f7fb', boxSizing: 'border-box', outline: 'none' }}
+                  />
+                  {searching && (
+                    <div style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: '0.75rem', color: '#8494b0' }}>Searching...</div>
+                  )}
+                </div>
+                {/* Search results dropdown */}
+                {searchResults.length > 0 && (
+                  <div style={{ position: 'absolute', top: '100%', left: '1rem', right: '1rem', background: 'white', border: '1.5px solid #dde4ef', borderRadius: 8, boxShadow: '0 8px 24px rgba(14,17,23,0.1)', zIndex: 50, overflow: 'hidden' }}>
+                    {searchResults.map((r, i) => (
+                      <button
+                        key={i}
+                        onClick={() => flyToResult(r)}
+                        style={{ width: '100%', padding: '0.65rem 1rem', textAlign: 'left', background: 'none', border: 'none', borderBottom: i < searchResults.length - 1 ? '1px solid #f0f4f9' : 'none', fontSize: '0.82rem', color: '#3a4660', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', display: 'block' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = '#f4f7fb')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                      >
+                        📍 {r.display_name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div ref={mapRef} style={{ height: 360, width: '100%' }} />
             </div>
 
             {selectedEmployee ? (
@@ -277,32 +328,21 @@ export default function AdminRoutesPage() {
                 <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid #dde4ef', padding: '1.25rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: 8 }}>
                     <div>
-                      <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#0e1117' }}>
-                        {selectedEmployee.name}'s Route
-                      </div>
-                      <div style={{ fontSize: '0.78rem', color: '#8494b0', marginTop: 2 }}>
-                        {routeJobs.length} stop{routeJobs.length !== 1 ? 's' : ''} · drag to reorder
-                      </div>
+                      <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#0e1117' }}>{selectedEmployee.name}'s Route</div>
+                      <div style={{ fontSize: '0.78rem', color: '#8494b0', marginTop: 2 }}>{routeJobs.length} stop{routeJobs.length !== 1 ? 's' : ''} · drag to reorder</div>
                     </div>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                       {savedMsg && <span style={{ fontSize: '0.8rem', color: '#1f6132', fontWeight: 600 }}>✓ {savedMsg}</span>}
                       <button
                         onClick={saveRoute}
                         disabled={saving || routeJobIds.length === 0}
-                        style={{
-                          padding: '0.6rem 1.25rem', borderRadius: 8, border: 'none',
-                          background: routeJobIds.length > 0 && !saving ? 'linear-gradient(135deg, #1f6132, #124d83)' : '#dde4ef',
-                          color: routeJobIds.length > 0 && !saving ? 'white' : '#8494b0',
-                          fontWeight: 700, fontSize: '0.85rem', cursor: routeJobIds.length > 0 && !saving ? 'pointer' : 'not-allowed',
-                          fontFamily: 'DM Sans, sans-serif',
-                        }}
+                        style={{ padding: '0.6rem 1.25rem', borderRadius: 8, border: 'none', background: routeJobIds.length > 0 && !saving ? 'linear-gradient(135deg, #1f6132, #124d83)' : '#dde4ef', color: routeJobIds.length > 0 && !saving ? 'white' : '#8494b0', fontWeight: 700, fontSize: '0.85rem', cursor: routeJobIds.length > 0 && !saving ? 'pointer' : 'not-allowed', fontFamily: 'DM Sans, sans-serif' }}
                       >
                         {saving ? 'Saving...' : 'Save Route'}
                       </button>
                     </div>
                   </div>
 
-                  {/* Route stops (draggable) */}
                   {routeJobs.length === 0 && (
                     <div style={{ fontSize: '0.85rem', color: '#8494b0', textAlign: 'center', padding: '2rem', background: '#f4f7fb', borderRadius: 8, border: '1px dashed #dde4ef' }}>
                       Add jobs from the list below
@@ -317,34 +357,21 @@ export default function AdminRoutesPage() {
                         onDragStart={() => handleDragStart(index)}
                         onDragOver={e => handleDragOver(e, index)}
                         onDragEnd={() => setDragIndex(null)}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: 10, padding: '0.75rem 1rem',
-                          background: '#f4f7fb', borderRadius: 8, border: '1px solid #dde4ef',
-                          cursor: 'grab', userSelect: 'none',
-                          opacity: dragIndex === index ? 0.5 : 1,
-                        }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0.75rem 1rem', background: '#f4f7fb', borderRadius: 8, border: '1px solid #dde4ef', cursor: 'grab', userSelect: 'none', opacity: dragIndex === index ? 0.5 : 1 }}
                       >
-                        <div style={{
-                          width: 26, height: 26, borderRadius: '50%', background: 'linear-gradient(135deg, #1f6132, #124d83)',
-                          color: 'white', fontWeight: 800, fontSize: '0.75rem',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                        }}>{index + 1}</div>
+                        <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 800, fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{index + 1}</div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#0e1117', marginBottom: 2 }}>{job.title}</div>
                           <div style={{ fontSize: '0.75rem', color: '#5a6a88' }}>{job.client_name} · {fmt(job.start_time)}</div>
                           <div style={{ fontSize: '0.72rem', color: '#8494b0', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.address}</div>
                         </div>
                         <span style={{ fontSize: '0.72rem', color: '#8494b0', marginRight: 4 }}>⠿</span>
-                        <button
-                          onClick={() => removeJobFromRoute(job.id)}
-                          style={{ background: 'none', border: 'none', color: '#c0392b', cursor: 'pointer', fontSize: '1rem', padding: '0 4px', flexShrink: 0 }}
-                        >×</button>
+                        <button onClick={() => removeJobFromRoute(job.id)} style={{ background: 'none', border: 'none', color: '#c0392b', cursor: 'pointer', fontSize: '1rem', padding: '0 4px', flexShrink: 0 }}>×</button>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* Unassigned jobs for this date */}
                 {unassignedJobs.length > 0 && (
                   <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid #dde4ef', padding: '1.25rem' }}>
                     <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '0.95rem', color: '#0e1117', marginBottom: '1rem' }}>
