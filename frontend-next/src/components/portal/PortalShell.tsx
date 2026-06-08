@@ -25,6 +25,7 @@ const ADMIN_NAV = [
   { href: '/invoices', label: 'Invoices', icon: 'Inv' },
   { href: '/requests', label: 'Requests', icon: 'Req' },
   { href: '/schedule', label: 'Schedule', icon: 'Sch' },
+  { href: '/routes', label: 'Route Planner', icon: 'Rt' },
   { href: '/recurring', label: 'Recurring', icon: 'R' },
   { href: '/employees', label: 'Employees', icon: 'Emp' },
   { href: '/treatments', label: 'Treatments', icon: 'Tx' },
@@ -41,7 +42,9 @@ const ADMIN_NAV = [
 
 const EMPLOYEE_NAV = [
   { href: '/employee', label: 'Dashboard', icon: 'H' },
+  { href: '/employee/route', label: 'My Route', icon: 'Rt' },
   { href: '/employee/schedule', label: 'My Schedule', icon: 'Sch' },
+  { href: '/employee/job-board', label: 'Job Board', icon: 'Jb' },
   { href: '/employee/treatments', label: 'Treatments', icon: 'Tx' },
   { href: '/employee/chat', label: 'Chat', icon: 'Msg' },
   { href: '/employee/timeclock', label: 'Time Clock', icon: 'TC' },
@@ -158,21 +161,8 @@ export default function PortalShell({
 
           {/* ── Our Mission link at bottom of sidebar ── */}
           <div style={{ padding: '0.75rem 1.25rem', borderTop: '1px solid rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-            <Link
-              href="/mission"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                textDecoration: 'none',
-              }}
-            >
-              <span style={{
-                fontSize: '0.62rem', width: 26, height: 20, borderRadius: 4, flexShrink: 0,
-                background: 'rgba(255,255,255,0.08)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: 'rgba(255,255,255,0.4)', fontWeight: 700,
-              }}>★</span>
+            <Link href="/mission" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+              <span style={{ fontSize: '0.62rem', width: 26, height: 20, borderRadius: 4, flexShrink: 0, background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.4)', fontWeight: 700 }}>★</span>
               <span style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.45)', fontWeight: 400 }}>Our Mission</span>
             </Link>
           </div>
@@ -201,20 +191,7 @@ export default function PortalShell({
             <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'linear-gradient(135deg, #1f6132, #124d83)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.7rem', fontWeight: 700 }}>
               {(user?.displayName || user?.email || 'U')[0].toUpperCase()}
             </div>
-            {/* ── Our Mission link in top bar (visible on all screen sizes) ── */}
-            <Link
-              href="/mission"
-              style={{
-                fontSize: '0.78rem',
-                color: '#1f6132',
-                padding: '4px 10px',
-                borderRadius: 6,
-                border: '1px solid rgba(31,97,50,0.25)',
-                background: 'rgba(31,97,50,0.05)',
-                textDecoration: 'none',
-                fontWeight: 600,
-              }}
-            >
+            <Link href="/mission" style={{ fontSize: '0.78rem', color: '#1f6132', padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(31,97,50,0.25)', background: 'rgba(31,97,50,0.05)', textDecoration: 'none', fontWeight: 600 }}>
               Our Mission
             </Link>
             <Link href="/" style={{ fontSize: '0.78rem', color: '#8494b0', padding: '4px 10px', borderRadius: 6, border: '1px solid #dde4ef', textDecoration: 'none' }}>Home</Link>

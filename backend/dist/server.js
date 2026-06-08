@@ -26,6 +26,8 @@ import recurringRoutes from "./routes/recurring.js";
 import pricingRoutes from "./routes/pricing.js";
 import bonusRoutes from "./routes/bonus.js";
 import requestsRoutes from "./routes/requests.js";
+import smsRoutes from "./routes/sms.js";
+import routePlannerRoutes from "./routes/routePlanner.js";
 const app = express();
 const PORT = Number(process.env.PORT || 10000);
 const allowedOrigins = [
@@ -49,26 +51,13 @@ app.use(cors({
     },
     credentials: true
 }));
-app.use(express.json({
-    limit: "25mb"
-}));
-app.use(express.urlencoded({
-    extended: true,
-    limit: "25mb"
-}));
+app.use(express.json({ limit: "25mb" }));
+app.use(express.urlencoded({ extended: true, limit: "25mb" }));
 app.get("/", (_req, res) => {
-    res.json({
-        ok: true,
-        service: "NMD backend",
-        message: "NMD backend is running."
-    });
+    res.json({ ok: true, service: "NMD backend", message: "NMD backend is running." });
 });
 app.get("/api/health", (_req, res) => {
-    res.json({
-        ok: true,
-        service: "NMD backend",
-        timestamp: new Date().toISOString()
-    });
+    res.json({ ok: true, service: "NMD backend", timestamp: new Date().toISOString() });
 });
 app.use("/api/auth", authRoutes);
 app.use("/api/guru", guruRoutes);
@@ -95,13 +84,10 @@ app.use("/api/recurring", recurringRoutes);
 app.use("/api/pricing", pricingRoutes);
 app.use("/api/bonus", bonusRoutes);
 app.use("/api/requests", requestsRoutes);
-import smsRoutes from './routes/sms.js';
-// ...
-app.use('/api/sms', smsRoutes);
+app.use("/api/sms", smsRoutes);
+app.use("/api/routes", routePlannerRoutes);
 app.use((req, res) => {
-    res.status(404).json({
-        message: `Route not found: ${req.method} ${req.originalUrl}`
-    });
+    res.status(404).json({ message: `Route not found: ${req.method} ${req.originalUrl}` });
 });
 app.use((err, _req, res, _next) => {
     console.error("Unhandled backend error:", err);
@@ -111,9 +97,7 @@ app.use((err, _req, res, _next) => {
             message: "Upload file is too large for the backend request limit. The backend limit has been increased to 25mb, redeploy and try again."
         });
     }
-    return res.status(500).json({
-        message
-    });
+    return res.status(500).json({ message });
 });
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`NMD backend listening on port ${PORT}`);
