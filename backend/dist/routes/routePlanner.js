@@ -46,10 +46,9 @@ router.get('/jobs-for-date', requireAuth, requireRole('admin'), async (req, res)
        FROM jobs j
        LEFT JOIN job_assignments ja ON ja.job_id = j.id
        LEFT JOIN users u ON u.id = ja.user_id
-       WHERE j.status = 'scheduled'
-         AND DATE(j.start_time AT TIME ZONE 'America/New_York') = $1
+       WHERE j.status NOT IN ('cancelled', 'completed')
        GROUP BY j.id
-       ORDER BY j.start_time ASC`, [date]);
+       ORDER BY j.start_time ASC`, []);
         // Geocode any jobs missing lat/lng
         const jobs = result.rows;
         for (const job of jobs) {
