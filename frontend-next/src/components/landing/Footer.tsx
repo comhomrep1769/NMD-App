@@ -8,14 +8,7 @@ export default function Footer() {
           {/* Brand */}
           <div>
             <div className="nmd-footer-brand-name">
-              <div
-                style={{
-                  width: 28, height: 28, borderRadius: 6,
-                  background: 'linear-gradient(135deg, #1f6132, #124d83)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: 'white', fontSize: '0.65rem', fontWeight: 800,
-                }}
-              >
+              <div style={{ width: 28, height: 28, borderRadius: 6, background: 'linear-gradient(135deg, #1f6132, #124d83)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.65rem', fontWeight: 800 }}>
                 NMD
               </div>
               NMD Pressure Washing Services LLC
@@ -26,15 +19,7 @@ export default function Footer() {
               and specialty restoration.
             </p>
             <div className="nmd-footer-social">
-              <a
-                href="https://lnk.bio/NMDPowash"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="nmd-social-btn"
-                title="All Social Links"
-              >
-                🔗
-              </a>
+              <a href="https://lnk.bio/NMDPowash" target="_blank" rel="noopener noreferrer" className="nmd-social-btn" title="All Social Links">🔗</a>
             </div>
           </div>
 
@@ -49,9 +34,7 @@ export default function Footer() {
                 ['#services', 'Specialty & Restoration'],
                 ['#recurring', 'Recurring Plans'],
               ].map(([href, label]) => (
-                <li key={label}>
-                  <a href={href}>{label}</a>
-                </li>
+                <li key={label}><a href={href}>{label}</a></li>
               ))}
             </ul>
           </div>
@@ -68,7 +51,7 @@ export default function Footer() {
                 'Brevard County, FL',
                 'Melbourne, FL',
                 'Palm Bay, FL',
-              ].map((area) => (
+              ].map(area => (
                 <div key={area} className="nmd-footer-area">
                   <span className="nmd-footer-area-dot" />
                   {area}
@@ -83,16 +66,8 @@ export default function Footer() {
             <ul className="nmd-footer-links">
               <li><a href="/client/request-service">Get a Free Quote</a></li>
               <li><a href="/client/register">Create Client Account</a></li>
-              <li><a href="#get-app">Client Portal</a></li>
-              <li>
-                <a
-                  href="https://lnk.bio/NMDPowash"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Follow Us
-                </a>
-              </li>
+              <li><a href="/mission">Our Mission</a></li>
+              <li><a href="https://lnk.bio/NMDPowash" target="_blank" rel="noopener noreferrer">Follow Us</a></li>
             </ul>
           </div>
         </div>
@@ -100,13 +75,12 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="nmd-footer-bottom">
           <p className="nmd-footer-copy">
-            © {year} NMD Pressure Washing Services LLC. All rights reserved. Serving Orlando, Orange County &amp;
-            Brevard County, FL.
+            © {year} NMD Pressure Washing Services LLC. All rights reserved. Serving Orlando, Orange County &amp; Brevard County, FL.
           </p>
           <div className="nmd-footer-portal-links">
             <a href="/admin">Admin Portal</a>
             <a href="/employee/login">Employee Portal</a>
-            <a href="/client">Client Portal</a>
+            <a href="/client/login">Client Portal</a>
           </div>
         </div>
       </div>

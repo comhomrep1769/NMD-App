@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, Suspense } from "react"
@@ -9,9 +8,9 @@ import Link from "next/link"
 
 function getPortalPath(role: string) {
   const r = role.toLowerCase()
-  if (r === "superadmin" || r === "admin") return "/dashboard"
-  if (r === "employee") return "/employee"
-  return "/client"
+  if (r === "superadmin" || r === "admin") return "/dashboard/admin"
+  if (r === "employee") return "/dashboard/employee"
+  return "/clientdashboard"
 }
 
 function LoginForm({ portalRole }: { portalRole: string }) {
@@ -21,6 +20,7 @@ function LoginForm({ portalRole }: { portalRole: string }) {
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
@@ -65,6 +65,7 @@ function LoginForm({ portalRole }: { portalRole: string }) {
         padding: "2.5rem", width: "100%", maxWidth: 420,
         boxShadow: "0 8px 40px rgba(14,17,23,0.07)",
       }}>
+        {/* Logo */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: "1.5rem" }}>
           <div style={{
             width: 36, height: 36, borderRadius: 8,
@@ -88,6 +89,7 @@ function LoginForm({ portalRole }: { portalRole: string }) {
         )}
 
         <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {/* Email */}
           <div>
             <label style={{ fontSize: "0.8rem", fontWeight: 500, color: "#3a4660", display: "block", marginBottom: 4 }}>Email</label>
             <input
@@ -96,18 +98,46 @@ function LoginForm({ portalRole }: { portalRole: string }) {
               style={{ width: "100%", padding: "0.6rem 0.85rem", borderRadius: 8, border: "1.5px solid #dde4ef", fontSize: "0.875rem", outline: "none", fontFamily: "DM Sans, sans-serif", color: "#0e1117", background: "#f4f7fb", boxSizing: "border-box" }}
             />
           </div>
+
+          {/* Password with show/hide eye */}
           <div>
             <label style={{ fontSize: "0.8rem", fontWeight: 500, color: "#3a4660", display: "block", marginBottom: 4 }}>Password</label>
-            <input
-              type="password" required value={password} onChange={e => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              style={{ width: "100%", padding: "0.6rem 0.85rem", borderRadius: 8, border: "1.5px solid #dde4ef", fontSize: "0.875rem", outline: "none", fontFamily: "DM Sans, sans-serif", color: "#0e1117", background: "#f4f7fb", boxSizing: "border-box" }}
-            />
+            <div style={{ position: "relative" }}>
+              <input
+                type={showPassword ? "text" : "password"}
+                required value={password} onChange={e => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                style={{ width: "100%", padding: "0.6rem 2.5rem 0.6rem 0.85rem", borderRadius: 8, border: "1.5px solid #dde4ef", fontSize: "0.875rem", outline: "none", fontFamily: "DM Sans, sans-serif", color: "#0e1117", background: "#f4f7fb", boxSizing: "border-box" }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(p => !p)}
+                style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", color: "#8494b0", fontSize: "1.1rem" }}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? (
+                  // Eye-off icon
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                    <line x1="1" y1="1" x2="23" y2="23"/>
+                  </svg>
+                ) : (
+                  // Eye icon
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                )}
+              </button>
+            </div>
           </div>
+
           <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "0.85rem", color: "#5a6a88", cursor: "pointer" }}>
-            <input type="checkbox" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)} />
+            <input type="checkbox" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)} style={{ accentColor: "#1f6132" }} />
             Keep me logged in
           </label>
+
           <button type="submit" disabled={loading} style={{
             width: "100%", padding: "0.75rem", borderRadius: 10, border: "none",
             background: "linear-gradient(135deg, #1f6132, #124d83)",

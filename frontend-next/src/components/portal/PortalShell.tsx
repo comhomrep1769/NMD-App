@@ -7,7 +7,7 @@ import type { StoredNmdUser } from '@/lib/authStorage'
 import Link from 'next/link'
 
 const CLIENT_NAV = [
-  { href: '/client', label: 'Dashboard', icon: 'H' },
+  { href: '/clientdashboard', label: 'Dashboard', icon: 'H' },
   { href: '/client/request-service', label: 'Request Service', icon: '+' },
   { href: '/client/estimates', label: 'My Estimates', icon: '~' },
   { href: '/client/quotes', label: 'My Quotes', icon: 'Q' },
@@ -19,7 +19,7 @@ const CLIENT_NAV = [
 ]
 
 const ADMIN_NAV = [
-  { href: '/dashboard', label: 'Dashboard', icon: 'H' },
+  { href: '/dashboard/admin', label: 'Dashboard', icon: 'H' },
   { href: '/clients', label: 'Clients', icon: 'C' },
   { href: '/quotes', label: 'Quotes', icon: 'Q' },
   { href: '/invoices', label: 'Invoices', icon: 'Inv' },
@@ -41,7 +41,7 @@ const ADMIN_NAV = [
 ]
 
 const EMPLOYEE_NAV = [
-  { href: '/employee', label: 'Dashboard', icon: 'H' },
+  { href: '/dashboard/employee', label: 'Dashboard', icon: 'H' },
   { href: '/employee/route', label: 'My Route', icon: 'Rt' },
   { href: '/employee/schedule', label: 'My Schedule', icon: 'Sch' },
   { href: '/employee/job-board', label: 'Job Board', icon: 'Jb' },
@@ -77,7 +77,7 @@ export default function PortalShell({
     if (!auth?.token) {
       const roles = Array.isArray(requiredRole) ? requiredRole : [requiredRole || '']
       if (roles.includes('client')) router.replace('/client/login')
-      else if (roles.includes('employee')) router.replace('/employee')
+      else if (roles.includes('employee')) router.replace('/employee/login')
       else router.replace('/admin')
       return
     }
@@ -89,9 +89,9 @@ export default function PortalShell({
         return userRole === r.toLowerCase()
       })
       if (!allowed) {
-        if (userRole === 'client') router.replace('/client')
-        else if (userRole === 'employee') router.replace('/employee')
-        else router.replace('/dashboard')
+        if (userRole === 'client') router.replace('/clientdashboard')
+        else if (userRole === 'employee') router.replace('/dashboard/employee')
+        else router.replace('/dashboard/admin')
         return
       }
     }
@@ -159,7 +159,7 @@ export default function PortalShell({
             })}
           </nav>
 
-          {/* ── Our Mission link at bottom of sidebar ── */}
+          {/* Our Mission */}
           <div style={{ padding: '0.75rem 1.25rem', borderTop: '1px solid rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
             <Link href="/mission" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
               <span style={{ fontSize: '0.62rem', width: 26, height: 20, borderRadius: 4, flexShrink: 0, background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.4)', fontWeight: 700 }}>★</span>
