@@ -168,9 +168,6 @@ export default function PortalShell({
           </div>
 
           <div style={{ padding: '1rem 1.25rem' }}>
-            <button onClick={handleLogout} style={{ width: '100%', padding: '0.6rem', borderRadius: 8, background: 'rgba(220,50,50,0.15)', border: '1px solid rgba(220,50,50,0.3)', color: 'rgba(255,180,180,0.9)', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
-              Sign Out
-            </button>
           </div>
         </div>
       )}
@@ -184,6 +181,18 @@ export default function PortalShell({
                 {sidebarOpen ? 'X' : 'Menu'}
               </button>
             )}
+            {/* Logout button — top left, always visible */}
+            <button
+              onClick={handleLogout}
+              style={{ padding: '4px 12px', borderRadius: 6, background: 'rgba(220,50,50,0.08)', border: '1px solid rgba(220,50,50,0.2)', color: '#c0392b', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', display: 'flex', alignItems: 'center', gap: 5 }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                <polyline points="16 17 21 12 16 7"/>
+                <line x1="21" y1="12" x2="9" y2="12"/>
+              </svg>
+              Sign Out
+            </button>
             <div style={{ fontSize: '0.82rem', color: '#8494b0' }}>NMD Pressure Washing Services LLC</div>
           </div>
 

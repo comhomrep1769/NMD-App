@@ -151,9 +151,9 @@ function LoginForm({ portalRole }: { portalRole: string }) {
         </form>
 
         <div style={{ marginTop: "1.5rem", display: "flex", flexDirection: "column", gap: 8, borderTop: "1px solid #dde4ef", paddingTop: "1.25rem" }}>
-          {portalRole !== "client" && (
+          {portalRole === "admin" || portalRole === "superadmin" ? (
             <Link href="/client/login" style={{ fontSize: "0.82rem", color: "#5a6a88", textAlign: "center" }}>Client portal</Link>
-          )}
+          ) : null}
           <Link href="/" style={{ fontSize: "0.82rem", color: "#5a6a88", textAlign: "center" }}>Back to home</Link>
         </div>
       </div>
