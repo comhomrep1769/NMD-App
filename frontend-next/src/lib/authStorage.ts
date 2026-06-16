@@ -4,6 +4,7 @@ export type StoredNmdUser = {
   displayName?: string
   name?: string
   role?: 'superadmin' | 'admin' | 'employee' | 'client' | string
+  mustChangePassword?: boolean
 }
 
 export type StoredNmdAuth = {
@@ -60,6 +61,7 @@ function findUserDeep(value: unknown, depth = 0): StoredNmdUser | null {
           displayName: String(n.displayName || n.name || n.email || ''),
           name: String(n.name || n.displayName || ''),
           role: String(n.role || ''),
+          mustChangePassword: Boolean(n.mustChangePassword ?? false),
         }
       }
     }
@@ -70,6 +72,7 @@ function findUserDeep(value: unknown, depth = 0): StoredNmdUser | null {
         displayName: String(r.displayName || r.name || r.email || ''),
         name: String(r.name || r.displayName || ''),
         role: String(r.role || ''),
+        mustChangePassword: Boolean(r.mustChangePassword ?? false),
       }
     }
   }
