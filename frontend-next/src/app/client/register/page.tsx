@@ -15,6 +15,8 @@ export default function ClientRegisterPage() {
   const [address, setAddress] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -24,6 +26,19 @@ export default function ClientRegisterPage() {
     fontFamily: 'DM Sans, sans-serif', color: '#0e1117',
     background: '#f4f7fb', boxSizing: 'border-box',
   }
+
+  const EyeIcon = ({ show }: { show: boolean }) => show ? (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+      <line x1="1" y1="1" x2="23" y2="23"/>
+    </svg>
+  ) : (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+      <circle cx="12" cy="12" r="3"/>
+    </svg>
+  )
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -37,7 +52,7 @@ export default function ClientRegisterPage() {
         { method: 'POST', body: JSON.stringify({ displayName: `${firstName} ${lastName}`.trim(), email, phone, password }) }
       )
       saveNmdAuth(data)
-      router.replace('/client')
+      router.replace('/clientdashboard')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create account')
     } finally {
@@ -56,6 +71,7 @@ export default function ClientRegisterPage() {
         padding: '2.5rem', width: '100%', maxWidth: 460,
         boxShadow: '0 8px 40px rgba(14,17,23,0.07)',
       }}>
+        {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '1.5rem' }}>
           <div style={{
             width: 36, height: 36, borderRadius: 8,
@@ -73,7 +89,7 @@ export default function ClientRegisterPage() {
           Create Client Account
         </h1>
         <p style={{ fontSize: '0.85rem', color: '#5a6a88', marginBottom: '1.5rem', lineHeight: 1.5 }}>
-          Create your NMD client portal login to view quotes, invoices, appointments, and payments.
+          Track your quotes, invoices, appointments, and service history — all in one place.
         </p>
 
         {error && (
@@ -84,39 +100,74 @@ export default function ClientRegisterPage() {
 
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <input style={inputStyle} placeholder="First name" value={firstName} onChange={e => setFirstName(e.target.value)} required />
-            <input style={inputStyle} placeholder="Last name" value={lastName} onChange={e => setLastName(e.target.value)} required />
+            <input style={inputStyle} placeholder="First name *" value={firstName} onChange={e => setFirstName(e.target.value)} required />
+            <input style={inputStyle} placeholder="Last name *" value={lastName} onChange={e => setLastName(e.target.value)} required />
           </div>
-          <input style={inputStyle} placeholder="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+          <input style={inputStyle} placeholder="Email address *" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
           <input style={inputStyle} placeholder="Phone number" value={phone} onChange={e => setPhone(e.target.value)} />
           <input style={inputStyle} placeholder="Service address" value={address} onChange={e => setAddress(e.target.value)} />
-          <input style={inputStyle} placeholder="Password (min 8 characters)" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
-          <input style={inputStyle} placeholder="Confirm password" type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required />
+
+          {/* Password with eye */}
+          <div style={{ position: 'relative' }}>
+            <input
+              style={{ ...inputStyle, paddingRight: '2.5rem' }}
+              placeholder="Password (min 8 characters) *"
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+            />
+            <button type="button" onClick={() => setShowPassword(p => !p)}
+              style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#8494b0', display: 'flex', alignItems: 'center', padding: 0 }}>
+              <EyeIcon show={showPassword} />
+            </button>
+          </div>
+
+          {/* Confirm password with eye */}
+          <div style={{ position: 'relative' }}>
+            <input
+              style={{ ...inputStyle, paddingRight: '2.5rem' }}
+              placeholder="Confirm password *"
+              type={showConfirm ? 'text' : 'password'}
+              value={confirmPassword}
+              onChange={e => setConfirmPassword(e.target.value)}
+              required
+            />
+            <button type="button" onClick={() => setShowConfirm(p => !p)}
+              style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#8494b0', display: 'flex', alignItems: 'center', padding: 0 }}>
+              <EyeIcon show={showConfirm} />
+            </button>
+          </div>
+
+          {/* Password strength hint */}
+          {password.length > 0 && (
+            <div style={{ fontSize: '0.75rem', color: password.length >= 8 ? '#1f6132' : '#a32d2d' }}>
+              {password.length >= 8 ? '✓ Password length is good' : `${8 - password.length} more character${8 - password.length !== 1 ? 's' : ''} needed`}
+            </div>
+          )}
 
           <button type="submit" disabled={saving} style={{
             width: '100%', padding: '0.75rem', borderRadius: 10, border: 'none',
             background: 'linear-gradient(135deg, #1f6132, #124d83)',
-            color: 'white', fontWeight: 600, fontSize: '0.95rem',
+            color: 'white', fontWeight: 700, fontSize: '0.95rem',
             cursor: saving ? 'not-allowed' : 'pointer',
-            opacity: saving ? 0.7 : 1, marginTop: 4,
+            opacity: saving ? 0.7 : 1, marginTop: 6,
             fontFamily: 'DM Sans, sans-serif',
           }}>
-            {saving ? 'Creating Account...' : 'Create Account'}
+            {saving ? 'Creating Account...' : 'Create My Account →'}
           </button>
         </form>
 
-        <div style={{ marginTop: '1.25rem', textAlign: 'center', borderTop: '1px solid #dde4ef', paddingTop: '1.25rem' }}>
-          <Link href="/client/login" style={{ fontSize: '0.85rem', color: '#5a6a88' }}>
+        <div style={{ marginTop: '1.25rem', textAlign: 'center', borderTop: '1px solid #dde4ef', paddingTop: '1.25rem', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <Link href="/client/login" style={{ fontSize: '0.85rem', color: '#1f6132', fontWeight: 600 }}>
             Already have an account? Sign in →
           </Link>
-        </div>
-        <div style={{ marginTop: '0.5rem', textAlign: 'center' }}>
+          <Link href="/client/request-service" style={{ fontSize: '0.82rem', color: '#5a6a88' }}>
+            Just need a quote? Request service without an account
+          </Link>
           <Link href="/" style={{ fontSize: '0.82rem', color: '#8494b0' }}>← Back to home</Link>
         </div>
       </div>
     </div>
   )
 }
-
-
-
