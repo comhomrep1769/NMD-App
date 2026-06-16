@@ -42,7 +42,7 @@ const ADMIN_NAV = [
 
 const EMPLOYEE_NAV = [
   { href: '/dashboard/employee', label: 'Dashboard', icon: 'H' },
-  { href: '/employee/route', label: 'My Route', icon: 'Rt' },
+  { href: '/employee/my-route', label: 'My Route', icon: 'Rt' },
   { href: '/employee/schedule', label: 'My Schedule', icon: 'Sch' },
   { href: '/employee/job-board', label: 'Job Board', icon: 'Jb' },
   { href: '/employee/treatments', label: 'Treatments', icon: 'Tx' },
