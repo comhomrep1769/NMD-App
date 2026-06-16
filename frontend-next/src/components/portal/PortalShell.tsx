@@ -46,6 +46,7 @@ const EMPLOYEE_NAV = [
   { href: '/employee/schedule', label: 'My Schedule', icon: 'Sch' },
   { href: '/employee/job-board', label: 'Job Board', icon: 'Jb' },
   { href: '/employee/treatments', label: 'Treatments', icon: 'Tx' },
+  { href: '/employee/chemicals', label: 'Chemicals', icon: 'Ch' },
   { href: '/employee/chat', label: 'Chat', icon: 'Msg' },
   { href: '/employee/timeclock', label: 'Time Clock', icon: 'TC' },
   { href: '/employee/bonus', label: 'My Bonus', icon: 'Bon' },
