@@ -29,7 +29,8 @@ function mapUser(user) {
         phone: user.phone,
         dateJoined: user.date_joined,
         createdAt: user.created_at,
-        updatedAt: user.updated_at
+        updatedAt: user.updated_at,
+        mustChangePassword: user.must_change_password ?? false,
     };
 }
 function getBearerToken(req) {
@@ -47,7 +48,6 @@ function normalizeRole(value) {
         return "employee";
     return "client";
 }
-// Maps portalRole (sent by frontend) to the allowed DB roles for that portal
 function getAllowedRolesForPortal(portalRole) {
     if (portalRole === "admin" || portalRole === "superadmin")
         return ["admin", "superadmin"];
@@ -55,7 +55,6 @@ function getAllowedRolesForPortal(portalRole) {
         return ["employee"];
     if (portalRole === "client")
         return ["client"];
-    // No portalRole sent — allow all (fallback, shouldn't happen)
     return ["superadmin", "admin", "employee", "client"];
 }
 async function ensureUsersTable() {
@@ -142,7 +141,6 @@ router.post("/login", async (req, res) => {
             return res.status(400).json({ message: "Email and password are required." });
         }
         const user = await findUserByEmail(email);
-        // Use the same error for wrong email AND wrong password — prevents email enumeration
         if (!user) {
             return res.status(401).json({ message: "Invalid email or password." });
         }
@@ -150,12 +148,9 @@ router.post("/login", async (req, res) => {
         if (!passwordValid) {
             return res.status(401).json({ message: "Invalid email or password." });
         }
-        // ── PORTAL ROLE ENFORCEMENT ──────────────────────────────────────────────
-        // If the frontend told us which portal this login is for, enforce it.
         if (portalRole) {
             const allowedRoles = getAllowedRolesForPortal(portalRole);
             if (!allowedRoles.includes(user.role)) {
-                // Give a clear message so the user knows they're on the wrong portal
                 const portalName = portalRole === "client" ? "client portal" :
                     portalRole === "employee" ? "employee portal" :
                         "admin portal";
@@ -164,8 +159,8 @@ router.post("/login", async (req, res) => {
                 });
             }
         }
-        // ────────────────────────────────────────────────────────────────────────
         const token = signToken(user, rememberMe);
+        // ── Return mustChangePassword so frontend can redirect to change-password page ──
         return res.json({ token, user: mapUser(user) });
     }
     catch (err) {
@@ -251,7 +246,7 @@ router.post("/seed-test-users", async (req, res) => {
         const testUsers = [
             { role: "superadmin", label: "Super Admin", email: "testsuperadmin@nmd.local", password: "TestSuperAdmin123!", displayName: "Test Super Admin", payRate: 40, phone: "321-888-6586" },
             { role: "admin", label: "Admin", email: "testadmin@nmd.local", password: "TestAdmin123!", displayName: "Test Admin", payRate: 35, phone: "321-888-6586" },
-            { role: "employee", label: "Employee", email: "testemployee@nmd.local", password: "TestEmployee123!", displayName: "Test Employee", payRate: 30, phone: "321-888-6586" },
+            { role: "employee", label: "Employee", email: "testemployee@nmd.local", password: "Test1234!", displayName: "Test Employee", payRate: 30, phone: "321-888-6586" },
             { role: "client", label: "Client", email: "testclient@nmd.local", password: "TestClient123!", displayName: "Test Client", payRate: null, phone: "321-888-6586" }
         ];
         const savedUsers = [];

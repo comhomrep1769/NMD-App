@@ -8,6 +8,7 @@ import { getNmdToken } from '@/lib/authStorage'
 type Employee = {
   id: string; email: string; displayName: string
   role: string; payRate: number; createdAt: string
+  mustChangePassword: boolean
 }
 
 const inputStyle: React.CSSProperties = {
@@ -16,9 +17,20 @@ const inputStyle: React.CSSProperties = {
   fontFamily: 'DM Sans, sans-serif', color: '#0e1117',
   background: '#f4f7fb', boxSizing: 'border-box',
 }
-
 const labelStyle: React.CSSProperties = {
   fontSize: '0.78rem', fontWeight: 500, color: '#3a4660', display: 'block', marginBottom: 4,
+}
+const modalOverlay: React.CSSProperties = {
+  position: 'fixed', inset: 0, background: 'rgba(14,17,23,0.6)',
+  zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
+}
+const modalBox: React.CSSProperties = {
+  background: 'white', borderRadius: 16, width: '100%', maxWidth: 480,
+  boxShadow: '0 20px 60px rgba(14,17,23,0.2)', overflow: 'hidden'
+}
+const modalHeader: React.CSSProperties = {
+  padding: '1.25rem 1.5rem', borderBottom: '1px solid #dde4ef',
+  display: 'flex', alignItems: 'center', justifyContent: 'space-between'
 }
 
 export default function EmployeesPage() {
@@ -30,7 +42,7 @@ export default function EmployeesPage() {
   const [showCreate, setShowCreate] = useState(false)
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState('')
-  const [form, setForm] = useState({ displayName: '', email: '', password: '', role: 'employee', payRate: '30' })
+  const [form, setForm] = useState({ displayName: '', email: '', role: 'employee', payRate: '30' })
 
   const [editEmployee, setEditEmployee] = useState<Employee | null>(null)
   const [editForm, setEditForm] = useState({ displayName: '', email: '', role: 'employee', payRate: '30' })
@@ -39,6 +51,10 @@ export default function EmployeesPage() {
 
   const [deleteEmployee, setDeleteEmployee] = useState<Employee | null>(null)
   const [deleting, setDeleting] = useState(false)
+
+  const [resetEmployee, setResetEmployee] = useState<Employee | null>(null)
+  const [resetting, setResetting] = useState(false)
+  const [resetMsg, setResetMsg] = useState('')
 
   const API = process.env.NEXT_PUBLIC_API_URL || ''
 
@@ -62,9 +78,7 @@ export default function EmployeesPage() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
     setFormError('')
-    if (!form.displayName || !form.email || !form.password) {
-      setFormError('Name, email, and password are required.'); return
-    }
+    if (!form.displayName || !form.email) { setFormError('Name and email are required.'); return }
     setSaving(true)
     try {
       const token = getNmdToken()
@@ -73,14 +87,14 @@ export default function EmployeesPage() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           displayName: form.displayName.trim(), email: form.email.trim(),
-          password: form.password, role: form.role, payRate: parseFloat(form.payRate) || 30
+          role: form.role, payRate: parseFloat(form.payRate) || 30
         })
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to create employee')
       setEmployees(prev => [data.employee, ...prev])
       setShowCreate(false)
-      setForm({ displayName: '', email: '', password: '', role: 'employee', payRate: '30' })
+      setForm({ displayName: '', email: '', role: 'employee', payRate: '30' })
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'Failed to create employee')
     }
@@ -103,12 +117,7 @@ export default function EmployeesPage() {
       const res = await fetch(`${API}/api/employees/${editEmployee.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          displayName: editForm.displayName.trim(),
-          email: editForm.email.trim(),
-          role: editForm.role,
-          payRate: parseFloat(editForm.payRate) || 30
-        })
+        body: JSON.stringify({ displayName: editForm.displayName.trim(), email: editForm.email.trim(), role: editForm.role, payRate: parseFloat(editForm.payRate) || 30 })
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to update employee')
@@ -125,56 +134,55 @@ export default function EmployeesPage() {
     setDeleting(true)
     try {
       const token = getNmdToken()
-      const res = await fetch(`${API}/api/employees/${deleteEmployee.id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      const res = await fetch(`${API}/api/employees/${deleteEmployee.id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } })
       if (!res.ok) throw new Error('Failed to delete employee')
       setEmployees(prev => prev.filter(e => e.id !== deleteEmployee.id))
       setDeleteEmployee(null)
-    } catch (err) {
-      console.error(err)
-    }
+    } catch (err) { console.error(err) }
     setDeleting(false)
   }
 
-  const modalOverlay: React.CSSProperties = {
-    position: 'fixed', inset: 0, background: 'rgba(14,17,23,0.6)',
-    zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
-  }
-  const modalBox: React.CSSProperties = {
-    background: 'white', borderRadius: 16, width: '100%', maxWidth: 480,
-    boxShadow: '0 20px 60px rgba(14,17,23,0.2)', overflow: 'hidden'
-  }
-  const modalHeader: React.CSSProperties = {
-    padding: '1.25rem 1.5rem', borderBottom: '1px solid #dde4ef',
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+  const handleResetPassword = async () => {
+    if (!resetEmployee) return
+    setResetting(true)
+    setResetMsg('')
+    try {
+      const token = getNmdToken()
+      const res = await fetch(`${API}/api/employees/${resetEmployee.id}/reset-password`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to reset password')
+      setResetMsg(`✓ Password reset. A new temporary password has been sent to ${resetEmployee.email}.`)
+    } catch (err) {
+      setResetMsg(err instanceof Error ? err.message : 'Failed to reset password')
+    }
+    setResetting(false)
   }
 
   return (
     <PortalShell requiredRole={['admin', 'superadmin']}>
 
-      {/* Create Modal */}
+      {/* Create Modal — no password field, auto-generated */}
       {showCreate && (
         <div style={modalOverlay}>
           <div style={modalBox}>
             <div style={modalHeader}>
               <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#0e1117' }}>Add New Employee</div>
-              <button onClick={() => { setShowCreate(false); setFormError('') }} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#8494b0' }}>x</button>
+              <button onClick={() => { setShowCreate(false); setFormError('') }} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#8494b0' }}>×</button>
             </div>
             <form onSubmit={handleCreate} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {formError && <div style={{ background: '#fff0f0', border: '1.5px solid #ffc0c0', borderRadius: 8, padding: '0.65rem 1rem', fontSize: '0.82rem', color: '#c0392b' }}>{formError}</div>}
+
+              <div style={{ background: '#f0fff4', border: '1px solid #c0dd97', borderRadius: 8, padding: '0.75rem 1rem', fontSize: '0.82rem', color: '#1f6132', lineHeight: 1.5 }}>
+                🔐 A secure temporary password will be automatically generated and emailed to the employee. They will be required to set their own password on first login.
+              </div>
+
               <div>
                 <label style={labelStyle}>Full Name *</label>
                 <input style={inputStyle} value={form.displayName} onChange={e => update('displayName', e.target.value)} placeholder="John Smith" required />
               </div>
               <div>
-                <label style={labelStyle}>Email *</label>
+                <label style={labelStyle}>Email Address *</label>
                 <input style={inputStyle} type="email" value={form.email} onChange={e => update('email', e.target.value)} placeholder="john@example.com" required />
-              </div>
-              <div>
-                <label style={labelStyle}>Temporary Password *</label>
-                <input style={inputStyle} type="text" value={form.password} onChange={e => update('password', e.target.value)} placeholder="Min. 8 characters" required />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
@@ -192,7 +200,7 @@ export default function EmployeesPage() {
               <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                 <button type="button" onClick={() => { setShowCreate(false); setFormError('') }} style={{ flex: 1, padding: '0.7rem', borderRadius: 8, border: '1.5px solid #dde4ef', background: 'white', color: '#5a6a88', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Cancel</button>
                 <button type="submit" disabled={saving} style={{ flex: 2, padding: '0.7rem', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: saving ? 0.7 : 1 }}>
-                  {saving ? 'Creating...' : 'Create & Send Welcome Email'}
+                  {saving ? 'Creating...' : '+ Create & Send Welcome Email'}
                 </button>
               </div>
             </form>
@@ -206,7 +214,7 @@ export default function EmployeesPage() {
           <div style={modalBox}>
             <div style={modalHeader}>
               <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#0e1117' }}>Edit Employee</div>
-              <button onClick={() => setEditEmployee(null)} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#8494b0' }}>x</button>
+              <button onClick={() => setEditEmployee(null)} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#8494b0' }}>×</button>
             </div>
             <form onSubmit={handleEdit} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {editError && <div style={{ background: '#fff0f0', border: '1.5px solid #ffc0c0', borderRadius: 8, padding: '0.65rem 1rem', fontSize: '0.82rem', color: '#c0392b' }}>{editError}</div>}
@@ -242,17 +250,48 @@ export default function EmployeesPage() {
         </div>
       )}
 
-      {/* Delete Confirm Modal */}
+      {/* Reset Password Modal */}
+      {resetEmployee && (
+        <div style={modalOverlay}>
+          <div style={{ ...modalBox, maxWidth: 440 }}>
+            <div style={modalHeader}>
+              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#0e1117' }}>Reset Password</div>
+              <button onClick={() => { setResetEmployee(null); setResetMsg('') }} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#8494b0' }}>×</button>
+            </div>
+            <div style={{ padding: '1.5rem' }}>
+              {resetMsg ? (
+                <div style={{ background: '#f0fff4', border: '1px solid #c0dd97', borderRadius: 8, padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#1f6132', fontWeight: 500, marginBottom: '1rem' }}>{resetMsg}</div>
+              ) : (
+                <p style={{ color: '#3a4660', fontSize: '0.9rem', marginBottom: '1.5rem', lineHeight: 1.6 }}>
+                  This will generate a new temporary password and email it to <strong>{resetEmployee.displayName}</strong> ({resetEmployee.email}). They will be required to set a new password on next login.
+                </p>
+              )}
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button onClick={() => { setResetEmployee(null); setResetMsg('') }} style={{ flex: 1, padding: '0.7rem', borderRadius: 8, border: '1.5px solid #dde4ef', background: 'white', color: '#5a6a88', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
+                  {resetMsg ? 'Close' : 'Cancel'}
+                </button>
+                {!resetMsg && (
+                  <button onClick={handleResetPassword} disabled={resetting} style={{ flex: 2, padding: '0.7rem', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #e67e22, #d35400)', color: 'white', fontWeight: 600, cursor: resetting ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: resetting ? 0.7 : 1 }}>
+                    {resetting ? 'Resetting...' : '🔄 Reset & Email New Password'}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirm */}
       {deleteEmployee && (
         <div style={modalOverlay}>
           <div style={{ ...modalBox, maxWidth: 420 }}>
             <div style={modalHeader}>
               <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#0e1117' }}>Delete Employee</div>
-              <button onClick={() => setDeleteEmployee(null)} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#8494b0' }}>x</button>
+              <button onClick={() => setDeleteEmployee(null)} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#8494b0' }}>×</button>
             </div>
             <div style={{ padding: '1.5rem' }}>
               <p style={{ color: '#3a4660', fontSize: '0.9rem', marginBottom: '1.5rem', lineHeight: 1.6 }}>
-                Are you sure you want to delete <strong>{deleteEmployee.displayName}</strong> ({deleteEmployee.email})? This action cannot be undone.
+                Are you sure you want to delete <strong>{deleteEmployee.displayName}</strong>? This cannot be undone.
               </p>
               <div style={{ display: 'flex', gap: 10 }}>
                 <button onClick={() => setDeleteEmployee(null)} style={{ flex: 1, padding: '0.7rem', borderRadius: 8, border: '1.5px solid #dde4ef', background: 'white', color: '#5a6a88', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Cancel</button>
@@ -277,11 +316,12 @@ export default function EmployeesPage() {
           </div>
         }
       />
+
       {loading && <LoadingCard />}
       {error && <ErrorCard message={error} />}
       {!loading && !error && (
         <DataTable
-          headers={['Name', 'Email', 'Role', 'Pay Rate', 'Joined', '']}
+          headers={['Name', 'Email', 'Role', 'Pay Rate', 'Joined', 'Status', '']}
           emptyMessage="No employees found."
           rows={filtered.map(e => [
             <div key="name" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -294,8 +334,12 @@ export default function EmployeesPage() {
             <StatusBadge key="role" status={e.role} />,
             <span key="pay" style={{ fontWeight: 600 }}>{money(e.payRate)}/hr</span>,
             <span key="date" style={{ color: '#8494b0', whiteSpace: 'nowrap' }}>{fmtDate(e.createdAt)}</span>,
+            <span key="status" style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: 100, background: e.mustChangePassword ? '#fff9e6' : '#f0fff4', color: e.mustChangePassword ? '#7a5c00' : '#1f6132', border: `1px solid ${e.mustChangePassword ? '#f5e6a0' : '#c0dd97'}` }}>
+              {e.mustChangePassword ? '⏳ Pending Setup' : '✓ Active'}
+            </span>,
             <div key="actions" style={{ display: 'flex', gap: 6 }}>
               <button onClick={() => openEdit(e)} style={{ padding: '0.35rem 0.75rem', borderRadius: 6, border: '1.5px solid #dde4ef', background: 'white', color: '#3a4660', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Edit</button>
+              <button onClick={() => { setResetEmployee(e); setResetMsg('') }} style={{ padding: '0.35rem 0.75rem', borderRadius: 6, border: '1.5px solid rgba(230,126,34,0.3)', background: 'rgba(230,126,34,0.06)', color: '#e67e22', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Reset PW</button>
               <button onClick={() => setDeleteEmployee(e)} style={{ padding: '0.35rem 0.75rem', borderRadius: 6, border: 'none', background: '#fef2f2', color: '#e74c3c', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Delete</button>
             </div>
           ])}
