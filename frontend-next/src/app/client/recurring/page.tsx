@@ -1,46 +1,272 @@
 'use client'
+import { useState } from 'react'
 import PortalShell from '@/components/portal/PortalShell'
 import { useClientPortal } from '@/hooks/useClientPortal'
 import { LoadingCard, ErrorCard, StatusBadge, money, fmtDate } from '@/components/portal/PortalUI'
+import { getNmdToken } from '@/lib/authStorage'
+
+const FREQUENCIES = [
+  { value: 'weekly',    label: 'Weekly',    discount: '20% off every visit' },
+  { value: 'biweekly', label: 'Bi-Weekly',  discount: '20% off every visit' },
+  { value: 'monthly',  label: 'Monthly',    discount: '20% off every visit' },
+  { value: 'quarterly',label: 'Quarterly',  discount: '20% off every visit' },
+]
 
 export default function ClientRecurringPage() {
-  const { data, loading, error } = useClientPortal()
+  const { data, loading, error, reload } = useClientPortal()
   const services = data?.recurringServices || []
+  const invoices = (data?.invoices || []).filter(i => i.status === 'paid')
+
+  const [showOptIn, setShowOptIn] = useState(false)
+  const [selectedInvoice, setSelectedInvoice] = useState('')
+  const [frequency, setFrequency] = useState('monthly')
+  const [saving, setSaving] = useState(false)
+  const [optInError, setOptInError] = useState('')
+  const [optInSuccess, setOptInSuccess] = useState('')
+
+  const API = process.env.NEXT_PUBLIC_API_URL || ''
+
+  const handleOptIn = async () => {
+    if (!selectedInvoice || !frequency) {
+      setOptInError('Please select a service and frequency.')
+      return
+    }
+    setSaving(true)
+    setOptInError('')
+    const token = getNmdToken()
+    const invoice = invoices.find(i => i.id === selectedInvoice)
+    try {
+      const res = await fetch(`${API}/api/recurring`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          serviceType: invoice?.jobName || 'Service',
+          frequency,
+          source: 'client_portal',
+          invoiceId: selectedInvoice,
+        }),
+      })
+      const d = await res.json()
+      if (!res.ok) throw new Error(d.error || 'Failed to opt in')
+      setOptInSuccess(`✓ You're now enrolled in ${frequency} ${invoice?.jobName || 'service'}! You'll save 20% on every future visit.`)
+      setShowOptIn(false)
+      setSelectedInvoice('')
+      setFrequency('monthly')
+      reload()
+    } catch (err) {
+      setOptInError(err instanceof Error ? err.message : 'Failed to opt in')
+    }
+    setSaving(false)
+  }
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%', padding: '0.65rem 0.9rem', borderRadius: 8,
+    border: '1.5px solid #dde4ef', fontSize: '0.875rem', outline: 'none',
+    fontFamily: 'DM Sans, sans-serif', color: '#0e1117',
+    background: '#f4f7fb', boxSizing: 'border-box',
+  }
 
   return (
     <PortalShell requiredRole="client">
-      <div style={{ marginBottom: '1.5rem' }}>
-        <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#1f6132', marginBottom: 6 }}>Client Portal</div>
-        <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: '1.75rem', fontWeight: 800, color: '#0e1117', letterSpacing: '-0.03em', marginBottom: 6 }}>Recurring Plan</h1>
-        <p style={{ color: '#5a6a88', fontSize: '0.875rem' }}>Your recurring services with 20% discount applied after the first visit.</p>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#1f6132', marginBottom: 6 }}>Client Portal</div>
+          <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: '1.75rem', fontWeight: 800, color: '#0e1117', letterSpacing: '-0.03em', marginBottom: 6 }}>Recurring Plan</h1>
+          <p style={{ color: '#5a6a88', fontSize: '0.875rem' }}>Save 20% on every visit by enrolling in a recurring service plan.</p>
+        </div>
+        <a href="/client/request-service" style={{
+          padding: '0.6rem 1.25rem', borderRadius: 8,
+          background: 'linear-gradient(135deg, #1f6132, #124d83)',
+          color: 'white', fontWeight: 700, fontSize: '0.875rem',
+          textDecoration: 'none', whiteSpace: 'nowrap',
+        }}>
+          + Request a New Service
+        </a>
       </div>
+
       {loading && <LoadingCard />}
       {error && <ErrorCard message={error} />}
+
+      {/* Success message */}
+      {optInSuccess && (
+        <div style={{ background: '#f0fff4', border: '1.5px solid #c0dd97', borderRadius: 10, padding: '1rem 1.25rem', marginBottom: '1.5rem', fontSize: '0.875rem', color: '#1f6132', fontWeight: 500 }}>
+          {optInSuccess}
+        </div>
+      )}
+
       {!loading && !error && (
-        services.length === 0 ? (
-          <div style={{ background: 'white', border: '1.5px solid #dde4ef', borderRadius: 14, padding: '3rem', textAlign: 'center', color: '#8494b0' }}>
-            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🔄</div>
-            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, color: '#0e1117', marginBottom: 8 }}>No recurring plan active</div>
-            <div style={{ fontSize: '0.875rem', lineHeight: 1.6 }}>Start a recurring plan after your first service and save 20% on every future visit.</div>
-            <a href="/client/request-service" style={{ display: 'inline-block', marginTop: '1rem', padding: '0.6rem 1.25rem', borderRadius: 8, background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 600, fontSize: '0.85rem', textDecoration: 'none' }}>Request a Service</a>
+        <>
+          {/* Savings banner */}
+          <div style={{ background: 'linear-gradient(135deg, rgba(31,97,50,0.06), rgba(18,77,131,0.06))', border: '1.5px solid rgba(31,97,50,0.15)', borderRadius: 14, padding: '1.25rem 1.5rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
+            <div style={{ fontSize: '2rem' }}>🔄</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#0e1117', marginBottom: 4 }}>Save 20% with a recurring plan</div>
+              <div style={{ fontSize: '0.85rem', color: '#5a6a88', lineHeight: 1.5 }}>
+                Enroll any completed service into a recurring schedule. Your first visit is at standard price — every visit after saves you 20%.
+              </div>
+            </div>
+            {invoices.length > 0 && (
+              <button
+                onClick={() => { setShowOptIn(true); setOptInError(''); setOptInSuccess('') }}
+                style={{ padding: '0.65rem 1.25rem', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 700, fontSize: '0.875rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', whiteSpace: 'nowrap' }}
+              >
+                + Enroll a Service
+              </button>
+            )}
           </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {services.map(s => (
-              <div key={s.id} style={{ background: 'white', border: '1.5px solid #dde4ef', borderRadius: 12, padding: '1.25rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '0.95rem', color: '#0e1117' }}>{s.serviceType}</div>
-                  <StatusBadge status={s.status} />
+
+          {/* Opt-in modal */}
+          {showOptIn && (
+            <div style={{ position: 'fixed', inset: 0, background: 'rgba(14,17,23,0.6)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+              <div style={{ background: 'white', borderRadius: 16, width: '100%', maxWidth: 500, boxShadow: '0 20px 60px rgba(14,17,23,0.2)', overflow: 'hidden' }}>
+                <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #dde4ef', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#0e1117' }}>Enroll in Recurring Service</div>
+                  <button onClick={() => setShowOptIn(false)} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#8494b0' }}>×</button>
                 </div>
-                <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
-                  <div><div style={{ fontSize: '0.7rem', color: '#8494b0', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>Frequency</div><div style={{ fontSize: '0.875rem', fontWeight: 500, color: '#0e1117', textTransform: 'capitalize' }}>{s.frequency}</div></div>
-                  <div><div style={{ fontSize: '0.7rem', color: '#8494b0', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>Price</div><div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#1f6132' }}>{money(s.price)}</div></div>
-                  <div><div style={{ fontSize: '0.7rem', color: '#8494b0', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>Next Service</div><div style={{ fontSize: '0.875rem', color: '#0e1117' }}>{s.nextServiceDate ? fmtDate(s.nextServiceDate) : '—'}</div></div>
+
+                <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {optInError && (
+                    <div style={{ background: '#fff0f0', border: '1.5px solid #ffc0c0', borderRadius: 8, padding: '0.65rem 1rem', fontSize: '0.82rem', color: '#c0392b' }}>{optInError}</div>
+                  )}
+
+                  {/* Pick a completed service */}
+                  <div>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#3a4660', display: 'block', marginBottom: 6 }}>
+                      Select a completed service to enroll *
+                    </label>
+                    {invoices.length === 0 ? (
+                      <div style={{ fontSize: '0.85rem', color: '#8494b0', padding: '0.75rem', background: '#f4f7fb', borderRadius: 8, border: '1px solid #dde4ef' }}>
+                        No paid invoices found. Complete a service first to enroll in recurring.
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {invoices.map(inv => (
+                          <label key={inv.id} style={{
+                            display: 'flex', alignItems: 'center', gap: 12,
+                            padding: '0.75rem 1rem', borderRadius: 8, cursor: 'pointer',
+                            border: `1.5px solid ${selectedInvoice === inv.id ? '#1f6132' : '#dde4ef'}`,
+                            background: selectedInvoice === inv.id ? 'rgba(31,97,50,0.04)' : '#f4f7fb',
+                            transition: 'all 0.15s',
+                          }}>
+                            <input
+                              type="radio"
+                              name="invoice"
+                              value={inv.id}
+                              checked={selectedInvoice === inv.id}
+                              onChange={() => setSelectedInvoice(inv.id)}
+                              style={{ accentColor: '#1f6132', width: 16, height: 16 }}
+                            />
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontWeight: 600, fontSize: '0.875rem', color: '#0e1117' }}>{inv.jobName}</div>
+                              <div style={{ fontSize: '0.75rem', color: '#8494b0', marginTop: 2 }}>Invoice #{inv.invoiceNumber} · {money(inv.total)} · {fmtDate(inv.createdAt)}</div>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Frequency picker */}
+                  <div>
+                    <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#3a4660', display: 'block', marginBottom: 6 }}>
+                      How often would you like this service? *
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                      {FREQUENCIES.map(f => (
+                        <label key={f.value} style={{
+                          display: 'flex', flexDirection: 'column', gap: 4,
+                          padding: '0.85rem 1rem', borderRadius: 8, cursor: 'pointer',
+                          border: `1.5px solid ${frequency === f.value ? '#1f6132' : '#dde4ef'}`,
+                          background: frequency === f.value ? 'rgba(31,97,50,0.04)' : '#f4f7fb',
+                          transition: 'all 0.15s',
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <input
+                              type="radio"
+                              name="frequency"
+                              value={f.value}
+                              checked={frequency === f.value}
+                              onChange={() => setFrequency(f.value)}
+                              style={{ accentColor: '#1f6132', width: 14, height: 14 }}
+                            />
+                            <span style={{ fontWeight: 600, fontSize: '0.875rem', color: '#0e1117' }}>{f.label}</span>
+                          </div>
+                          <span style={{ fontSize: '0.72rem', color: '#1f6132', paddingLeft: 22 }}>{f.discount}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{ background: '#f0fff4', border: '1px solid #c0dd97', borderRadius: 8, padding: '0.75rem 1rem', fontSize: '0.82rem', color: '#1f6132', lineHeight: 1.5 }}>
+                    🎉 After enrolling, NMD will reach out to confirm your recurring schedule. You'll save 20% on every future visit automatically.
+                  </div>
+                </div>
+
+                <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #dde4ef', display: 'flex', gap: 10 }}>
+                  <button onClick={() => setShowOptIn(false)} style={{ flex: 1, padding: '0.7rem', borderRadius: 8, border: '1.5px solid #dde4ef', background: 'white', color: '#5a6a88', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
+                    Cancel
+                  </button>
+                  <button onClick={handleOptIn} disabled={saving || !selectedInvoice}
+                    style={{ flex: 2, padding: '0.7rem', borderRadius: 8, border: 'none', background: selectedInvoice && !saving ? 'linear-gradient(135deg, #1f6132, #124d83)' : '#dde4ef', color: selectedInvoice && !saving ? 'white' : '#8494b0', fontWeight: 700, cursor: selectedInvoice && !saving ? 'pointer' : 'not-allowed', fontFamily: 'DM Sans, sans-serif' }}>
+                    {saving ? 'Enrolling...' : '✓ Enroll in Recurring Plan'}
+                  </button>
                 </div>
               </div>
-            ))}
-          </div>
-        )
+            </div>
+          )}
+
+          {/* Active recurring plans */}
+          {services.length === 0 ? (
+            <div style={{ background: 'white', border: '1.5px solid #dde4ef', borderRadius: 14, padding: '3rem', textAlign: 'center', color: '#8494b0' }}>
+              <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🔄</div>
+              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, color: '#0e1117', marginBottom: 8 }}>No recurring plan active</div>
+              <div style={{ fontSize: '0.875rem', lineHeight: 1.6, marginBottom: '1.5rem' }}>
+                {invoices.length > 0
+                  ? 'You have completed services — click "Enroll a Service" above to start saving 20% on every visit.'
+                  : 'Start a recurring plan after your first service and save 20% on every future visit.'}
+              </div>
+              {invoices.length === 0 && (
+                <a href="/client/request-service" style={{ display: 'inline-block', padding: '0.6rem 1.25rem', borderRadius: 8, background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 600, fontSize: '0.85rem', textDecoration: 'none' }}>
+                  Request a New Service
+                </a>
+              )}
+            </div>
+          ) : (
+            <>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8494b0', marginBottom: 10 }}>
+                Active Plans ({services.length})
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {services.map(s => (
+                  <div key={s.id} style={{ background: 'white', border: '1.5px solid #dde4ef', borderRadius: 12, padding: '1.25rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+                      <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '0.95rem', color: '#0e1117' }}>{s.serviceType}</div>
+                      <StatusBadge status={s.status} />
+                    </div>
+                    <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
+                      <div>
+                        <div style={{ fontSize: '0.7rem', color: '#8494b0', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>Frequency</div>
+                        <div style={{ fontSize: '0.875rem', fontWeight: 500, color: '#0e1117', textTransform: 'capitalize' }}>{s.frequency}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.7rem', color: '#8494b0', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>Price</div>
+                        <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#1f6132' }}>{money(s.price)}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.7rem', color: '#8494b0', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>Next Service</div>
+                        <div style={{ fontSize: '0.875rem', color: '#0e1117' }}>{s.nextServiceDate ? fmtDate(s.nextServiceDate) : 'TBD — NMD will confirm'}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '0.7rem', color: '#8494b0', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>Your Savings</div>
+                        <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#1f6132' }}>20% off every visit</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </>
       )}
     </PortalShell>
   )
