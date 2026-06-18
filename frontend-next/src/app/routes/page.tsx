@@ -55,7 +55,6 @@ export default function AdminRoutesPage() {
   useEffect(() => {
     const loadLeaflet = () => {
       if (window.L) { setMapReady(true); return }
-
       if (!document.getElementById('leaflet-css')) {
         const link = document.createElement('link')
         link.id = 'leaflet-css'
@@ -63,7 +62,6 @@ export default function AdminRoutesPage() {
         link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
         document.head.appendChild(link)
       }
-
       if (!document.getElementById('leaflet-js')) {
         const script = document.createElement('script')
         script.id = 'leaflet-js'
@@ -75,11 +73,12 @@ export default function AdminRoutesPage() {
     loadLeaflet()
   }, [])
 
-  // ── Init map once Leaflet is ready AND div is mounted ───────────────────
+  // ── Init map ─────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!mapReady || !mapRef.current || mapInstance.current) return
     const L = window.L
-    mapInstance.current = L.map(mapRef.current, { zoomControl: true }).setView([28.5383, -81.3792], 10)
+    // Center on Orlando, FL by default
+    mapInstance.current = L.map(mapRef.current, { zoomControl: true }).setView([28.5383, -81.3792], 11)
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors', maxZoom: 19
     }).addTo(mapInstance.current)
@@ -142,7 +141,7 @@ export default function AdminRoutesPage() {
 
   useEffect(() => { loadData() }, [loadData])
 
-  // ── Address search ───────────────────────────────────────────────────────
+  // ── Address search — biased to Florida/US ────────────────────────────────
   const handleSearchInput = (val: string) => {
     setSearchQuery(val)
     setSearchResults([])
@@ -151,22 +150,57 @@ export default function AdminRoutesPage() {
     searchTimeout.current = setTimeout(async () => {
       setSearching(true)
       try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(val)}&format=json&limit=5`, { headers: { 'User-Agent': 'NMD-App/1.0' } })
-        setSearchResults(await res.json())
+        // countrycodes=us limits to USA
+        // viewbox is Orlando/Central Florida area — biases results toward FL
+        // bounded=0 means it can still search outside viewbox if nothing found locally
+        const params = new URLSearchParams({
+          q: val,
+          format: 'json',
+          limit: '5',
+          countrycodes: 'us',
+          viewbox: '-82.5,27.5,-80.0,29.5',
+          bounded: '0',
+          addressdetails: '1',
+        })
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?${params.toString()}`,
+          { headers: { 'User-Agent': 'NMD-App/1.0 (nmdpowash.com)' } }
+        )
+        const results: SearchResult[] = await res.json()
+        // Sort: Florida results first, then other US results
+        const sorted = results.sort((a, b) => {
+          const aFL = a.display_name.includes('Florida') ? 0 : 1
+          const bFL = b.display_name.includes('Florida') ? 0 : 1
+          return aFL - bFL
+        })
+        setSearchResults(sorted)
       } catch {}
       setSearching(false)
-    }, 600)
+    }, 500)
   }
 
   const flyToResult = (r: SearchResult) => {
     if (!mapInstance.current || !window.L) return
     const L = window.L
-    const lat = parseFloat(r.lat), lng = parseFloat(r.lon)
-    mapInstance.current.flyTo([lat, lng], 15, { duration: 1.2 })
+    const lat = parseFloat(r.lat)
+    const lng = parseFloat(r.lon)
+    // Fly to the selected location and zoom in
+    mapInstance.current.flyTo([lat, lng], 16, { duration: 1.2 })
+    // Remove previous search marker
     if (searchMarkerRef.current) searchMarkerRef.current.remove()
-    const icon = L.divIcon({ className: '', html: `<div style="width:28px;height:28px;border-radius:50%;background:#e67e22;color:white;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);">📍</div>`, iconSize: [28,28], iconAnchor: [14,14] })
-    searchMarkerRef.current = L.marker([lat, lng], { icon }).addTo(mapInstance.current).bindPopup(`<div style="font-size:12px;max-width:200px">${r.display_name}</div>`).openPopup()
-    setSearchQuery(r.display_name.split(',').slice(0,2).join(','))
+    // Place a pin at the searched location
+    const icon = L.divIcon({
+      className: '',
+      html: `<div style="width:32px;height:32px;border-radius:50%;background:#e67e22;color:white;display:flex;align-items:center;justify-content:center;font-size:16px;border:3px solid white;box-shadow:0 2px 10px rgba(0,0,0,0.3);">📍</div>`,
+      iconSize: [32, 32], iconAnchor: [16, 16]
+    })
+    searchMarkerRef.current = L.marker([lat, lng], { icon })
+      .addTo(mapInstance.current)
+      .bindPopup(`<div style="font-size:12px;max-width:220px;font-family:DM Sans,sans-serif">${r.display_name}</div>`)
+      .openPopup()
+    // Update search input to show short version
+    const shortName = r.display_name.split(',').slice(0, 3).join(',').trim()
+    setSearchQuery(shortName)
     setSearchResults([])
   }
 
@@ -256,18 +290,20 @@ export default function AdminRoutesPage() {
 
             {/* Map */}
             <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid #dde4ef' }}>
-              {/* Search */}
+              {/* Search bar */}
               <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #dde4ef', position: 'relative', zIndex: 10 }}>
                 <div style={{ position: 'relative' }}>
                   <input type="text" value={searchQuery} onChange={e => handleSearchInput(e.target.value)}
-                    placeholder="🔍 Search address or location to jump on map..."
+                    placeholder="🔍 Search Florida address or location..."
                     style={{ width: '100%', padding: '0.55rem 2.5rem 0.55rem 0.9rem', borderRadius: 8, border: '1.5px solid #dde4ef', fontSize: '0.875rem', fontFamily: 'DM Sans, sans-serif', color: '#0e1117', background: '#f4f7fb', boxSizing: 'border-box', outline: 'none' }} />
-                  {searching && <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: '0.72rem', color: '#8494b0' }}>...</span>}
+                  {searching && (
+                    <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: '0.72rem', color: '#8494b0' }}>Searching...</span>
+                  )}
                   {searchResults.length > 0 && (
-                    <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: 'white', border: '1.5px solid #dde4ef', borderRadius: 8, boxShadow: '0 8px 30px rgba(14,17,23,0.15)', zIndex: 999 }}>
+                    <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: 'white', border: '1.5px solid #dde4ef', borderRadius: 8, boxShadow: '0 8px 30px rgba(14,17,23,0.15)', zIndex: 999, maxHeight: 280, overflowY: 'auto' }}>
                       {searchResults.map((r, i) => (
                         <button key={i} onClick={() => flyToResult(r)}
-                          style={{ width: '100%', padding: '0.65rem 1rem', textAlign: 'left', background: 'none', border: 'none', borderBottom: i < searchResults.length-1 ? '1px solid #f0f4f9' : 'none', fontSize: '0.82rem', color: '#3a4660', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', display: 'block' }}
+                          style={{ width: '100%', padding: '0.65rem 1rem', textAlign: 'left', background: 'none', border: 'none', borderBottom: i < searchResults.length-1 ? '1px solid #f0f4f9' : 'none', fontSize: '0.82rem', color: '#3a4660', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', display: 'block', lineHeight: 1.4 }}
                           onMouseEnter={e => (e.currentTarget.style.background = '#f4f7fb')}
                           onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
                           📍 {r.display_name}
@@ -277,10 +313,12 @@ export default function AdminRoutesPage() {
                   )}
                 </div>
               </div>
+
               {/* Map container */}
-              <div ref={mapRef} style={{ height: 400, width: '100%', borderRadius: '0 0 12px 12px' }} />
-              {!mapReady && (
-                <div style={{ height: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8494b0', fontSize: '0.85rem' }}>
+              {mapReady ? (
+                <div ref={mapRef} style={{ height: 420, width: '100%', borderRadius: '0 0 12px 12px' }} />
+              ) : (
+                <div style={{ height: 420, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8494b0', fontSize: '0.85rem' }}>
                   Loading map...
                 </div>
               )}
@@ -339,7 +377,7 @@ export default function AdminRoutesPage() {
                 {/* Available jobs */}
                 <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid #dde4ef', padding: '1.25rem' }}>
                   <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '0.95rem', color: '#0e1117', marginBottom: '1rem' }}>
-                    All Available Jobs ({unassignedJobs.length})
+                    Available Jobs ({unassignedJobs.length})
                   </div>
                   {unassignedJobs.length === 0 ? (
                     <div style={{ fontSize: '0.85rem', color: '#8494b0', textAlign: 'center', padding: '1.5rem', background: '#f4f7fb', borderRadius: 8 }}>
