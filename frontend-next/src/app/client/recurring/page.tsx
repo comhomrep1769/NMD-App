@@ -36,7 +36,7 @@ export default function ClientRecurringPage() {
     const token = getNmdToken()
     const invoice = invoices.find(i => i.id === selectedInvoice)
     try {
-      const res = await fetch(`${API}/api/recurring`, {
+      const res = await fetch(`${API}/api/recurring/client-optin`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
