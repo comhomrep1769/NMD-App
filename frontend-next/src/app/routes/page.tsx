@@ -39,6 +39,7 @@ export default function AdminRoutesPage() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [searching, setSearching] = useState(false)
   const [mapReady, setMapReady] = useState(false)
+  const [showDropdown, setShowDropdown] = useState(false)
 
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<any>(null)
@@ -51,7 +52,6 @@ export default function AdminRoutesPage() {
   jobsRef.current = jobs
   routeJobIdsRef.current = routeJobIds
 
-  // ── Load Leaflet once ────────────────────────────────────────────────────
   useEffect(() => {
     const loadLeaflet = () => {
       if (window.L) { setMapReady(true); return }
@@ -73,11 +73,9 @@ export default function AdminRoutesPage() {
     loadLeaflet()
   }, [])
 
-  // ── Init map ─────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!mapReady || !mapRef.current || mapInstance.current) return
     const L = window.L
-    // Center on Orlando, FL by default
     mapInstance.current = L.map(mapRef.current, { zoomControl: true }).setView([28.5383, -81.3792], 11)
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors', maxZoom: 19
@@ -85,7 +83,6 @@ export default function AdminRoutesPage() {
     setTimeout(() => mapInstance.current?.invalidateSize(), 200)
   }, [mapReady])
 
-  // ── Render markers ───────────────────────────────────────────────────────
   const updateMapMarkers = useCallback((jobList: Job[], selectedIds: string[]) => {
     if (!mapInstance.current || !window.L) return
     const L = window.L
@@ -118,7 +115,6 @@ export default function AdminRoutesPage() {
     updateMapMarkers(jobs, routeJobIds)
   }, [jobs, routeJobIds, updateMapMarkers])
 
-  // ── Load data ────────────────────────────────────────────────────────────
   const loadData = useCallback(async () => {
     setLoading(true)
     setError('')
@@ -141,18 +137,15 @@ export default function AdminRoutesPage() {
 
   useEffect(() => { loadData() }, [loadData])
 
-  // ── Address search — biased to Florida/US ────────────────────────────────
   const handleSearchInput = (val: string) => {
     setSearchQuery(val)
     setSearchResults([])
+    setShowDropdown(false)
     if (searchTimeout.current) clearTimeout(searchTimeout.current)
     if (val.trim().length < 3) return
     searchTimeout.current = setTimeout(async () => {
       setSearching(true)
       try {
-        // countrycodes=us limits to USA
-        // viewbox is Orlando/Central Florida area — biases results toward FL
-        // bounded=0 means it can still search outside viewbox if nothing found locally
         const params = new URLSearchParams({
           q: val,
           format: 'json',
@@ -167,13 +160,13 @@ export default function AdminRoutesPage() {
           { headers: { 'User-Agent': 'NMD-App/1.0 (nmdpowash.com)' } }
         )
         const results: SearchResult[] = await res.json()
-        // Sort: Florida results first, then other US results
         const sorted = results.sort((a, b) => {
           const aFL = a.display_name.includes('Florida') ? 0 : 1
           const bFL = b.display_name.includes('Florida') ? 0 : 1
           return aFL - bFL
         })
         setSearchResults(sorted)
+        setShowDropdown(sorted.length > 0)
       } catch {}
       setSearching(false)
     }, 500)
@@ -184,11 +177,8 @@ export default function AdminRoutesPage() {
     const L = window.L
     const lat = parseFloat(r.lat)
     const lng = parseFloat(r.lon)
-    // Fly to the selected location and zoom in
     mapInstance.current.flyTo([lat, lng], 16, { duration: 1.2 })
-    // Remove previous search marker
     if (searchMarkerRef.current) searchMarkerRef.current.remove()
-    // Place a pin at the searched location
     const icon = L.divIcon({
       className: '',
       html: `<div style="width:32px;height:32px;border-radius:50%;background:#e67e22;color:white;display:flex;align-items:center;justify-content:center;font-size:16px;border:3px solid white;box-shadow:0 2px 10px rgba(0,0,0,0.3);">📍</div>`,
@@ -198,13 +188,12 @@ export default function AdminRoutesPage() {
       .addTo(mapInstance.current)
       .bindPopup(`<div style="font-size:12px;max-width:220px;font-family:DM Sans,sans-serif">${r.display_name}</div>`)
       .openPopup()
-    // Update search input to show short version
     const shortName = r.display_name.split(',').slice(0, 3).join(',').trim()
     setSearchQuery(shortName)
     setSearchResults([])
+    setShowDropdown(false)
   }
 
-  // ── Route actions ────────────────────────────────────────────────────────
   const selectEmployee = (emp: Employee) => {
     setSelectedEmployee(emp)
     const existing = routes.find(r => r.employee_id === emp.id)
@@ -293,21 +282,30 @@ export default function AdminRoutesPage() {
               {/* Search bar */}
               <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #dde4ef', position: 'relative', zIndex: 1000 }}>
                 <div style={{ position: 'relative' }}>
-                  <input type="text" value={searchQuery} onChange={e => handleSearchInput(e.target.value)}
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={e => handleSearchInput(e.target.value)}
+                    onFocus={() => { if (searchResults.length > 0) setShowDropdown(true) }}
+                    onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
                     placeholder="🔍 Search Florida address or location..."
-                    style={{ width: '100%', padding: '0.55rem 2.5rem 0.55rem 0.9rem', borderRadius: 8, border: '1.5px solid #dde4ef', fontSize: '0.875rem', fontFamily: 'DM Sans, sans-serif', color: '#0e1117', background: '#f4f7fb', boxSizing: 'border-box', outline: 'none' }} />
+                    style={{ width: '100%', padding: '0.55rem 2.5rem 0.55rem 0.9rem', borderRadius: 8, border: '1.5px solid #dde4ef', fontSize: '0.875rem', fontFamily: 'DM Sans, sans-serif', color: '#0e1117', background: '#f4f7fb', boxSizing: 'border-box', outline: 'none' }}
+                  />
                   {searching && (
                     <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: '0.72rem', color: '#8494b0' }}>Searching...</span>
                   )}
-                  {searchResults.length > 0 && (
-                    <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: 'white', border: '1.5px solid #dde4ef', borderRadius: 8, boxShadow: '0 8px 30px rgba(14,17,23,0.15)', zIndex: 999, maxHeight: 280, overflowY: 'auto' }}>
+                  {showDropdown && searchResults.length > 0 && (
+                    <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: 'white', border: '1.5px solid #dde4ef', borderRadius: 8, boxShadow: '0 8px 30px rgba(14,17,23,0.15)', zIndex: 9999, maxHeight: 280, overflowY: 'auto' }}>
                       {searchResults.map((r, i) => (
-                        <button key={i} onMouseDown={() => flyToResult(r)}
-                          style={{ width: '100%', padding: '0.65rem 1rem', textAlign: 'left', background: 'none', border: 'none', borderBottom: i < searchResults.length-1 ? '1px solid #f0f4f9' : 'none', fontSize: '0.82rem', color: '#3a4660', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', display: 'block', lineHeight: 1.4 }}
+                        <div
+                          key={i}
+                          onClick={() => flyToResult(r)}
+                          style={{ padding: '0.65rem 1rem', borderBottom: i < searchResults.length - 1 ? '1px solid #f0f4f9' : 'none', fontSize: '0.82rem', color: '#3a4660', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', lineHeight: 1.4, userSelect: 'none' }}
                           onMouseEnter={e => (e.currentTarget.style.background = '#f4f7fb')}
-                          onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+                          onMouseLeave={e => (e.currentTarget.style.background = 'white')}
+                        >
                           📍 {r.display_name}
-                        </button>
+                        </div>
                       ))}
                     </div>
                   )}
