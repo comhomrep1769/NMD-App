@@ -539,7 +539,7 @@ router.get("/:jobId/time-logs", requireAuth, async (req, res) => {
   try {
     const { jobId } = req.params;
     const userId = req.user!.id;
-    const isAdmin = req.user!.role === "admin" || req.user!.role === "superadmin";
+    const isAdmin = ["admin", "superadmin"].includes(req.user!.role as string);
 
     const result = await pool.query(
       `SELECT jtl.*, u.display_name AS employee_name
