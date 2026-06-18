@@ -7,8 +7,12 @@ import { saveNmdAuth } from "@/lib/authStorage"
 import Link from "next/link"
 
 function getPortalPath(role: string, mustChangePassword?: boolean) {
-  if (mustChangePassword && role.toLowerCase() === "employee") return "/employee/change-password"
   const r = role.toLowerCase()
+  // Force password change for ANY role that has mustChangePassword set
+  if (mustChangePassword) {
+    if (r === "employee") return "/employee/change-password"
+    if (r === "admin" || r === "superadmin") return "/admin/change-password"
+  }
   if (r === "superadmin" || r === "admin") return "/dashboard/admin"
   if (r === "employee") return "/dashboard/employee"
   return "/clientdashboard"
@@ -67,14 +71,8 @@ function LoginForm({ portalRole }: { portalRole: string }) {
         padding: "2.5rem", width: "100%", maxWidth: 420,
         boxShadow: "0 8px 40px rgba(14,17,23,0.07)",
       }}>
-        {/* Logo */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: "1.5rem" }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: 8,
-            background: "linear-gradient(135deg, #1f6132, #124d83)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            color: "white", fontSize: "0.75rem", fontWeight: 800,
-          }}>NMD</div>
+          <div style={{ width: 36, height: 36, borderRadius: 8, background: "linear-gradient(135deg, #1f6132, #124d83)", display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontSize: "0.75rem", fontWeight: 800 }}>NMD</div>
           <div>
             <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "#0e1117" }}>NMD Pressure Washing</div>
             <div style={{ fontSize: "0.68rem", color: "#8494b0" }}>Services LLC</div>
@@ -91,32 +89,20 @@ function LoginForm({ portalRole }: { portalRole: string }) {
         )}
 
         <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {/* Email */}
           <div>
             <label style={{ fontSize: "0.8rem", fontWeight: 500, color: "#3a4660", display: "block", marginBottom: 4 }}>Email</label>
-            <input
-              type="email" required value={email} onChange={e => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              style={{ width: "100%", padding: "0.6rem 0.85rem", borderRadius: 8, border: "1.5px solid #dde4ef", fontSize: "0.875rem", outline: "none", fontFamily: "DM Sans, sans-serif", color: "#0e1117", background: "#f4f7fb", boxSizing: "border-box" }}
-            />
+            <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com"
+              style={{ width: "100%", padding: "0.6rem 0.85rem", borderRadius: 8, border: "1.5px solid #dde4ef", fontSize: "0.875rem", outline: "none", fontFamily: "DM Sans, sans-serif", color: "#0e1117", background: "#f4f7fb", boxSizing: "border-box" }} />
           </div>
 
-          {/* Password with show/hide eye */}
           <div>
             <label style={{ fontSize: "0.8rem", fontWeight: 500, color: "#3a4660", display: "block", marginBottom: 4 }}>Password</label>
             <div style={{ position: "relative" }}>
-              <input
-                type={showPassword ? "text" : "password"}
-                required value={password} onChange={e => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                style={{ width: "100%", padding: "0.6rem 2.5rem 0.6rem 0.85rem", borderRadius: 8, border: "1.5px solid #dde4ef", fontSize: "0.875rem", outline: "none", fontFamily: "DM Sans, sans-serif", color: "#0e1117", background: "#f4f7fb", boxSizing: "border-box" }}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(p => !p)}
-                style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", color: "#8494b0", fontSize: "1.1rem" }}
-                aria-label={showPassword ? "Hide password" : "Show password"}
-              >
+              <input type={showPassword ? "text" : "password"} required value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter your password"
+                style={{ width: "100%", padding: "0.6rem 2.5rem 0.6rem 0.85rem", borderRadius: 8, border: "1.5px solid #dde4ef", fontSize: "0.875rem", outline: "none", fontFamily: "DM Sans, sans-serif", color: "#0e1117", background: "#f4f7fb", boxSizing: "border-box" }} />
+              <button type="button" onClick={() => setShowPassword(p => !p)}
+                style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", color: "#8494b0" }}
+                aria-label={showPassword ? "Hide password" : "Show password"}>
                 {showPassword ? (
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
@@ -140,11 +126,9 @@ function LoginForm({ portalRole }: { portalRole: string }) {
 
           <button type="submit" disabled={loading} style={{
             width: "100%", padding: "0.75rem", borderRadius: 10, border: "none",
-            background: "linear-gradient(135deg, #1f6132, #124d83)",
-            color: "white", fontWeight: 600, fontSize: "0.95rem",
-            cursor: loading ? "not-allowed" : "pointer",
-            opacity: loading ? 0.7 : 1, marginTop: 4,
-            fontFamily: "DM Sans, sans-serif",
+            background: "linear-gradient(135deg, #1f6132, #124d83)", color: "white",
+            fontWeight: 600, fontSize: "0.95rem", cursor: loading ? "not-allowed" : "pointer",
+            opacity: loading ? 0.7 : 1, marginTop: 4, fontFamily: "DM Sans, sans-serif",
           }}>
             {loading ? "Signing in..." : "Login"}
           </button>

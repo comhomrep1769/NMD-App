@@ -152,6 +152,7 @@ export default function EmployeesPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to reset password')
       setResetMsg(`✓ Password reset. A new temporary password has been sent to ${resetEmployee.email}.`)
+      loadEmployees() // ── Reload so Pending Setup badge updates immediately ──
     } catch (err) {
       setResetMsg(err instanceof Error ? err.message : 'Failed to reset password')
     }
@@ -161,7 +162,7 @@ export default function EmployeesPage() {
   return (
     <PortalShell requiredRole={['admin', 'superadmin']}>
 
-      {/* Create Modal — no password field, auto-generated */}
+      {/* Create Modal */}
       {showCreate && (
         <div style={modalOverlay}>
           <div style={modalBox}>
@@ -171,11 +172,9 @@ export default function EmployeesPage() {
             </div>
             <form onSubmit={handleCreate} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {formError && <div style={{ background: '#fff0f0', border: '1.5px solid #ffc0c0', borderRadius: 8, padding: '0.65rem 1rem', fontSize: '0.82rem', color: '#c0392b' }}>{formError}</div>}
-
               <div style={{ background: '#f0fff4', border: '1px solid #c0dd97', borderRadius: 8, padding: '0.75rem 1rem', fontSize: '0.82rem', color: '#1f6132', lineHeight: 1.5 }}>
                 🔐 A secure temporary password will be automatically generated and emailed to the employee. They will be required to set their own password on first login.
               </div>
-
               <div>
                 <label style={labelStyle}>Full Name *</label>
                 <input style={inputStyle} value={form.displayName} onChange={e => update('displayName', e.target.value)} placeholder="John Smith" required />
