@@ -47,10 +47,16 @@ export default function JoinOurTeamPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    if (!form.fullName || !form.email || !form.position) {
-      setError('Please fill in all required fields.')
-      return
-    }
+
+    if (!form.fullName || !form.email || !form.position || !form.phone) {
+  setError('Please fill in all required fields.')
+  return
+}
+if (!resumeFile) {
+  setError('Please upload your resume before submitting.')
+  return
+}
+
     setSubmitting(true)
     try {
       const res = await fetch(`${API}/api/applicants`, {
@@ -147,7 +153,7 @@ export default function JoinOurTeamPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
                 <label style={labelStyle}>Phone</label>
-                <input style={inputStyle} type="tel" value={form.phone} onChange={e => update('phone', e.target.value)} placeholder="(407) 555-0000" />
+                <input style={inputStyle} type="tel" value={form.phone} onChange={e => update('phone', e.target.value)} placeholder="(407) 555-0000" required />
               </div>
               <div>
                 <label style={labelStyle}>Position Applying For *</label>
@@ -169,7 +175,7 @@ export default function JoinOurTeamPage() {
             </div>
 
             <div>
-              <label style={labelStyle}>Resume (PDF or Word, max 5MB)</label>
+              <label style={labelStyle}>Resume (PDF or Word, max 5MB) *</label>
               <input ref={fileRef} type="file" accept=".pdf,.doc,.docx" style={{ display: 'none' }} onChange={e => handleFileSelect(e.target.files)} />
               <button type="button" onClick={() => fileRef.current?.click()}
                 style={{ width: '100%', padding: '0.75rem', borderRadius: 10, border: '1.5px dashed #b0c0d8', background: resumeFile ? '#f0fff4' : '#f4f7fb', color: resumeFile ? '#1f6132' : '#5a6a88', fontWeight: 500, fontSize: '0.875rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
