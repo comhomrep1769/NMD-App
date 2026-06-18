@@ -302,7 +302,7 @@ export default function AdminRoutesPage() {
                   {searchResults.length > 0 && (
                     <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: 'white', border: '1.5px solid #dde4ef', borderRadius: 8, boxShadow: '0 8px 30px rgba(14,17,23,0.15)', zIndex: 999, maxHeight: 280, overflowY: 'auto' }}>
                       {searchResults.map((r, i) => (
-                        <button key={i} onClick={() => flyToResult(r)}
+                        <button key={i} onMouseDown={() => flyToResult(r)}
                           style={{ width: '100%', padding: '0.65rem 1rem', textAlign: 'left', background: 'none', border: 'none', borderBottom: i < searchResults.length-1 ? '1px solid #f0f4f9' : 'none', fontSize: '0.82rem', color: '#3a4660', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', display: 'block', lineHeight: 1.4 }}
                           onMouseEnter={e => (e.currentTarget.style.background = '#f4f7fb')}
                           onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
