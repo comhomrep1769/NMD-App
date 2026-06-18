@@ -223,7 +223,7 @@ router.post("/", requireAuth, requireRole("admin"), async (req, res) => {
         for (const userId of assignedUserIds) {
           await sendPushToUser(userId, {
             title: "New NMD Job Assigned",
-            body: `${title} â€” ${clientName}`,
+            body: `${title} – ${clientName}`,
             url: "/"
           });
         }
@@ -405,7 +405,6 @@ router.delete("/:jobId", requireAuth, requireRole("admin"), async (req, res) => 
   }
 });
 
-
 router.get("/board", requireAuth, requireRole("employee"), async (req, res) => {
   try {
     const result = await pool.query(
@@ -462,5 +461,100 @@ router.post("/:jobId/claim", requireAuth, requireRole("employee"), async (req, r
   }
 });
 
-export default router;
+// ── Job Time Tracking ────────────────────────────────────────────────────────
 
+router.post("/:jobId/clock-in", requireAuth, async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const userId = req.user!.id;
+
+    // Verify job exists and user is assigned
+    const jobCheck = await pool.query(
+      `SELECT j.id, j.title FROM jobs j
+       JOIN job_assignments ja ON ja.job_id = j.id
+       WHERE j.id = $1 AND ja.user_id = $2 LIMIT 1`,
+      [jobId, userId]
+    );
+    if (jobCheck.rows.length === 0) {
+      return res.status(404).json({ error: "Job not found or not assigned to you." });
+    }
+
+    // Check not already clocked in to this job
+    const openLog = await pool.query(
+      `SELECT id FROM job_time_logs
+       WHERE job_id = $1 AND user_id = $2 AND clocked_out_at IS NULL LIMIT 1`,
+      [jobId, userId]
+    );
+    if (openLog.rows.length > 0) {
+      return res.status(400).json({ error: "You are already clocked in to this job." });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO job_time_logs (job_id, user_id)
+       VALUES ($1, $2)
+       RETURNING id, job_id, user_id, clocked_in_at, clocked_out_at, total_minutes`,
+      [jobId, userId]
+    );
+
+    return res.status(201).json({ log: result.rows[0] });
+  } catch (error) {
+    console.error("job clock-in error", error);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.post("/:jobId/clock-out", requireAuth, async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const userId = req.user!.id;
+
+    const openLog = await pool.query(
+      `SELECT * FROM job_time_logs
+       WHERE job_id = $1 AND user_id = $2 AND clocked_out_at IS NULL
+       ORDER BY clocked_in_at DESC LIMIT 1`,
+      [jobId, userId]
+    );
+    if (openLog.rows.length === 0) {
+      return res.status(400).json({ error: "You are not clocked in to this job." });
+    }
+
+    const log = openLog.rows[0];
+    const result = await pool.query(
+      `UPDATE job_time_logs
+       SET clocked_out_at = NOW(),
+           total_minutes = EXTRACT(EPOCH FROM (NOW() - clocked_in_at)) / 60
+       WHERE id = $1
+       RETURNING id, job_id, user_id, clocked_in_at, clocked_out_at, total_minutes`,
+      [log.id]
+    );
+
+    return res.json({ log: result.rows[0] });
+  } catch (error) {
+    console.error("job clock-out error", error);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.get("/:jobId/time-logs", requireAuth, async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const userId = req.user!.id;
+    const isAdmin = req.user!.role === "admin" || req.user!.role === "superadmin";
+
+    const result = await pool.query(
+      `SELECT jtl.*, u.display_name AS employee_name
+       FROM job_time_logs jtl
+       JOIN users u ON u.id = jtl.user_id
+       WHERE jtl.job_id = $1 ${isAdmin ? '' : 'AND jtl.user_id = $2'}
+       ORDER BY jtl.clocked_in_at DESC`,
+      isAdmin ? [jobId] : [jobId, userId]
+    );
+
+    return res.json({ logs: result.rows });
+  } catch (error) {
+    console.error("job time logs error", error);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+export default router;

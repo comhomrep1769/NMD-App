@@ -12,8 +12,37 @@ type Stop = {
   notes?: string; departed_at?: string; arrived_at?: string; completed_at?: string
 }
 
+type JobTimeLog = {
+  id: string; job_id: string; user_id: string
+  clocked_in_at: string; clocked_out_at: string | null; total_minutes: number | null
+}
+
 declare global {
   interface Window { L: any }
+}
+
+function ElapsedTimer({ since }: { since: string }) {
+  const [elapsed, setElapsed] = useState('')
+  useEffect(() => {
+    const update = () => {
+      const ms = Date.now() - new Date(since).getTime()
+      const h = Math.floor(ms / 3600000)
+      const m = Math.floor((ms % 3600000) / 60000)
+      const s = Math.floor((ms % 60000) / 1000)
+      setElapsed(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`)
+    }
+    update()
+    const interval = setInterval(update, 1000)
+    return () => clearInterval(interval)
+  }, [since])
+  return <span style={{ fontFamily: 'monospace', fontWeight: 700 }}>{elapsed}</span>
+}
+
+function fmtMins(mins: number | null) {
+  if (!mins || mins <= 0) return '0h 0m'
+  const h = Math.floor(mins / 60)
+  const m = Math.round(mins % 60)
+  return `${h}h ${m}m`
 }
 
 export default function EmployeeRoutePage() {
@@ -25,6 +54,11 @@ export default function EmployeeRoutePage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+
+  // Job time logs: jobId → active log (if clocked in)
+  const [jobLogs, setJobLogs] = useState<Record<string, JobTimeLog | null>>({})
+  const [jobLogLoading, setJobLogLoading] = useState<string | null>(null)
+
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<any>(null)
   const markersRef = useRef<any[]>([])
@@ -94,6 +128,25 @@ export default function EmployeeRoutePage() {
     mapInstance.current.fitBounds(bounds, { padding: [50, 50] })
   }, [])
 
+  // Load active job time logs for all stops
+  const loadJobLogs = useCallback(async (stopList: Stop[]) => {
+    const token = getNmdToken()
+    const logs: Record<string, JobTimeLog | null> = {}
+    await Promise.all(stopList.map(async stop => {
+      try {
+        const res = await fetch(`${API}/api/jobs/${stop.job_id}/time-logs`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        const data = await res.json()
+        const active = (data.logs || []).find((l: JobTimeLog) => !l.clocked_out_at) || null
+        logs[String(stop.job_id)] = active
+      } catch {
+        logs[String(stop.job_id)] = null
+      }
+    }))
+    setJobLogs(logs)
+  }, [API])
+
   const loadRoute = useCallback(async () => {
     setLoading(true)
     setError('')
@@ -103,15 +156,17 @@ export default function EmployeeRoutePage() {
         headers: { Authorization: `Bearer ${token}` }
       })
       const data = await res.json()
-      setStops(data.stops || [])
+      const stopList = data.stops || []
+      setStops(stopList)
+      await loadJobLogs(stopList)
       setTimeout(() => {
-        if (window.L) { initMap(); renderMarkers(data.stops || []) }
+        if (window.L) { initMap(); renderMarkers(stopList) }
       }, 500)
     } catch {
       setError('Could not load your route.')
     }
     setLoading(false)
-  }, [date, API, renderMarkers])
+  }, [date, API, renderMarkers, loadJobLogs])
 
   useEffect(() => { loadRoute() }, [loadRoute])
 
@@ -133,6 +188,34 @@ export default function EmployeeRoutePage() {
     ;(window as any).__nmdComplete = makeHandler('complete')
   }, [API, loadRoute])
 
+  const handleJobClockIn = async (jobId: number) => {
+    setJobLogLoading(`${jobId}-in`)
+    const token = getNmdToken()
+    try {
+      const res = await fetch(`${API}/api/jobs/${jobId}/clock-in`, {
+        method: 'POST', headers: { Authorization: `Bearer ${token}` }
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setJobLogs(p => ({ ...p, [String(jobId)]: data.log }))
+    } catch (err) { alert(err instanceof Error ? err.message : 'Failed to clock in') }
+    setJobLogLoading(null)
+  }
+
+  const handleJobClockOut = async (jobId: number) => {
+    setJobLogLoading(`${jobId}-out`)
+    const token = getNmdToken()
+    try {
+      const res = await fetch(`${API}/api/jobs/${jobId}/clock-out`, {
+        method: 'POST', headers: { Authorization: `Bearer ${token}` }
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setJobLogs(p => ({ ...p, [String(jobId)]: null }))
+    } catch (err) { alert(err instanceof Error ? err.message : 'Failed to clock out') }
+    setJobLogLoading(null)
+  }
+
   const fmt = (dt?: string | null) => dt ? new Date(dt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '—'
   const fmtDate = (dt: string) => new Date(dt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
   const getStopStatus = (stop: Stop) => {
@@ -148,7 +231,7 @@ export default function EmployeeRoutePage() {
       <div style={{ marginBottom: '1.5rem' }}>
         <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#1f6132', marginBottom: 6 }}>Employee Portal</div>
         <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: '1.75rem', fontWeight: 800, color: '#0e1117', letterSpacing: '-0.03em', marginBottom: 6 }}>My Route</h1>
-        <p style={{ color: '#5a6a88', fontSize: '0.875rem' }}>Your assigned stops for the day. Tap a pin on the map to take action.</p>
+        <p style={{ color: '#5a6a88', fontSize: '0.875rem' }}>Your assigned stops for the day. Tap a pin to take action.</p>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: '1.5rem', flexWrap: 'wrap' }}>
@@ -197,8 +280,12 @@ export default function EmployeeRoutePage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {stops.map(stop => {
                 const status = getStopStatus(stop)
+                const activeLog = jobLogs[String(stop.job_id)]
+                const isClockedIn = !!activeLog
+                const isClockLoading = jobLogLoading === `${stop.job_id}-in` || jobLogLoading === `${stop.job_id}-out`
+
                 return (
-                  <div key={stop.stop_id} style={{ background: '#f4f7fb', borderRadius: 10, border: '1px solid #dde4ef', padding: '1rem', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                  <div key={stop.stop_id} style={{ background: '#f4f7fb', borderRadius: 10, border: `1px solid ${isClockedIn ? 'rgba(31,97,50,0.3)' : '#dde4ef'}`, padding: '1rem', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                     <div style={{ width: 30, height: 30, borderRadius: '50%', background: stop.completed_at ? '#dde4ef' : 'linear-gradient(135deg,#1f6132,#124d83)', color: stop.completed_at ? '#8494b0' : 'white', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       {stop.completed_at ? '✓' : stop.stop_order}
                     </div>
@@ -206,6 +293,11 @@ export default function EmployeeRoutePage() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
                         <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0e1117' }}>{stop.title}</div>
                         <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: 100, color: status.color, background: status.bg, border: `1px solid ${status.border}` }}>{status.label}</span>
+                        {isClockedIn && (
+                          <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: 100, color: '#1f6132', background: '#f0fff4', border: '1px solid #c0dd97' }}>
+                            ⏱ <ElapsedTimer since={activeLog!.clocked_in_at} />
+                          </span>
+                        )}
                       </div>
                       <div style={{ fontSize: '0.82rem', color: '#5a6a88', marginBottom: 2 }}>{stop.client_name}</div>
                       <div style={{ fontSize: '0.78rem', color: '#8494b0', marginBottom: stop.notes ? 6 : 0 }}>{stop.address}</div>
@@ -215,6 +307,34 @@ export default function EmployeeRoutePage() {
                         {stop.arrived_at && <span>📍 Arrived: {fmt(stop.arrived_at)}</span>}
                         {stop.completed_at && <span>✅ Done: {fmt(stop.completed_at)}</span>}
                       </div>
+
+                      {/* Job clock in/out */}
+                      {!stop.completed_at && (
+                        <div style={{ marginBottom: 8, padding: '0.6rem 0.75rem', borderRadius: 8, background: isClockedIn ? 'rgba(31,97,50,0.06)' : 'white', border: `1px solid ${isClockedIn ? 'rgba(31,97,50,0.2)' : '#dde4ef'}` }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                            <div style={{ fontSize: '0.75rem', color: isClockedIn ? '#1f6132' : '#8494b0', fontWeight: 600 }}>
+                              {isClockedIn ? `⏱ Job time: clocked in at ${fmt(activeLog!.clocked_in_at)}` : '⏱ Job time tracking'}
+                            </div>
+                            {!isClockedIn ? (
+                              <button
+                                onClick={() => handleJobClockIn(stop.job_id)}
+                                disabled={isClockLoading}
+                                style={{ padding: '0.35rem 0.85rem', borderRadius: 6, border: 'none', background: 'linear-gradient(135deg,#1f6132,#22763c)', color: 'white', fontWeight: 700, fontSize: '0.75rem', cursor: isClockLoading ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: isClockLoading ? 0.6 : 1 }}>
+                                {isClockLoading ? '...' : '▶ Start Job Timer'}
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleJobClockOut(stop.job_id)}
+                                disabled={isClockLoading}
+                                style={{ padding: '0.35rem 0.85rem', borderRadius: 6, border: 'none', background: 'linear-gradient(135deg,#c0392b,#a32d2d)', color: 'white', fontWeight: 700, fontSize: '0.75rem', cursor: isClockLoading ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: isClockLoading ? 0.6 : 1 }}>
+                                {isClockLoading ? '...' : '⏹ Stop Job Timer'}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Route action buttons */}
                       {!stop.completed_at && (
                         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                           {!stop.departed_at && (
