@@ -291,7 +291,7 @@ export default function AdminRoutesPage() {
             {/* Map */}
             <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid #dde4ef' }}>
               {/* Search bar */}
-              <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #dde4ef', position: 'relative', zIndex: 10 }}>
+              <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #dde4ef', position: 'relative', zIndex: 1000 }}>
                 <div style={{ position: 'relative' }}>
                   <input type="text" value={searchQuery} onChange={e => handleSearchInput(e.target.value)}
                     placeholder="🔍 Search Florida address or location..."
