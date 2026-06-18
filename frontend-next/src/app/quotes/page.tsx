@@ -11,6 +11,12 @@ type Quote = {
   convertedInvoiceId?: string | null; acceptedAt: string | null; createdAt: string
 }
 
+type ClientOption = {
+  id: string
+  name: string
+  email: string
+}
+
 const inputStyle: React.CSSProperties = {
   width: '100%', padding: '0.65rem 0.9rem', borderRadius: 8,
   border: '1.5px solid #dde4ef', fontSize: '0.875rem', outline: 'none',
@@ -42,6 +48,13 @@ export default function QuotesPage() {
   const [deleteQuote, setDeleteQuote] = useState<Quote | null>(null)
   const [deleting, setDeleting] = useState(false)
 
+  // Client search state
+  const [clients, setClients] = useState<ClientOption[]>([])
+  const [clientSearch, setClientSearch] = useState('')
+  const [selectedClient, setSelectedClient] = useState<ClientOption | null>(null)
+  const [showClientDropdown, setShowClientDropdown] = useState(false)
+  const clientSearchRef = useRef<HTMLDivElement>(null)
+
   const [convertQuote, setConvertQuote] = useState<Quote | null>(null)
   const [uploadFile, setUploadFile] = useState<{ name: string; dataUrl: string } | null>(null)
   const [converting, setConverting] = useState(false)
@@ -58,7 +71,46 @@ export default function QuotesPage() {
       .catch(() => { setError('Could not load quotes.'); setLoading(false) })
   }
 
+  const loadClients = () => {
+    const token = getNmdToken()
+    fetch(`${API}/api/clients`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(d => {
+        const list: ClientOption[] = (d.clients || []).map((c: any) => ({
+          id: c.id,
+          name: `${c.firstName || c.first_name || ''} ${c.lastName || c.last_name || ''}`.trim(),
+          email: c.email || ''
+        }))
+        setClients(list)
+      })
+      .catch(() => {})
+  }
+
   useEffect(() => { load() }, [])
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (clientSearchRef.current && !clientSearchRef.current.contains(e.target as Node)) {
+        setShowClientDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const openCreate = () => {
+    loadClients()
+    setShowCreate(true)
+    setSelectedClient(null)
+    setClientSearch('')
+    setFormError('')
+    setForm({ clientName: '', serviceType: '', total: '', status: 'draft' })
+  }
+
+  const filteredClients = clients.filter(c =>
+    `${c.name} ${c.email}`.toLowerCase().includes(clientSearch.toLowerCase())
+  )
 
   const filtered = quotes.filter(q =>
     `${q.quoteNumber} ${q.clientName} ${q.serviceType} ${q.status}`.toLowerCase().includes(search.toLowerCase())
@@ -66,23 +118,42 @@ export default function QuotesPage() {
 
   const update = (f: string, v: string) => setForm(p => ({ ...p, [f]: v }))
 
+  const handleSelectClient = (c: ClientOption) => {
+    setSelectedClient(c)
+    setClientSearch(c.name)
+    setForm(p => ({ ...p, clientName: c.name }))
+    setShowClientDropdown(false)
+  }
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
     setFormError('')
     if (!form.clientName || !form.serviceType) { setFormError('Client name and service type are required.'); return }
+    if (form.status === 'sent' && !selectedClient) {
+      setFormError('Please select a registered client to send the quote — we need their email address.')
+      return
+    }
     setSaving(true)
     try {
       const token = getNmdToken()
       const res = await fetch(`${API}/api/quotes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ clientName: form.clientName.trim(), serviceType: form.serviceType.trim(), total: parseFloat(form.total) || 0, status: form.status })
+        body: JSON.stringify({
+          clientId: selectedClient?.id || null,
+          clientName: form.clientName.trim(),
+          serviceType: form.serviceType.trim(),
+          total: parseFloat(form.total) || 0,
+          status: form.status
+        })
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to create quote')
       setQuotes(p => [data.quote, ...p])
       setShowCreate(false)
       setForm({ clientName: '', serviceType: '', total: '', status: 'draft' })
+      setSelectedClient(null)
+      setClientSearch('')
     } catch (err) { setFormError(err instanceof Error ? err.message : 'Failed to create quote') }
     setSaving(false)
   }
@@ -111,6 +182,28 @@ export default function QuotesPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setQuotes(p => p.map(x => x.id === q.id ? data.quote : x))
+    } catch (err) { alert(err instanceof Error ? err.message : 'Failed') }
+    setActionLoading(null)
+  }
+
+  // Send a draft quote to the client (flips status → sent, triggers email)
+  const handleSend = async (q: Quote) => {
+    if (!q.clientId) {
+      alert('This quote has no linked client account. Edit the quote and select a registered client before sending.')
+      return
+    }
+    setActionLoading(q.id + '-send')
+    try {
+      const token = getNmdToken()
+      const res = await fetch(`${API}/api/quotes/${q.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ status: 'sent' })
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setQuotes(p => p.map(x => x.id === q.id ? data.quote : x))
+      alert(`Quote #${q.quoteNumber} sent to ${q.clientName}.`)
     } catch (err) { alert(err instanceof Error ? err.message : 'Failed') }
     setActionLoading(null)
   }
@@ -183,14 +276,71 @@ export default function QuotesPage() {
           <div style={modalBox}>
             <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #dde4ef', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#0e1117' }}>Create Quote</div>
-              <button onClick={() => { setShowCreate(false); setFormError('') }} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#8494b0' }}>x</button>
+              <button onClick={() => { setShowCreate(false); setFormError('') }} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#8494b0' }}>×</button>
             </div>
             <form onSubmit={handleCreate} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {formError && <div style={{ background: '#fff0f0', border: '1.5px solid #ffc0c0', borderRadius: 8, padding: '0.65rem 1rem', fontSize: '0.82rem', color: '#c0392b' }}>{formError}</div>}
-              <div>
-                <label style={labelStyle}>Client Name *</label>
-                <input style={inputStyle} value={form.clientName} onChange={e => update('clientName', e.target.value)} placeholder="John Smith" required />
+
+              {/* Client selector */}
+              <div ref={clientSearchRef} style={{ position: 'relative' }}>
+                <label style={labelStyle}>Client *</label>
+                <input
+                  style={{ ...inputStyle, borderColor: selectedClient ? '#1f6132' : '#dde4ef' }}
+                  value={clientSearch}
+                  onChange={e => {
+                    setClientSearch(e.target.value)
+                    setForm(p => ({ ...p, clientName: e.target.value }))
+                    setSelectedClient(null)
+                    setShowClientDropdown(true)
+                  }}
+                  onFocus={() => setShowClientDropdown(true)}
+                  placeholder="Search registered clients..."
+                  autoComplete="off"
+                />
+                {selectedClient && (
+                  <div style={{ marginTop: 4, fontSize: '0.75rem', color: '#1f6132', fontWeight: 500 }}>
+                    ✓ {selectedClient.email}
+                  </div>
+                )}
+                {!selectedClient && clientSearch && (
+                  <div style={{ marginTop: 4, fontSize: '0.75rem', color: '#e67e22' }}>
+                    ⚠ No client selected — quote can be saved as draft only
+                  </div>
+                )}
+                {showClientDropdown && filteredClients.length > 0 && (
+                  <div style={{
+                    position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200,
+                    background: 'white', border: '1.5px solid #dde4ef', borderRadius: 8,
+                    boxShadow: '0 8px 24px rgba(14,17,23,0.12)', maxHeight: 200, overflowY: 'auto', marginTop: 2
+                  }}>
+                    {filteredClients.map(c => (
+                      <div
+                        key={c.id}
+                        onMouseDown={() => handleSelectClient(c)}
+                        style={{
+                          padding: '0.65rem 1rem', cursor: 'pointer', borderBottom: '1px solid #f0f4fa',
+                          fontSize: '0.875rem', color: '#0e1117',
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.background = '#f4f7fb')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'white')}
+                      >
+                        <span style={{ fontWeight: 600 }}>{c.name}</span>
+                        <span style={{ color: '#8494b0', marginLeft: 8, fontSize: '0.78rem' }}>{c.email}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {showClientDropdown && clientSearch && filteredClients.length === 0 && (
+                  <div style={{
+                    position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200,
+                    background: 'white', border: '1.5px solid #dde4ef', borderRadius: 8,
+                    padding: '0.65rem 1rem', fontSize: '0.82rem', color: '#8494b0', marginTop: 2
+                  }}>
+                    No registered clients found
+                  </div>
+                )}
               </div>
+
               <div>
                 <label style={labelStyle}>Service Type *</label>
                 <input style={inputStyle} value={form.serviceType} onChange={e => update('serviceType', e.target.value)} placeholder="House Washing" required />
@@ -203,15 +353,22 @@ export default function QuotesPage() {
                 <div>
                   <label style={labelStyle}>Status</label>
                   <select style={inputStyle} value={form.status} onChange={e => update('status', e.target.value)}>
-                    <option value="draft">Draft</option>
+                    <option value="draft">Save as Draft</option>
                     <option value="sent">Send to Client</option>
                   </select>
                 </div>
               </div>
+
+              {form.status === 'sent' && !selectedClient && (
+                <div style={{ background: '#fffbea', border: '1.5px solid #f6c90e', borderRadius: 8, padding: '0.65rem 1rem', fontSize: '0.82rem', color: '#7a5c00' }}>
+                  You must select a registered client to send a quote — we need their email on file.
+                </div>
+              )}
+
               <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                 <button type="button" onClick={() => { setShowCreate(false); setFormError('') }} style={{ flex: 1, padding: '0.7rem', borderRadius: 8, border: '1.5px solid #dde4ef', background: 'white', color: '#5a6a88', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Cancel</button>
                 <button type="submit" disabled={saving} style={{ flex: 2, padding: '0.7rem', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: saving ? 0.7 : 1 }}>
-                  {saving ? 'Creating...' : 'Create Quote'}
+                  {saving ? 'Creating...' : form.status === 'sent' ? 'Create & Send Quote' : 'Create Quote'}
                 </button>
               </div>
             </form>
@@ -225,7 +382,7 @@ export default function QuotesPage() {
           <div style={{ ...modalBox, maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
             <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #dde4ef', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
               <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#0e1117' }}>Convert to Invoice</div>
-              <button onClick={() => { setConvertQuote(null); setUploadFile(null); setConvertError('') }} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#8494b0' }}>x</button>
+              <button onClick={() => { setConvertQuote(null); setUploadFile(null); setConvertError('') }} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#8494b0' }}>×</button>
             </div>
 
             <div style={{ padding: '1rem 1.5rem', background: '#f8fbff', borderBottom: '1px solid #dde4ef', flexShrink: 0 }}>
@@ -293,7 +450,7 @@ export default function QuotesPage() {
           <div style={{ ...modalBox, maxWidth: 420 }}>
             <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #dde4ef', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#0e1117' }}>Delete Quote</div>
-              <button onClick={() => setDeleteQuote(null)} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#8494b0' }}>x</button>
+              <button onClick={() => setDeleteQuote(null)} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#8494b0' }}>×</button>
             </div>
             <div style={{ padding: '1.5rem' }}>
               <p style={{ color: '#3a4660', fontSize: '0.9rem', marginBottom: '1.5rem', lineHeight: 1.6 }}>
@@ -316,7 +473,7 @@ export default function QuotesPage() {
         action={
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <SearchInput value={search} onChange={setSearch} placeholder="Search quotes..." />
-            <button onClick={() => setShowCreate(true)} style={{ padding: '0.6rem 1.25rem', borderRadius: 8, background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 600, fontSize: '0.85rem', border: 'none', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', whiteSpace: 'nowrap' }}>
+            <button onClick={openCreate} style={{ padding: '0.6rem 1.25rem', borderRadius: 8, background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 600, fontSize: '0.85rem', border: 'none', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', whiteSpace: 'nowrap' }}>
               + Create Quote
             </button>
           </div>
@@ -336,6 +493,15 @@ export default function QuotesPage() {
             <StatusBadge key="status" status={q.status} />,
             <span key="date" style={{ color: '#8494b0', whiteSpace: 'nowrap' }}>{fmtDate(q.createdAt)}</span>,
             <div key="actions" style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+              {q.status === 'draft' && (
+                <button
+                  onClick={() => handleSend(q)}
+                  disabled={actionLoading === q.id + '-send'}
+                  style={{ padding: '0.3rem 0.65rem', borderRadius: 6, border: 'none', background: '#e8f0fe', color: '#124d83', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}
+                >
+                  {actionLoading === q.id + '-send' ? '...' : 'Send'}
+                </button>
+              )}
               {q.status === 'sent' && (
                 <>
                   <button onClick={() => handleAccept(q)} disabled={actionLoading === q.id + '-accept'} style={{ padding: '0.3rem 0.65rem', borderRadius: 6, border: 'none', background: '#e8f5e9', color: '#1f6132', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
