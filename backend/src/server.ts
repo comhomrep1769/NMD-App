@@ -29,6 +29,7 @@ import bonusRoutes from "./routes/bonus.js";
 import requestsRoutes from "./routes/requests.js";
 import smsRoutes from "./routes/sms.js";
 import routePlannerRoutes from "./routes/routePlanner.js";
+import applicantsRoutes from "./routes/applicants.js";
 
 const app = express();
 
@@ -93,6 +94,7 @@ app.use("/api/bonus", bonusRoutes);
 app.use("/api/requests", requestsRoutes);
 app.use("/api/sms", smsRoutes);
 app.use("/api/routes", routePlannerRoutes);
+app.use("/api/applicants", applicantsRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ message: `Route not found: ${req.method} ${req.originalUrl}` });
