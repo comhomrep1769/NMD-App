@@ -37,6 +37,8 @@ const ADMIN_NAV = [
   { href: '/expenses', label: 'Expenses', icon: 'Ex' },
   { href: '/payroll', label: 'Payroll', icon: 'Pay' },
   { href: '/bonus', label: 'Bonus Tracker', icon: 'Bon' },
+  { href: '/admin/sales', label: 'Sales & Commissions', icon: 'Sal' },
+  { href: '/applicants', label: 'Applicants', icon: 'App' },
   { href: '/guru-training', label: 'Guru Training', icon: 'AI' },
 ]
 
@@ -50,6 +52,13 @@ const EMPLOYEE_NAV = [
   { href: '/employee/chat', label: 'Chat', icon: 'Msg' },
   { href: '/employee/timeclock', label: 'Time Clock', icon: 'TC' },
   { href: '/employee/bonus', label: 'My Bonus', icon: 'Bon' },
+]
+
+const SALES_NAV = [
+  { href: '/sales', label: 'Dashboard', icon: 'H' },
+  { href: '/sales/call-scripts', label: 'Call Scripts', icon: '📞' },
+  { href: '/sales/commissions', label: 'My Commissions', icon: '💰' },
+  { href: '/employee/timeclock', label: 'Time Clock', icon: 'TC' },
 ]
 
 export default function PortalShell({
@@ -79,6 +88,7 @@ export default function PortalShell({
       const roles = Array.isArray(requiredRole) ? requiredRole : [requiredRole || '']
       if (roles.includes('client')) router.replace('/client/login')
       else if (roles.includes('employee')) router.replace('/employee/login')
+      else if (roles.includes('sales')) router.replace('/sales/login')
       else router.replace('/admin')
       return
     }
@@ -92,6 +102,7 @@ export default function PortalShell({
       if (!allowed) {
         if (userRole === 'client') router.replace('/clientdashboard')
         else if (userRole === 'employee') router.replace('/dashboard/employee')
+        else if (userRole === 'sales') router.replace('/sales')
         else router.replace('/dashboard/admin')
         return
       }
@@ -118,8 +129,9 @@ export default function PortalShell({
   const role = String(user?.role || '').toLowerCase()
   const isClient = role === 'client'
   const isEmployee = role === 'employee'
-  const navItems = isClient ? CLIENT_NAV : isEmployee ? EMPLOYEE_NAV : ADMIN_NAV
-  const portalLabel = isClient ? 'Client Portal' : isEmployee ? 'Employee Portal' : role === 'superadmin' ? 'Super Admin' : 'Admin Portal'
+  const isSales = role === 'sales'
+  const navItems = isClient ? CLIENT_NAV : isEmployee ? EMPLOYEE_NAV : isSales ? SALES_NAV : ADMIN_NAV
+  const portalLabel = isClient ? 'Client Portal' : isEmployee ? 'Employee Portal' : isSales ? 'Sales Portal' : role === 'superadmin' ? 'Super Admin' : 'Admin Portal'
 
   const sidebarVisible = !isMobile || sidebarOpen
 
@@ -160,7 +172,6 @@ export default function PortalShell({
             })}
           </nav>
 
-          {/* Our Mission */}
           <div style={{ padding: '0.75rem 1.25rem', borderTop: '1px solid rgba(255,255,255,0.06)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
             <Link href="/mission" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
               <span style={{ fontSize: '0.62rem', width: 26, height: 20, borderRadius: 4, flexShrink: 0, background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.4)', fontWeight: 700 }}>★</span>
@@ -182,7 +193,6 @@ export default function PortalShell({
                 {sidebarOpen ? 'X' : 'Menu'}
               </button>
             )}
-            {/* Logout button — top left, always visible */}
             <button
               onClick={handleLogout}
               style={{ padding: '4px 12px', borderRadius: 6, background: 'rgba(220,50,50,0.08)', border: '1px solid rgba(220,50,50,0.2)', color: '#c0392b', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', display: 'flex', alignItems: 'center', gap: 5 }}

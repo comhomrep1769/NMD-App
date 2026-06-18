@@ -1,7 +1,7 @@
 ﻿import "dotenv/config";
 import express from "express";
 import cors from "cors";
-
+import salesRoutes from "./routes/sales.js";
 import authRoutes from "./routes/auth.js";
 import guruRoutes from "./routes/guru.js";
 import guruTrainingRoutes from "./routes/guruTraining.js";
@@ -95,6 +95,7 @@ app.use("/api/requests", requestsRoutes);
 app.use("/api/sms", smsRoutes);
 app.use("/api/routes", routePlannerRoutes);
 app.use("/api/applicants", applicantsRoutes);
+app.use("/api/sales", salesRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ message: `Route not found: ${req.method} ${req.originalUrl}` });
