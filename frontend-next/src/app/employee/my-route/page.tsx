@@ -17,6 +17,11 @@ type JobTimeLog = {
   clocked_in_at: string; clocked_out_at: string | null; total_minutes: number | null
 }
 
+type JobPhoto = {
+  id: string; job_id: string; photo_data_url: string; caption: string | null
+  photo_type: string; created_at: string
+}
+
 declare global {
   interface Window { L: any }
 }
@@ -38,13 +43,6 @@ function ElapsedTimer({ since }: { since: string }) {
   return <span style={{ fontFamily: 'monospace', fontWeight: 700 }}>{elapsed}</span>
 }
 
-function fmtMins(mins: number | null) {
-  if (!mins || mins <= 0) return '0h 0m'
-  const h = Math.floor(mins / 60)
-  const m = Math.round(mins % 60)
-  return `${h}h ${m}m`
-}
-
 export default function EmployeeRoutePage() {
   const API = process.env.NEXT_PUBLIC_API_URL || ''
   const today = new Date().toISOString().split('T')[0]
@@ -55,9 +53,16 @@ export default function EmployeeRoutePage() {
   const [error, setError] = useState('')
   const [actionLoading, setActionLoading] = useState<string | null>(null)
 
-  // Job time logs: jobId → active log (if clocked in)
   const [jobLogs, setJobLogs] = useState<Record<string, JobTimeLog | null>>({})
   const [jobLogLoading, setJobLogLoading] = useState<string | null>(null)
+
+  // Photo state per job
+  const [jobPhotos, setJobPhotos] = useState<Record<string, JobPhoto[]>>({})
+  const [photoUploading, setPhotoUploading] = useState<string | null>(null)
+  const [photoCaption, setPhotoCaption] = useState<Record<string, string>>({})
+  const [photoType, setPhotoType] = useState<Record<string, string>>({})
+  const [showPhotoPanel, setShowPhotoPanel] = useState<Record<string, boolean>>({})
+  const photoInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<any>(null)
@@ -128,7 +133,6 @@ export default function EmployeeRoutePage() {
     mapInstance.current.fitBounds(bounds, { padding: [50, 50] })
   }, [])
 
-  // Load active job time logs for all stops
   const loadJobLogs = useCallback(async (stopList: Stop[]) => {
     const token = getNmdToken()
     const logs: Record<string, JobTimeLog | null> = {}
@@ -147,6 +151,23 @@ export default function EmployeeRoutePage() {
     setJobLogs(logs)
   }, [API])
 
+  const loadJobPhotos = useCallback(async (stopList: Stop[]) => {
+    const token = getNmdToken()
+    const photos: Record<string, JobPhoto[]> = {}
+    await Promise.all(stopList.map(async stop => {
+      try {
+        const res = await fetch(`${API}/api/jobs/${stop.job_id}/photos`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        const data = await res.json()
+        photos[String(stop.job_id)] = data.photos || []
+      } catch {
+        photos[String(stop.job_id)] = []
+      }
+    }))
+    setJobPhotos(photos)
+  }, [API])
+
   const loadRoute = useCallback(async () => {
     setLoading(true)
     setError('')
@@ -158,7 +179,7 @@ export default function EmployeeRoutePage() {
       const data = await res.json()
       const stopList = data.stops || []
       setStops(stopList)
-      await loadJobLogs(stopList)
+      await Promise.all([loadJobLogs(stopList), loadJobPhotos(stopList)])
       setTimeout(() => {
         if (window.L) { initMap(); renderMarkers(stopList) }
       }, 500)
@@ -166,7 +187,7 @@ export default function EmployeeRoutePage() {
       setError('Could not load your route.')
     }
     setLoading(false)
-  }, [date, API, renderMarkers, loadJobLogs])
+  }, [date, API, renderMarkers, loadJobLogs, loadJobPhotos])
 
   useEffect(() => { loadRoute() }, [loadRoute])
 
@@ -214,6 +235,34 @@ export default function EmployeeRoutePage() {
       setJobLogs(p => ({ ...p, [String(jobId)]: null }))
     } catch (err) { alert(err instanceof Error ? err.message : 'Failed to clock out') }
     setJobLogLoading(null)
+  }
+
+  const handlePhotoUpload = async (jobId: number, file: File) => {
+    if (file.size > 10_000_000) { alert('Photo too large. Max 10MB.'); return }
+    setPhotoUploading(String(jobId))
+    const reader = new FileReader()
+    reader.onload = async (e) => {
+      const dataUrl = e.target?.result as string
+      const token = getNmdToken()
+      try {
+        const res = await fetch(`${API}/api/jobs/${jobId}/photos`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            photoDataUrl: dataUrl,
+            caption: photoCaption[String(jobId)] || null,
+            photoType: photoType[String(jobId)] || 'job',
+          })
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error)
+        setJobPhotos(p => ({ ...p, [String(jobId)]: [...(p[String(jobId)] || []), data.photo] }))
+        setPhotoCaption(p => ({ ...p, [String(jobId)]: '' }))
+        setPhotoType(p => ({ ...p, [String(jobId)]: 'job' }))
+      } catch (err) { alert(err instanceof Error ? err.message : 'Upload failed') }
+      setPhotoUploading(null)
+    }
+    reader.readAsDataURL(file)
   }
 
   const fmt = (dt?: string | null) => dt ? new Date(dt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '—'
@@ -283,6 +332,9 @@ export default function EmployeeRoutePage() {
                 const activeLog = jobLogs[String(stop.job_id)]
                 const isClockedIn = !!activeLog
                 const isClockLoading = jobLogLoading === `${stop.job_id}-in` || jobLogLoading === `${stop.job_id}-out`
+                const photos = jobPhotos[String(stop.job_id)] || []
+                const isPhotoOpen = !!showPhotoPanel[String(stop.job_id)]
+                const isUploadingThis = photoUploading === String(stop.job_id)
 
                 return (
                   <div key={stop.stop_id} style={{ background: '#f4f7fb', borderRadius: 10, border: `1px solid ${isClockedIn ? 'rgba(31,97,50,0.3)' : '#dde4ef'}`, padding: '1rem', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
@@ -296,6 +348,11 @@ export default function EmployeeRoutePage() {
                         {isClockedIn && (
                           <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: 100, color: '#1f6132', background: '#f0fff4', border: '1px solid #c0dd97' }}>
                             ⏱ <ElapsedTimer since={activeLog!.clocked_in_at} />
+                          </span>
+                        )}
+                        {photos.length > 0 && (
+                          <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: 100, color: '#124d83', background: '#e8f3fd', border: '1px solid #96c8f5' }}>
+                            📷 {photos.length}
                           </span>
                         )}
                       </div>
@@ -316,16 +373,12 @@ export default function EmployeeRoutePage() {
                               {isClockedIn ? `⏱ Job time: clocked in at ${fmt(activeLog!.clocked_in_at)}` : '⏱ Job time tracking'}
                             </div>
                             {!isClockedIn ? (
-                              <button
-                                onClick={() => handleJobClockIn(stop.job_id)}
-                                disabled={isClockLoading}
+                              <button onClick={() => handleJobClockIn(stop.job_id)} disabled={isClockLoading}
                                 style={{ padding: '0.35rem 0.85rem', borderRadius: 6, border: 'none', background: 'linear-gradient(135deg,#1f6132,#22763c)', color: 'white', fontWeight: 700, fontSize: '0.75rem', cursor: isClockLoading ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: isClockLoading ? 0.6 : 1 }}>
                                 {isClockLoading ? '...' : '▶ Start Job Timer'}
                               </button>
                             ) : (
-                              <button
-                                onClick={() => handleJobClockOut(stop.job_id)}
-                                disabled={isClockLoading}
+                              <button onClick={() => handleJobClockOut(stop.job_id)} disabled={isClockLoading}
                                 style={{ padding: '0.35rem 0.85rem', borderRadius: 6, border: 'none', background: 'linear-gradient(135deg,#c0392b,#a32d2d)', color: 'white', fontWeight: 700, fontSize: '0.75rem', cursor: isClockLoading ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: isClockLoading ? 0.6 : 1 }}>
                                 {isClockLoading ? '...' : '⏹ Stop Job Timer'}
                               </button>
@@ -333,6 +386,75 @@ export default function EmployeeRoutePage() {
                           </div>
                         </div>
                       )}
+
+                      {/* Photo section */}
+                      <div style={{ marginBottom: 8 }}>
+                        <button
+                          onClick={() => setShowPhotoPanel(p => ({ ...p, [String(stop.job_id)]: !p[String(stop.job_id)] }))}
+                          style={{ padding: '0.35rem 0.85rem', borderRadius: 6, border: '1.5px solid #dde4ef', background: isPhotoOpen ? '#e8f3fd' : 'white', color: isPhotoOpen ? '#124d83' : '#5a6a88', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
+                          📷 Photos {photos.length > 0 ? `(${photos.length})` : ''}
+                        </button>
+
+                        {isPhotoOpen && (
+                          <div style={{ marginTop: 8, padding: '0.75rem', background: 'white', borderRadius: 8, border: '1px solid #dde4ef' }}>
+                            {/* Existing photos */}
+                            {photos.length > 0 && (
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 8, marginBottom: 12 }}>
+                                {photos.map(p => (
+                                  <div key={p.id} style={{ position: 'relative' }}>
+                                    <img src={p.photo_data_url} alt={p.caption || 'Job photo'}
+                                      style={{ width: '100%', height: 90, objectFit: 'cover', borderRadius: 6, border: '1px solid #dde4ef', display: 'block' }} />
+                                    {p.caption && (
+                                      <div style={{ fontSize: '0.65rem', color: '#5a6a88', marginTop: 3, lineHeight: 1.3 }}>{p.caption}</div>
+                                    )}
+                                    <div style={{ fontSize: '0.62rem', color: '#8494b0', marginTop: 2 }}>
+                                      {p.photo_type === 'before' ? '📸 Before' : p.photo_type === 'after' ? '✅ After' : '📷 Job'}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Upload new photo */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                              <div style={{ display: 'flex', gap: 8 }}>
+                                <select
+                                  value={photoType[String(stop.job_id)] || 'job'}
+                                  onChange={e => setPhotoType(p => ({ ...p, [String(stop.job_id)]: e.target.value }))}
+                                  style={{ padding: '0.4rem 0.6rem', borderRadius: 6, border: '1.5px solid #dde4ef', fontSize: '0.78rem', fontFamily: 'DM Sans, sans-serif', background: 'white', color: '#0e1117', flex: 1 }}>
+                                  <option value="before">📸 Before</option>
+                                  <option value="after">✅ After</option>
+                                  <option value="job">📷 During Job</option>
+                                </select>
+                                <input
+                                  value={photoCaption[String(stop.job_id)] || ''}
+                                  onChange={e => setPhotoCaption(p => ({ ...p, [String(stop.job_id)]: e.target.value }))}
+                                  placeholder="Caption (optional)"
+                                  style={{ padding: '0.4rem 0.6rem', borderRadius: 6, border: '1.5px solid #dde4ef', fontSize: '0.78rem', fontFamily: 'DM Sans, sans-serif', flex: 2, outline: 'none' }}
+                                />
+                              </div>
+                              <input
+                                ref={el => { photoInputRefs.current[String(stop.job_id)] = el }}
+                                type="file"
+                                accept="image/*"
+                                capture="environment"
+                                style={{ display: 'none' }}
+                                onChange={e => {
+                                  const file = e.target.files?.[0]
+                                  if (file) handlePhotoUpload(stop.job_id, file)
+                                  e.target.value = ''
+                                }}
+                              />
+                              <button
+                                onClick={() => photoInputRefs.current[String(stop.job_id)]?.click()}
+                                disabled={isUploadingThis}
+                                style={{ padding: '0.5rem 1rem', borderRadius: 7, border: 'none', background: isUploadingThis ? '#dde4ef' : 'linear-gradient(135deg,#124d83,#1763a8)', color: isUploadingThis ? '#8494b0' : 'white', fontWeight: 700, fontSize: '0.8rem', cursor: isUploadingThis ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
+                                {isUploadingThis ? 'Uploading...' : '📷 Take / Upload Photo'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
 
                       {/* Route action buttons */}
                       {!stop.completed_at && (

@@ -468,7 +468,6 @@ router.post("/:jobId/clock-in", requireAuth, async (req, res) => {
     const { jobId } = req.params;
     const userId = req.user!.id;
 
-    // Verify job exists and user is assigned
     const jobCheck = await pool.query(
       `SELECT j.id, j.title FROM jobs j
        JOIN job_assignments ja ON ja.job_id = j.id
@@ -479,7 +478,6 @@ router.post("/:jobId/clock-in", requireAuth, async (req, res) => {
       return res.status(404).json({ error: "Job not found or not assigned to you." });
     }
 
-    // Check not already clocked in to this job
     const openLog = await pool.query(
       `SELECT id FROM job_time_logs
        WHERE job_id = $1 AND user_id = $2 AND clocked_out_at IS NULL LIMIT 1`,
@@ -553,6 +551,51 @@ router.get("/:jobId/time-logs", requireAuth, async (req, res) => {
     return res.json({ logs: result.rows });
   } catch (error) {
     console.error("job time logs error", error);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ── Job Photos ───────────────────────────────────────────────────────────────
+
+router.post("/:jobId/photos", requireAuth, async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const userId = req.user!.id;
+    const { photoDataUrl, caption, photoType } = req.body as {
+      photoDataUrl?: string; caption?: string; photoType?: string;
+    };
+
+    if (!photoDataUrl) return res.status(400).json({ error: "Photo data is required." });
+    if (photoDataUrl.length > 10_000_000) return res.status(400).json({ error: "Photo too large. Max 10MB." });
+
+    const result = await pool.query(
+      `INSERT INTO job_photos (job_id, user_id, photo_data_url, caption, photo_type)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id, job_id, user_id, photo_data_url, caption, photo_type, created_at`,
+      [jobId, userId, photoDataUrl, caption || null, photoType || 'job']
+    );
+
+    return res.status(201).json({ photo: result.rows[0] });
+  } catch (error) {
+    console.error("job photo upload error", error);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.get("/:jobId/photos", requireAuth, async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    const result = await pool.query(
+      `SELECT jp.*, u.display_name AS employee_name
+       FROM job_photos jp
+       JOIN users u ON u.id = jp.user_id
+       WHERE jp.job_id = $1
+       ORDER BY jp.created_at ASC`,
+      [jobId]
+    );
+    return res.json({ photos: result.rows });
+  } catch (error) {
+    console.error("job photos fetch error", error);
     return res.status(500).json({ error: "Server error" });
   }
 });
