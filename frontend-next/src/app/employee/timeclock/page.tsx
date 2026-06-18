@@ -114,7 +114,6 @@ export default function EmployeeTimeclock() {
     setActionLoading(null)
   }
 
-  // Total paid hours from history (closed sessions only)
   const totalPaidMins = history
     .filter(s => s.status === 'closed')
     .reduce((sum, s) => sum + (s.paidMinutes || 0), 0)
@@ -191,16 +190,16 @@ export default function EmployeeTimeclock() {
               ) : (
                 <button
                   onClick={() => doAction('clock-out')}
-                  disabled={!!actionLoading || !!activeBreak}
-                  style={btnStyle('linear-gradient(135deg, #c0392b, #a32d2d)', !!actionLoading || !!activeBreak)}
+                  disabled={!!actionLoading}
+                  style={btnStyle('linear-gradient(135deg, #c0392b, #a32d2d)', !!actionLoading)}
                 >
                   {actionLoading === 'clock-out' ? 'Clocking out...' : '🔴 Clock Out'}
                 </button>
               )}
             </div>
             {activeBreak && (
-              <div style={{ marginTop: 10, fontSize: '0.82rem', color: '#8494b0' }}>
-                End your active break before clocking out.
+              <div style={{ marginTop: 10, fontSize: '0.82rem', color: '#e67e22' }}>
+                ⚠ Active break will be ended automatically when you clock out.
               </div>
             )}
           </div>
@@ -237,7 +236,6 @@ export default function EmployeeTimeclock() {
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                   {BREAK_OPTIONS.map(opt => {
                     const used = usedBreakTypes.includes(opt.type)
-                    // Can't use 60min if other breaks already taken; can't use others if 60min taken
                     const blocked = used
                       || (opt.type === 'break_60' && usedBreakTypes.length > 0)
                       || (opt.type !== 'break_60' && usedBreakTypes.includes('break_60'))
@@ -265,7 +263,6 @@ export default function EmployeeTimeclock() {
                 </div>
               )}
 
-              {/* Break history for this session */}
               {breaks.filter(b => b.status === 'completed').length > 0 && (
                 <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #dde4ef' }}>
                   <div style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8494b0', marginBottom: 8 }}>Breaks Taken</div>

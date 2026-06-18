@@ -167,8 +167,11 @@ router.post("/clock-in", requireAuth, async (req, res) => {
 });
 
 router.post("/clock-out", requireAuth, async (req, res) => {
+  const client = await pool.connect();
   try {
-    const sessionResult = await pool.query(
+    await client.query("BEGIN");
+
+    const sessionResult = await client.query(
       `
       SELECT *
       FROM employee_time_sessions
@@ -181,12 +184,14 @@ router.post("/clock-out", requireAuth, async (req, res) => {
     );
 
     if (sessionResult.rows.length === 0) {
+      await client.query("ROLLBACK");
       return res.status(400).json({ error: "You are not clocked in." });
     }
 
     const session = sessionResult.rows[0];
 
-    const activeBreak = await pool.query(
+    // Auto-end any active break instead of blocking clock-out
+    const activeBreak = await client.query(
       `
       SELECT *
       FROM employee_break_logs
@@ -198,12 +203,24 @@ router.post("/clock-out", requireAuth, async (req, res) => {
     );
 
     if (activeBreak.rows.length > 0) {
-      return res.status(400).json({
-        error: "End your active break before clocking out."
-      });
+      await client.query(
+        `
+        UPDATE employee_break_logs
+        SET
+          ended_at = NOW(),
+          status = 'completed',
+          overtime_penalty_minutes = GREATEST(
+            (EXTRACT(EPOCH FROM (NOW() - started_at)) / 60) - allowed_minutes - 1,
+            0
+          )
+        WHERE id = $1
+        `,
+        [activeBreak.rows[0].id]
+      );
     }
 
-    const summaryResult = await pool.query(
+    // Summarise all completed breaks (including the one just auto-ended)
+    const summaryResult = await client.query(
       `
       SELECT
         COALESCE(SUM(EXTRACT(EPOCH FROM (ended_at - started_at)) / 60), 0) AS break_minutes,
@@ -218,7 +235,7 @@ router.post("/clock-out", requireAuth, async (req, res) => {
     const breakMinutes = Number(summaryResult.rows[0].break_minutes || 0);
     const penaltyMinutes = Number(summaryResult.rows[0].penalty_minutes || 0);
 
-    const updateResult = await pool.query(
+    const updateResult = await client.query(
       `
       UPDATE employee_time_sessions
       SET
@@ -237,12 +254,17 @@ router.post("/clock-out", requireAuth, async (req, res) => {
       [session.id, breakMinutes, penaltyMinutes]
     );
 
+    await client.query("COMMIT");
+
     return res.json({
       session: mapSession(updateResult.rows[0])
     });
   } catch (error) {
+    await client.query("ROLLBACK");
     console.error("clock out error", error);
     return res.status(500).json({ error: "Server error" });
+  } finally {
+    client.release();
   }
 });
 
