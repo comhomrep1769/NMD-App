@@ -11,7 +11,18 @@ export type ClientPortalData = {
   invoices: Array<{ id: string; invoiceNumber: number; jobName: string; total: number; status: string; createdAt: string; paymentLinkUrl: string | null }>
   jobs: Array<{ id: string; title: string; serviceType: string; status: string; scheduledDate: string; startTime: string }>
   recurringServices: Array<{ id: string; serviceType: string; frequency: string; price: number; status: string; nextServiceDate: string | null }>
-  serviceRequests: Array<{ id: string; serviceType: string; status: string; createdAt: string }>
+  serviceRequests: Array<{
+    id: string
+    serviceType: string
+    status: string
+    createdAt: string
+    address?: string
+    preferredDate?: string | null
+    preferredTime?: string | null
+    notes?: string | null
+    photoDataUrl?: string | null
+    photoNote?: string | null
+  }>
 }
 
 export function useClientPortal() {
