@@ -63,8 +63,6 @@ export default function AdminRoutesPage() {
     const loadLeaflet = () => {
       if (window.L) { setMapReady(true); return }
       if (document.getElementById('leaflet-js')) {
-        // Script tag already exists from a prior navigation but window.L may not be
-        // ready yet (Next.js client routing doesn't reload <script> onload). Poll for it.
         const check = setInterval(() => {
           if (window.L) { clearInterval(check); setMapReady(true) }
         }, 100)
@@ -322,14 +320,15 @@ export default function AdminRoutesPage() {
                 )}
               </div>
 
-              {/* Map container */}
-              {mapReady ? (
+              {/* Map container — always rendered so mapRef is never null when mapReady flips true */}
+              <div style={{ position: 'relative', height: 420, width: '100%' }}>
                 <div ref={mapRef} style={{ height: 420, width: '100%', borderRadius: '0 0 12px 12px' }} />
-              ) : (
-                <div style={{ height: 420, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8494b0', fontSize: '0.85rem' }}>
-                  Loading map...
-                </div>
-              )}
+                {!mapReady && (
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8494b0', fontSize: '0.85rem', background: 'white', borderRadius: '0 0 12px 12px' }}>
+                    Loading map...
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* No employee selected */}
