@@ -13,12 +13,19 @@ type Job = {
 type Employee = { id: string; name: string; email: string }
 type RouteStop = { stopId: number; jobId: string; stopOrder: number; title: string; clientName: string; address: string; lat?: number; lng?: number; startTime: string }
 type Route = { id: number; employee_id: string; employee_name: string; stops: RouteStop[] }
-type SearchResult = { display_name: string; lat: string; lon: string }
 
-declare global { interface Window { L: any } }
+declare global {
+  interface Window {
+    L: any
+    google: any
+    __nmdInitGoogleMaps?: () => void
+  }
+}
 
 export default function AdminRoutesPage() {
   const API = process.env.NEXT_PUBLIC_API_URL || ''
+  const GOOGLE_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''
+
   const getToday = () => {
     const d = new Date()
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
@@ -36,22 +43,22 @@ export default function AdminRoutesPage() {
   const [savedMsg, setSavedMsg] = useState('')
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
-  const [searching, setSearching] = useState(false)
   const [mapReady, setMapReady] = useState(false)
-  const [showDropdown, setShowDropdown] = useState(false)
+  const [googleReady, setGoogleReady] = useState(false)
 
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<any>(null)
   const markersRef = useRef<any[]>([])
   const searchMarkerRef = useRef<any>(null)
-  const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  const autocompleteRef = useRef<any>(null)
   const jobsRef = useRef<Job[]>([])
   const routeJobIdsRef = useRef<string[]>([])
 
   jobsRef.current = jobs
   routeJobIdsRef.current = routeJobIds
 
+  // ── Load Leaflet (for the map display) ──────────────────────────────────
   useEffect(() => {
     const loadLeaflet = () => {
       if (window.L) { setMapReady(true); return }
@@ -73,6 +80,21 @@ export default function AdminRoutesPage() {
     loadLeaflet()
   }, [])
 
+  // ── Load Google Maps Places library (for search autocomplete only) ──────
+  useEffect(() => {
+    if (!GOOGLE_KEY) return
+    if (window.google?.maps?.places) { setGoogleReady(true); return }
+    if (document.getElementById('google-maps-js')) return
+
+    window.__nmdInitGoogleMaps = () => setGoogleReady(true)
+    const script = document.createElement('script')
+    script.id = 'google-maps-js'
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_KEY}&libraries=places&callback=__nmdInitGoogleMaps`
+    script.async = true
+    document.head.appendChild(script)
+  }, [GOOGLE_KEY])
+
+  // ── Init Leaflet map ──────────────────────────────────────────────────────
   useEffect(() => {
     if (!mapReady || !mapRef.current || mapInstance.current) return
     const L = window.L
@@ -83,6 +105,39 @@ export default function AdminRoutesPage() {
     setTimeout(() => mapInstance.current?.invalidateSize(), 200)
   }, [mapReady])
 
+  // ── Init Google Places Autocomplete on the search input ──────────────────
+  useEffect(() => {
+    if (!googleReady || !searchInputRef.current || autocompleteRef.current) return
+    const google = window.google
+
+    const autocomplete = new google.maps.places.Autocomplete(searchInputRef.current, {
+      componentRestrictions: { country: 'us' },
+      fields: ['formatted_address', 'geometry', 'name'],
+      types: ['geocode', 'establishment'],
+      // Bias results toward Florida (Orlando area bounding box)
+      bounds: new google.maps.LatLngBounds(
+        { lat: 24.5, lng: -87.6 }, // SW Florida
+        { lat: 31.0, lng: -79.8 }  // NE Florida
+      ),
+      strictBounds: false,
+    })
+
+    autocomplete.addListener('place_changed', () => {
+      const place = autocomplete.getPlace()
+      if (!place.geometry || !place.geometry.location) return
+
+      const lat = place.geometry.location.lat()
+      const lng = place.geometry.location.lng()
+      const address = place.formatted_address || place.name || ''
+
+      setSearchQuery(address)
+      flyTo(lat, lng, address)
+    })
+
+    autocompleteRef.current = autocomplete
+  }, [googleReady])
+
+  // ── Render markers ───────────────────────────────────────────────────────
   const updateMapMarkers = useCallback((jobList: Job[], selectedIds: string[]) => {
     if (!mapInstance.current || !window.L) return
     const L = window.L
@@ -115,6 +170,7 @@ export default function AdminRoutesPage() {
     updateMapMarkers(jobs, routeJobIds)
   }, [jobs, routeJobIds, updateMapMarkers])
 
+  // ── Load data ────────────────────────────────────────────────────────────
   const loadData = useCallback(async () => {
     setLoading(true)
     setError('')
@@ -137,46 +193,10 @@ export default function AdminRoutesPage() {
 
   useEffect(() => { loadData() }, [loadData])
 
-  const handleSearchInput = (val: string) => {
-    setSearchQuery(val)
-    setSearchResults([])
-    setShowDropdown(false)
-    if (searchTimeout.current) clearTimeout(searchTimeout.current)
-    if (val.trim().length < 3) return
-    searchTimeout.current = setTimeout(async () => {
-      setSearching(true)
-      try {
-        const params = new URLSearchParams({
-          q: val,
-          format: 'json',
-          limit: '5',
-          countrycodes: 'us',
-          viewbox: '-82.5,27.5,-80.0,29.5',
-          bounded: '0',
-          addressdetails: '1',
-        })
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?${params.toString()}`,
-          { headers: { 'User-Agent': 'NMD-App/1.0 (nmdpowash.com)' } }
-        )
-        const results: SearchResult[] = await res.json()
-        const sorted = results.sort((a, b) => {
-          const aFL = a.display_name.includes('Florida') ? 0 : 1
-          const bFL = b.display_name.includes('Florida') ? 0 : 1
-          return aFL - bFL
-        })
-        setSearchResults(sorted)
-        setShowDropdown(sorted.length > 0)
-      } catch {}
-      setSearching(false)
-    }, 500)
-  }
-
-  const flyToResult = (r: SearchResult) => {
+  // ── Fly map to a searched location and drop a pin ───────────────────────
+  const flyTo = (lat: number, lng: number, address: string) => {
     if (!mapInstance.current || !window.L) return
     const L = window.L
-    const lat = parseFloat(r.lat)
-    const lng = parseFloat(r.lon)
     mapInstance.current.flyTo([lat, lng], 16, { duration: 1.2 })
     if (searchMarkerRef.current) searchMarkerRef.current.remove()
     const icon = L.divIcon({
@@ -186,14 +206,11 @@ export default function AdminRoutesPage() {
     })
     searchMarkerRef.current = L.marker([lat, lng], { icon })
       .addTo(mapInstance.current)
-      .bindPopup(`<div style="font-size:12px;max-width:220px;font-family:DM Sans,sans-serif">${r.display_name}</div>`)
+      .bindPopup(`<div style="font-size:12px;max-width:220px;font-family:DM Sans,sans-serif">${address}</div>`)
       .openPopup()
-    const shortName = r.display_name.split(',').slice(0, 3).join(',').trim()
-    setSearchQuery(shortName)
-    setSearchResults([])
-    setShowDropdown(false)
   }
 
+  // ── Route actions ────────────────────────────────────────────────────────
   const selectEmployee = (emp: Employee) => {
     setSelectedEmployee(emp)
     const existing = routes.find(r => r.employee_id === emp.id)
@@ -279,37 +296,22 @@ export default function AdminRoutesPage() {
 
             {/* Map */}
             <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid #dde4ef' }}>
-              {/* Search bar */}
-              <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #dde4ef', position: 'relative', zIndex: 1000 }}>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={e => handleSearchInput(e.target.value)}
-                    onFocus={() => { if (searchResults.length > 0) setShowDropdown(true) }}
-                    onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
-                    placeholder="🔍 Search Florida address or location..."
-                    style={{ width: '100%', padding: '0.55rem 2.5rem 0.55rem 0.9rem', borderRadius: 8, border: '1.5px solid #dde4ef', fontSize: '0.875rem', fontFamily: 'DM Sans, sans-serif', color: '#0e1117', background: '#f4f7fb', boxSizing: 'border-box', outline: 'none' }}
-                  />
-                  {searching && (
-                    <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: '0.72rem', color: '#8494b0' }}>Searching...</span>
-                  )}
-                  {showDropdown && searchResults.length > 0 && (
-                    <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: 'white', border: '1.5px solid #dde4ef', borderRadius: 8, boxShadow: '0 8px 30px rgba(14,17,23,0.15)', zIndex: 9999, maxHeight: 280, overflowY: 'auto' }}>
-                      {searchResults.map((r, i) => (
-                        <div
-                          key={i}
-                          onClick={() => flyToResult(r)}
-                          style={{ padding: '0.65rem 1rem', borderBottom: i < searchResults.length - 1 ? '1px solid #f0f4f9' : 'none', fontSize: '0.82rem', color: '#3a4660', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', lineHeight: 1.4, userSelect: 'none' }}
-                          onMouseEnter={e => (e.currentTarget.style.background = '#f4f7fb')}
-                          onMouseLeave={e => (e.currentTarget.style.background = 'white')}
-                        >
-                          📍 {r.display_name}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+              {/* Search bar — Google Places Autocomplete */}
+              <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #dde4ef' }}>
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder={googleReady ? "🔍 Search Florida address or location..." : "Loading search..."}
+                  disabled={!googleReady}
+                  style={{ width: '100%', padding: '0.55rem 0.9rem', borderRadius: 8, border: '1.5px solid #dde4ef', fontSize: '0.875rem', fontFamily: 'DM Sans, sans-serif', color: '#0e1117', background: googleReady ? '#f4f7fb' : '#f0f0f0', boxSizing: 'border-box', outline: 'none' }}
+                />
+                {!GOOGLE_KEY && (
+                  <div style={{ marginTop: 6, fontSize: '0.72rem', color: '#c0392b' }}>
+                    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is not set.
+                  </div>
+                )}
               </div>
 
               {/* Map container */}
