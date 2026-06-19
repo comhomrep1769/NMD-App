@@ -173,42 +173,57 @@ export default function AdminRoutesPage() {
   // ── STEP 4: Attach the PlaceAutocompleteElement widget ───────────────────
   useEffect(() => {
     if (placesStatus !== 'script-loaded') return
-    if (!searchDivRef.current) {
-      setDebugMsg(prev => prev + ' | searchDivRef was null when trying to attach widget')
-      return
-    }
     if (placeElementRef.current) return // already attached
 
-    try {
-      const google = window.google
-      const placeAutocomplete = new google.maps.places.PlaceAutocompleteElement({
-        includedRegionCodes: ['us'],
-      })
-      placeAutocomplete.style.width = '100%'
-      searchDivRef.current.appendChild(placeAutocomplete)
-      placeElementRef.current = placeAutocomplete
+    let cancelled = false
 
-      placeAutocomplete.addEventListener('gmp-select', async (event: any) => {
-        try {
-          const prediction = event.placePrediction
-          if (!prediction) return
-          const place = prediction.toPlace()
-          await place.fetchFields({ fields: ['location', 'formattedAddress', 'displayName'] })
-          if (!place.location) return
-          const lat = place.location.lat()
-          const lng = place.location.lng()
-          const address = place.formattedAddress || place.displayName || ''
-          flyTo(lat, lng, address)
-        } catch (err: any) {
-          setDebugMsg(prev => prev + ' | gmp-select handler threw: ' + (err?.message || String(err)))
+    function tryAttach(attemptsLeft: number) {
+      if (cancelled) return
+      if (!searchDivRef.current) {
+        if (attemptsLeft <= 0) {
+          setPlacesStatus('failed')
+          setDebugMsg(prev => prev + ' | searchDivRef never became available after 3s')
+          return
         }
-      })
+        setTimeout(() => tryAttach(attemptsLeft - 1), 100)
+        return
+      }
 
-      setPlacesStatus('widget-attached')
-    } catch (err: any) {
-      setPlacesStatus('failed')
-      setDebugMsg(prev => prev + ' | PlaceAutocompleteElement constructor threw: ' + (err?.message || String(err)))
+      try {
+        const google = window.google
+        const placeAutocomplete = new google.maps.places.PlaceAutocompleteElement({
+          includedRegionCodes: ['us'],
+        })
+        placeAutocomplete.style.width = '100%'
+        searchDivRef.current.appendChild(placeAutocomplete)
+        placeElementRef.current = placeAutocomplete
+
+        placeAutocomplete.addEventListener('gmp-select', async (event: any) => {
+          try {
+            const prediction = event.placePrediction
+            if (!prediction) return
+            const place = prediction.toPlace()
+            await place.fetchFields({ fields: ['location', 'formattedAddress', 'displayName'] })
+            if (!place.location) return
+            const lat = place.location.lat()
+            const lng = place.location.lng()
+            const address = place.formattedAddress || place.displayName || ''
+            flyTo(lat, lng, address)
+          } catch (err: any) {
+            setDebugMsg(prev => prev + ' | gmp-select handler threw: ' + (err?.message || String(err)))
+          }
+        })
+
+        setPlacesStatus('widget-attached')
+      } catch (err: any) {
+        setPlacesStatus('failed')
+        setDebugMsg(prev => prev + ' | PlaceAutocompleteElement constructor threw: ' + (err?.message || String(err)))
+      }
     }
+
+    tryAttach(30) // poll up to 3s for the div to mount
+
+    return () => { cancelled = true }
   }, [placesStatus])
 
   // ── Render markers ───────────────────────────────────────────────────────
@@ -333,12 +348,6 @@ export default function AdminRoutesPage() {
         <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#1f6132', marginBottom: 6 }}>Admin Portal</div>
         <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: '1.75rem', fontWeight: 800, color: '#0e1117', letterSpacing: '-0.03em', marginBottom: 6 }}>Route Planner</h1>
         <p style={{ color: '#5a6a88', fontSize: '0.875rem' }}>Build and assign employee routes. Select an employee, add jobs, drag to reorder, then save.</p>
-      </div>
-
-      {/* DEBUG PANEL — remove once everything works */}
-      <div style={{ background: '#fffbea', border: '1.5px solid #f6c90e', borderRadius: 8, padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.78rem', color: '#7a5c00', fontFamily: 'monospace' }}>
-        map: <strong>{mapStatus}</strong> · places: <strong>{placesStatus}</strong>
-        {debugMsg && <div style={{ marginTop: 4, color: '#c0392b' }}>{debugMsg}</div>}
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: '1.5rem', flexWrap: 'wrap' }}>
