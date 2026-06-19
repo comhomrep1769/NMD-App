@@ -18,7 +18,6 @@ declare global {
   interface Window {
     L: any
     google: any
-    __nmdInitGoogleMaps?: () => void
   }
 }
 
@@ -42,32 +41,38 @@ export default function AdminRoutesPage() {
   const [error, setError] = useState('')
   const [savedMsg, setSavedMsg] = useState('')
   const [dragIndex, setDragIndex] = useState<number | null>(null)
-  const [mapReady, setMapReady] = useState(false)
-  const [googleReady, setGoogleReady] = useState(false)
-  const [searchDisplay, setSearchDisplay] = useState('')
+  const [mapStatus, setMapStatus] = useState('starting') // starting | leaflet-loaded | map-initialized | failed
+  const [placesStatus, setPlacesStatus] = useState('starting') // starting | script-loaded | widget-attached | failed
+  const [debugMsg, setDebugMsg] = useState('')
 
-  const mapRef = useRef<HTMLDivElement>(null)
+  const mapDivRef = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<any>(null)
   const markersRef = useRef<any[]>([])
   const searchMarkerRef = useRef<any>(null)
-  const searchContainerRef = useRef<HTMLDivElement>(null)
+  const searchDivRef = useRef<HTMLDivElement>(null)
   const placeElementRef = useRef<any>(null)
-  const jobsRef = useRef<Job[]>([])
-  const routeJobIdsRef = useRef<string[]>([])
 
-  jobsRef.current = jobs
-  routeJobIdsRef.current = routeJobIds
-
-  // ── Load Leaflet (for the map display) ──────────────────────────────────
+  // ── STEP 1: Load Leaflet script ──────────────────────────────────────────
   useEffect(() => {
-    const loadLeaflet = () => {
-      if (window.L) { setMapReady(true); return }
-      if (document.getElementById('leaflet-js')) {
-        const check = setInterval(() => {
-          if (window.L) { clearInterval(check); setMapReady(true) }
-        }, 100)
+    let cancelled = false
+
+    function waitForLeaflet(attemptsLeft: number) {
+      if (cancelled) return
+      if (window.L) {
+        setMapStatus('leaflet-loaded')
         return
       }
+      if (attemptsLeft <= 0) {
+        setMapStatus('failed')
+        setDebugMsg(prev => prev + ' | Leaflet never loaded after 5s')
+        return
+      }
+      setTimeout(() => waitForLeaflet(attemptsLeft - 1), 100)
+    }
+
+    if (window.L) {
+      setMapStatus('leaflet-loaded')
+    } else {
       if (!document.getElementById('leaflet-css')) {
         const link = document.createElement('link')
         link.id = 'leaflet-css'
@@ -75,73 +80,121 @@ export default function AdminRoutesPage() {
         link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
         document.head.appendChild(link)
       }
-      const script = document.createElement('script')
-      script.id = 'leaflet-js'
-      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
-      script.onload = () => setMapReady(true)
-      document.head.appendChild(script)
+      if (!document.getElementById('leaflet-js')) {
+        const script = document.createElement('script')
+        script.id = 'leaflet-js'
+        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
+        document.head.appendChild(script)
+      }
+      waitForLeaflet(50) // poll up to 5s
     }
-    loadLeaflet()
+
+    return () => { cancelled = true }
   }, [])
 
-  // ── Load Google Maps Places library (new PlaceAutocompleteElement) ──────
+  // ── STEP 2: Initialize the Leaflet map once the div exists AND L is loaded ──
   useEffect(() => {
-    if (!GOOGLE_KEY) return
-    if (window.google?.maps?.places?.PlaceAutocompleteElement) { setGoogleReady(true); return }
-    if (document.getElementById('google-maps-js')) return
-
-    window.__nmdInitGoogleMaps = () => setGoogleReady(true)
-    const script = document.createElement('script')
-    script.id = 'google-maps-js'
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_KEY}&libraries=places&loading=async&callback=__nmdInitGoogleMaps&v=beta`
-    script.async = true
-    document.head.appendChild(script)
-  }, [GOOGLE_KEY])
-
-  // ── Init Leaflet map ──────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!mapReady || !mapRef.current || mapInstance.current) return
-    const L = window.L
-    mapInstance.current = L.map(mapRef.current, { zoomControl: true }).setView([28.5383, -81.3792], 11)
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors', maxZoom: 19
-    }).addTo(mapInstance.current)
-    setTimeout(() => mapInstance.current?.invalidateSize(), 200)
-  }, [mapReady])
-
-  // ── Init Google PlaceAutocompleteElement (new API, replaces deprecated Autocomplete) ──
-  useEffect(() => {
-    if (!googleReady || !searchContainerRef.current || placeElementRef.current) return
-    const google = window.google
+    if (mapStatus !== 'leaflet-loaded') return
+    if (!mapDivRef.current) {
+      setDebugMsg(prev => prev + ' | mapDivRef was null when trying to init')
+      return
+    }
+    if (mapInstance.current) return // already initialized
 
     try {
+      const L = window.L
+      mapInstance.current = L.map(mapDivRef.current, { zoomControl: true }).setView([28.5383, -81.3792], 11)
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors', maxZoom: 19
+      }).addTo(mapInstance.current)
+      setTimeout(() => mapInstance.current?.invalidateSize(), 200)
+      setMapStatus('map-initialized')
+    } catch (err: any) {
+      setMapStatus('failed')
+      setDebugMsg(prev => prev + ' | Map init threw: ' + (err?.message || String(err)))
+    }
+  }, [mapStatus])
+
+  // ── STEP 3: Load Google Places script ────────────────────────────────────
+  useEffect(() => {
+    if (!GOOGLE_KEY) {
+      setPlacesStatus('failed')
+      setDebugMsg(prev => prev + ' | No GOOGLE_KEY env var')
+      return
+    }
+
+    let cancelled = false
+
+    function waitForPlaces(attemptsLeft: number) {
+      if (cancelled) return
+      if (window.google?.maps?.places?.PlaceAutocompleteElement) {
+        setPlacesStatus('script-loaded')
+        return
+      }
+      if (attemptsLeft <= 0) {
+        setPlacesStatus('failed')
+        setDebugMsg(prev => prev + ' | Google Places never loaded after 8s')
+        return
+      }
+      setTimeout(() => waitForPlaces(attemptsLeft - 1), 100)
+    }
+
+    if (window.google?.maps?.places?.PlaceAutocompleteElement) {
+      setPlacesStatus('script-loaded')
+    } else {
+      if (!document.getElementById('google-maps-js')) {
+        const script = document.createElement('script')
+        script.id = 'google-maps-js'
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_KEY}&libraries=places&loading=async&v=beta`
+        script.async = true
+        document.head.appendChild(script)
+      }
+      waitForPlaces(80) // poll up to 8s
+    }
+
+    return () => { cancelled = true }
+  }, [GOOGLE_KEY])
+
+  // ── STEP 4: Attach the PlaceAutocompleteElement widget ───────────────────
+  useEffect(() => {
+    if (placesStatus !== 'script-loaded') return
+    if (!searchDivRef.current) {
+      setDebugMsg(prev => prev + ' | searchDivRef was null when trying to attach widget')
+      return
+    }
+    if (placeElementRef.current) return // already attached
+
+    try {
+      const google = window.google
       const placeAutocomplete = new google.maps.places.PlaceAutocompleteElement({
         includedRegionCodes: ['us'],
       })
-      placeAutocomplete.id = 'nmd-place-autocomplete'
       placeAutocomplete.style.width = '100%'
-
-      searchContainerRef.current.appendChild(placeAutocomplete)
+      searchDivRef.current.appendChild(placeAutocomplete)
       placeElementRef.current = placeAutocomplete
 
       placeAutocomplete.addEventListener('gmp-select', async (event: any) => {
-        const prediction = event.placePrediction
-        if (!prediction) return
-        const place = prediction.toPlace()
-        await place.fetchFields({ fields: ['location', 'formattedAddress', 'displayName'] })
-
-        if (!place.location) return
-        const lat = place.location.lat()
-        const lng = place.location.lng()
-        const address = place.formattedAddress || place.displayName || ''
-
-        setSearchDisplay(address)
-        flyTo(lat, lng, address)
+        try {
+          const prediction = event.placePrediction
+          if (!prediction) return
+          const place = prediction.toPlace()
+          await place.fetchFields({ fields: ['location', 'formattedAddress', 'displayName'] })
+          if (!place.location) return
+          const lat = place.location.lat()
+          const lng = place.location.lng()
+          const address = place.formattedAddress || place.displayName || ''
+          flyTo(lat, lng, address)
+        } catch (err: any) {
+          setDebugMsg(prev => prev + ' | gmp-select handler threw: ' + (err?.message || String(err)))
+        }
       })
-    } catch (err) {
-      console.error('Failed to init PlaceAutocompleteElement', err)
+
+      setPlacesStatus('widget-attached')
+    } catch (err: any) {
+      setPlacesStatus('failed')
+      setDebugMsg(prev => prev + ' | PlaceAutocompleteElement constructor threw: ' + (err?.message || String(err)))
     }
-  }, [googleReady])
+  }, [placesStatus])
 
   // ── Render markers ───────────────────────────────────────────────────────
   const updateMapMarkers = useCallback((jobList: Job[], selectedIds: string[]) => {
@@ -199,7 +252,6 @@ export default function AdminRoutesPage() {
 
   useEffect(() => { loadData() }, [loadData])
 
-  // ── Fly map to a searched location and drop a pin ───────────────────────
   const flyTo = (lat: number, lng: number, address: string) => {
     if (!mapInstance.current || !window.L) return
     const L = window.L
@@ -216,7 +268,6 @@ export default function AdminRoutesPage() {
       .openPopup()
   }
 
-  // ── Route actions ────────────────────────────────────────────────────────
   const selectEmployee = (emp: Employee) => {
     setSelectedEmployee(emp)
     const existing = routes.find(r => r.employee_id === emp.id)
@@ -269,6 +320,12 @@ export default function AdminRoutesPage() {
         <p style={{ color: '#5a6a88', fontSize: '0.875rem' }}>Build and assign employee routes. Select an employee, add jobs, drag to reorder, then save.</p>
       </div>
 
+      {/* DEBUG PANEL — remove once everything works */}
+      <div style={{ background: '#fffbea', border: '1.5px solid #f6c90e', borderRadius: 8, padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.78rem', color: '#7a5c00', fontFamily: 'monospace' }}>
+        map: <strong>{mapStatus}</strong> · places: <strong>{placesStatus}</strong>
+        {debugMsg && <div style={{ marginTop: 4, color: '#c0392b' }}>{debugMsg}</div>}
+      </div>
+
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: '1.5rem', flexWrap: 'wrap' }}>
         <input type="date" value={date} onChange={e => setDate(e.target.value)}
           style={{ padding: '0.6rem 0.9rem', borderRadius: 8, border: '1.5px solid #dde4ef', fontSize: '0.875rem', fontFamily: 'DM Sans, sans-serif', color: '#0e1117', background: 'white' }} />
@@ -302,36 +359,28 @@ export default function AdminRoutesPage() {
 
             {/* Map */}
             <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid #dde4ef' }}>
-              {/* Search bar — Google PlaceAutocompleteElement gets mounted here */}
-              <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #dde4ef' }}>
-                <div ref={searchContainerRef} style={{ width: '100%' }}>
-                  {!googleReady && (
+              <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #dde4ef', minHeight: 50 }}>
+                <div ref={searchDivRef} style={{ width: '100%' }}>
+                  {placesStatus !== 'widget-attached' && (
                     <input
                       readOnly
-                      placeholder="Loading search..."
+                      placeholder={placesStatus === 'failed' ? 'Search unavailable' : 'Loading search...'}
                       style={{ width: '100%', padding: '0.55rem 0.9rem', borderRadius: 8, border: '1.5px solid #dde4ef', fontSize: '0.875rem', fontFamily: 'DM Sans, sans-serif', color: '#8494b0', background: '#f0f0f0', boxSizing: 'border-box', outline: 'none' }}
                     />
                   )}
                 </div>
-                {!GOOGLE_KEY && (
-                  <div style={{ marginTop: 6, fontSize: '0.72rem', color: '#c0392b' }}>
-                    NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is not set.
-                  </div>
-                )}
               </div>
 
-              {/* Map container — always rendered so mapRef is never null when mapReady flips true */}
               <div style={{ position: 'relative', height: 420, width: '100%' }}>
-                <div ref={mapRef} style={{ height: 420, width: '100%', borderRadius: '0 0 12px 12px' }} />
-                {!mapReady && (
+                <div ref={mapDivRef} style={{ height: 420, width: '100%', borderRadius: '0 0 12px 12px' }} />
+                {mapStatus !== 'map-initialized' && (
                   <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8494b0', fontSize: '0.85rem', background: 'white', borderRadius: '0 0 12px 12px' }}>
-                    Loading map...
+                    {mapStatus === 'failed' ? 'Map failed to load' : 'Loading map...'}
                   </div>
                 )}
               </div>
             </div>
 
-            {/* No employee selected */}
             {!selectedEmployee && (
               <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid #dde4ef', padding: '2.5rem', textAlign: 'center' }}>
                 <div style={{ fontSize: '2rem', marginBottom: 12 }}>👈</div>
@@ -340,7 +389,6 @@ export default function AdminRoutesPage() {
               </div>
             )}
 
-            {/* Route builder */}
             {selectedEmployee && (
               <>
                 <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid #dde4ef', padding: '1.25rem' }}>
@@ -381,7 +429,6 @@ export default function AdminRoutesPage() {
                   )}
                 </div>
 
-                {/* Available jobs */}
                 <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid #dde4ef', padding: '1.25rem' }}>
                   <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '0.95rem', color: '#0e1117', marginBottom: '1rem' }}>
                     Available Jobs ({unassignedJobs.length})
