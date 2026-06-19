@@ -95,24 +95,39 @@ export default function AdminRoutesPage() {
   // ── STEP 2: Initialize the Leaflet map once the div exists AND L is loaded ──
   useEffect(() => {
     if (mapStatus !== 'leaflet-loaded') return
-    if (!mapDivRef.current) {
-      setDebugMsg(prev => prev + ' | mapDivRef was null when trying to init')
-      return
-    }
     if (mapInstance.current) return // already initialized
 
-    try {
-      const L = window.L
-      mapInstance.current = L.map(mapDivRef.current, { zoomControl: true }).setView([28.5383, -81.3792], 11)
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors', maxZoom: 19
-      }).addTo(mapInstance.current)
-      setTimeout(() => mapInstance.current?.invalidateSize(), 200)
-      setMapStatus('map-initialized')
-    } catch (err: any) {
-      setMapStatus('failed')
-      setDebugMsg(prev => prev + ' | Map init threw: ' + (err?.message || String(err)))
+    let cancelled = false
+
+    function tryInit(attemptsLeft: number) {
+      if (cancelled) return
+      if (!mapDivRef.current) {
+        if (attemptsLeft <= 0) {
+          setMapStatus('failed')
+          setDebugMsg(prev => prev + ' | mapDivRef never became available after 3s')
+          return
+        }
+        setTimeout(() => tryInit(attemptsLeft - 1), 100)
+        return
+      }
+
+      try {
+        const L = window.L
+        mapInstance.current = L.map(mapDivRef.current, { zoomControl: true }).setView([28.5383, -81.3792], 11)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors', maxZoom: 19
+        }).addTo(mapInstance.current)
+        setTimeout(() => mapInstance.current?.invalidateSize(), 200)
+        setMapStatus('map-initialized')
+      } catch (err: any) {
+        setMapStatus('failed')
+        setDebugMsg(prev => prev + ' | Map init threw: ' + (err?.message || String(err)))
+      }
     }
+
+    tryInit(30) // poll up to 3s for the div to mount
+
+    return () => { cancelled = true }
   }, [mapStatus])
 
   // ── STEP 3: Load Google Places script ────────────────────────────────────
