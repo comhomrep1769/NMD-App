@@ -42,16 +42,16 @@ export default function AdminRoutesPage() {
   const [error, setError] = useState('')
   const [savedMsg, setSavedMsg] = useState('')
   const [dragIndex, setDragIndex] = useState<number | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
   const [mapReady, setMapReady] = useState(false)
   const [googleReady, setGoogleReady] = useState(false)
+  const [searchDisplay, setSearchDisplay] = useState('')
 
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<any>(null)
   const markersRef = useRef<any[]>([])
   const searchMarkerRef = useRef<any>(null)
-  const searchInputRef = useRef<HTMLInputElement>(null)
-  const autocompleteRef = useRef<any>(null)
+  const searchContainerRef = useRef<HTMLDivElement>(null)
+  const placeElementRef = useRef<any>(null)
   const jobsRef = useRef<Job[]>([])
   const routeJobIdsRef = useRef<string[]>([])
 
@@ -80,16 +80,16 @@ export default function AdminRoutesPage() {
     loadLeaflet()
   }, [])
 
-  // ── Load Google Maps Places library (for search autocomplete only) ──────
+  // ── Load Google Maps Places library (new PlaceAutocompleteElement) ──────
   useEffect(() => {
     if (!GOOGLE_KEY) return
-    if (window.google?.maps?.places) { setGoogleReady(true); return }
+    if (window.google?.maps?.places?.PlaceAutocompleteElement) { setGoogleReady(true); return }
     if (document.getElementById('google-maps-js')) return
 
     window.__nmdInitGoogleMaps = () => setGoogleReady(true)
     const script = document.createElement('script')
     script.id = 'google-maps-js'
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_KEY}&libraries=places&callback=__nmdInitGoogleMaps`
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_KEY}&libraries=places&loading=async&callback=__nmdInitGoogleMaps&v=beta`
     script.async = true
     document.head.appendChild(script)
   }, [GOOGLE_KEY])
@@ -105,36 +105,38 @@ export default function AdminRoutesPage() {
     setTimeout(() => mapInstance.current?.invalidateSize(), 200)
   }, [mapReady])
 
-  // ── Init Google Places Autocomplete on the search input ──────────────────
+  // ── Init Google PlaceAutocompleteElement (new API, replaces deprecated Autocomplete) ──
   useEffect(() => {
-    if (!googleReady || !searchInputRef.current || autocompleteRef.current) return
+    if (!googleReady || !searchContainerRef.current || placeElementRef.current) return
     const google = window.google
 
-    const autocomplete = new google.maps.places.Autocomplete(searchInputRef.current, {
-      componentRestrictions: { country: 'us' },
-      fields: ['formatted_address', 'geometry', 'name'],
-      types: ['geocode', 'establishment'],
-      // Bias results toward Florida (Orlando area bounding box)
-      bounds: new google.maps.LatLngBounds(
-        { lat: 24.5, lng: -87.6 }, // SW Florida
-        { lat: 31.0, lng: -79.8 }  // NE Florida
-      ),
-      strictBounds: false,
-    })
+    try {
+      const placeAutocomplete = new google.maps.places.PlaceAutocompleteElement({
+        includedRegionCodes: ['us'],
+      })
+      placeAutocomplete.id = 'nmd-place-autocomplete'
+      placeAutocomplete.style.width = '100%'
 
-    autocomplete.addListener('place_changed', () => {
-      const place = autocomplete.getPlace()
-      if (!place.geometry || !place.geometry.location) return
+      searchContainerRef.current.appendChild(placeAutocomplete)
+      placeElementRef.current = placeAutocomplete
 
-      const lat = place.geometry.location.lat()
-      const lng = place.geometry.location.lng()
-      const address = place.formatted_address || place.name || ''
+      placeAutocomplete.addEventListener('gmp-select', async (event: any) => {
+        const prediction = event.placePrediction
+        if (!prediction) return
+        const place = prediction.toPlace()
+        await place.fetchFields({ fields: ['location', 'formattedAddress', 'displayName'] })
 
-      setSearchQuery(address)
-      flyTo(lat, lng, address)
-    })
+        if (!place.location) return
+        const lat = place.location.lat()
+        const lng = place.location.lng()
+        const address = place.formattedAddress || place.displayName || ''
 
-    autocompleteRef.current = autocomplete
+        setSearchDisplay(address)
+        flyTo(lat, lng, address)
+      })
+    } catch (err) {
+      console.error('Failed to init PlaceAutocompleteElement', err)
+    }
   }, [googleReady])
 
   // ── Render markers ───────────────────────────────────────────────────────
@@ -296,17 +298,17 @@ export default function AdminRoutesPage() {
 
             {/* Map */}
             <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid #dde4ef' }}>
-              {/* Search bar — Google Places Autocomplete */}
+              {/* Search bar — Google PlaceAutocompleteElement gets mounted here */}
               <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #dde4ef' }}>
-                <input
-                  ref={searchInputRef}
-                  type="text"
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  placeholder={googleReady ? "🔍 Search Florida address or location..." : "Loading search..."}
-                  disabled={!googleReady}
-                  style={{ width: '100%', padding: '0.55rem 0.9rem', borderRadius: 8, border: '1.5px solid #dde4ef', fontSize: '0.875rem', fontFamily: 'DM Sans, sans-serif', color: '#0e1117', background: googleReady ? '#f4f7fb' : '#f0f0f0', boxSizing: 'border-box', outline: 'none' }}
-                />
+                <div ref={searchContainerRef} style={{ width: '100%' }}>
+                  {!googleReady && (
+                    <input
+                      readOnly
+                      placeholder="Loading search..."
+                      style={{ width: '100%', padding: '0.55rem 0.9rem', borderRadius: 8, border: '1.5px solid #dde4ef', fontSize: '0.875rem', fontFamily: 'DM Sans, sans-serif', color: '#8494b0', background: '#f0f0f0', boxSizing: 'border-box', outline: 'none' }}
+                    />
+                  )}
+                </div>
                 {!GOOGLE_KEY && (
                   <div style={{ marginTop: 6, fontSize: '0.72rem', color: '#c0392b' }}>
                     NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is not set.
