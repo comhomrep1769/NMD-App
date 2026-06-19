@@ -62,6 +62,14 @@ export default function AdminRoutesPage() {
   useEffect(() => {
     const loadLeaflet = () => {
       if (window.L) { setMapReady(true); return }
+      if (document.getElementById('leaflet-js')) {
+        // Script tag already exists from a prior navigation but window.L may not be
+        // ready yet (Next.js client routing doesn't reload <script> onload). Poll for it.
+        const check = setInterval(() => {
+          if (window.L) { clearInterval(check); setMapReady(true) }
+        }, 100)
+        return
+      }
       if (!document.getElementById('leaflet-css')) {
         const link = document.createElement('link')
         link.id = 'leaflet-css'
@@ -69,13 +77,11 @@ export default function AdminRoutesPage() {
         link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'
         document.head.appendChild(link)
       }
-      if (!document.getElementById('leaflet-js')) {
-        const script = document.createElement('script')
-        script.id = 'leaflet-js'
-        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
-        script.onload = () => setMapReady(true)
-        document.head.appendChild(script)
-      }
+      const script = document.createElement('script')
+      script.id = 'leaflet-js'
+      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
+      script.onload = () => setMapReady(true)
+      document.head.appendChild(script)
     }
     loadLeaflet()
   }, [])
