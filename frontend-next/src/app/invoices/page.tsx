@@ -10,6 +10,7 @@ type Invoice = {
   jobName: string; subtotal: number; total: number
   status: string; createdAt: string; paidAt: string | null
   uploadedInvoiceUrl: string | null; uploadedInvoiceName: string | null
+  paymentLinkUrl: string | null; paymentStatus: string | null
 }
 
 const inputStyle: React.CSSProperties = {
@@ -49,6 +50,9 @@ export default function InvoicesPage() {
 
   const [markPaidId, setMarkPaidId] = useState<string | null>(null)
   const [viewInvoice, setViewInvoice] = useState<Invoice | null>(null)
+
+  const [sendingLinkId, setSendingLinkId] = useState<string | null>(null)
+  const [linkError, setLinkError] = useState<{ id: string; message: string } | null>(null)
 
   const API = process.env.NEXT_PUBLIC_API_URL || ''
 
@@ -137,6 +141,30 @@ export default function InvoicesPage() {
       setInvoices(p => p.map(i => i.id === id ? data.invoice : i))
     } catch (err) { alert(err instanceof Error ? err.message : 'Failed') }
     setMarkPaidId(null)
+  }
+
+  // ── Generate (or fetch existing) Stripe payment link and email it to the client ──
+  const handleSendPaymentLink = async (inv: Invoice) => {
+    setLinkError(null)
+    setSendingLinkId(inv.id)
+    try {
+      const token = getNmdToken()
+      const res = await fetch(`${API}/api/payments/invoices/${inv.id}/create-payment-link`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to create payment link')
+      setInvoices(p => p.map(i => i.id === inv.id ? data.invoice : i))
+      alert('Payment link sent — the client has been emailed a secure Stripe checkout link.')
+    } catch (err) {
+      setLinkError({ id: inv.id, message: err instanceof Error ? err.message : 'Failed to send payment link' })
+    }
+    setSendingLinkId(null)
+  }
+
+  const handleCopyLink = (url: string) => {
+    navigator.clipboard.writeText(url).then(() => alert('Payment link copied to clipboard.'))
   }
 
   return (
@@ -272,17 +300,35 @@ export default function InvoicesPage() {
             <span key="total" style={{ fontWeight: 600 }}>${Number(inv.total).toFixed(2)}</span>,
             <StatusBadge key="status" status={inv.status} />,
             <span key="date" style={{ color: '#8494b0', whiteSpace: 'nowrap' }}>{fmtDate(inv.createdAt)}</span>,
-            <div key="actions" style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-              <button onClick={() => setUploadInvoice(inv)} style={{ padding: '0.3rem 0.65rem', borderRadius: 6, border: 'none', background: '#e8f0fe', color: '#124d83', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
-                {inv.uploadedInvoiceUrl ? 'Re-upload' : 'Upload'}
-              </button>
-              {inv.uploadedInvoiceUrl && (
-                <button onClick={() => setViewInvoice(inv)} style={{ padding: '0.3rem 0.65rem', borderRadius: 6, border: 'none', background: '#f4f7fb', color: '#3a4660', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>View</button>
-              )}
-              {inv.status !== 'paid' && (
-                <button onClick={() => handleMarkPaid(inv.id)} disabled={markPaidId === inv.id} style={{ padding: '0.3rem 0.65rem', borderRadius: 6, border: 'none', background: '#e8f5e9', color: '#1f6132', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
-                  {markPaidId === inv.id ? '...' : 'Mark Paid'}
+            <div key="actions" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                <button onClick={() => setUploadInvoice(inv)} style={{ padding: '0.3rem 0.65rem', borderRadius: 6, border: 'none', background: '#e8f0fe', color: '#124d83', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
+                  {inv.uploadedInvoiceUrl ? 'Re-upload' : 'Upload'}
                 </button>
+                {inv.uploadedInvoiceUrl && (
+                  <button onClick={() => setViewInvoice(inv)} style={{ padding: '0.3rem 0.65rem', borderRadius: 6, border: 'none', background: '#f4f7fb', color: '#3a4660', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>View</button>
+                )}
+                {inv.status !== 'paid' && (
+                  <button onClick={() => handleMarkPaid(inv.id)} disabled={markPaidId === inv.id} style={{ padding: '0.3rem 0.65rem', borderRadius: 6, border: 'none', background: '#e8f5e9', color: '#1f6132', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
+                    {markPaidId === inv.id ? '...' : 'Mark Paid'}
+                  </button>
+                )}
+              </div>
+              {inv.status !== 'paid' && (
+                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                  {inv.paymentLinkUrl ? (
+                    <button onClick={() => handleCopyLink(inv.paymentLinkUrl!)} style={{ padding: '0.3rem 0.65rem', borderRadius: 6, border: 'none', background: '#fff4e0', color: '#a3650f', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
+                      🔗 Copy Link
+                    </button>
+                  ) : (
+                    <button onClick={() => handleSendPaymentLink(inv)} disabled={sendingLinkId === inv.id} style={{ padding: '0.3rem 0.65rem', borderRadius: 6, border: 'none', background: '#fff4e0', color: '#a3650f', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
+                      {sendingLinkId === inv.id ? 'Sending...' : '💳 Send Payment Link'}
+                    </button>
+                  )}
+                </div>
+              )}
+              {linkError?.id === inv.id && (
+                <div style={{ fontSize: '0.7rem', color: '#c0392b' }}>{linkError.message}</div>
               )}
             </div>
           ])}
