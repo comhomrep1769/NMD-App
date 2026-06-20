@@ -188,6 +188,41 @@ export async function createClientAccountAndToken(input: {
     isNew = true;
   }
 
+  // ── Ensure a matching `clients` row exists, linked via user_id ──
+  // Quotes, invoices, the admin client picker, and "My Quotes" all read from
+  // `clients`, not `users` — without this, a self-registered client is invisible
+  // to the entire quoting system even though their login works fine.
+  try {
+    const normalizedEmail = input.email.trim().toLowerCase();
+    const nameParts = input.displayName.trim().split(/\s+/);
+    const firstName = nameParts[0] || input.displayName.trim();
+    const lastName = nameParts.slice(1).join(" ") || "";
+
+    const existingClient = await pool.query(
+      `SELECT id FROM clients WHERE user_id = $1 OR LOWER(email) = LOWER($2) LIMIT 1`,
+      [userId, normalizedEmail]
+    );
+
+    if (existingClient.rows.length > 0) {
+      await pool.query(
+        `UPDATE clients SET
+          user_id = $1,
+          phone = COALESCE($2, phone),
+          address = COALESCE($3, address)
+        WHERE id = $4`,
+        [userId, input.phone || null, input.address || null, existingClient.rows[0].id]
+      );
+    } else {
+      await pool.query(
+        `INSERT INTO clients (first_name, last_name, phone, email, address, user_id)
+        VALUES ($1, $2, $3, $4, $5, $6)`,
+        [firstName, lastName, input.phone || null, normalizedEmail, input.address || null, userId]
+      );
+    }
+  } catch (clientSyncErr) {
+    console.error("[createClientAccountAndToken] failed to sync clients table:", clientSyncErr);
+  }
+
   const token = crypto.randomBytes(48).toString("hex");
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
