@@ -266,34 +266,6 @@ export default function QuotesPage() {
     setSending(false)
   }
 
-  const handleAccept = async (q: Quote) => {
-    setActionLoading(q.id + '-accept')
-    try {
-      const token = getNmdToken()
-      const res = await fetch(`${API}/api/quotes/${q.id}/accept`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
-      setQuotes(p => p.map(x => x.id === q.id ? data.quote : x))
-    } catch (err) { alert(err instanceof Error ? err.message : 'Failed') }
-    setActionLoading(null)
-  }
-
-  const handleDecline = async (q: Quote) => {
-    setActionLoading(q.id + '-decline')
-    try {
-      const token = getNmdToken()
-      const res = await fetch(`${API}/api/quotes/${q.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ status: 'declined' })
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
-      setQuotes(p => p.map(x => x.id === q.id ? data.quote : x))
-    } catch (err) { alert(err instanceof Error ? err.message : 'Failed') }
-    setActionLoading(null)
-  }
-
   const handleFileSelect = (files: FileList | null) => {
     if (!files || files.length === 0) return
     const file = files[0]
@@ -549,7 +521,7 @@ export default function QuotesPage() {
             <span key="total" style={{ fontWeight: 600 }}>{money(q.total)}</span>,
             <StatusBadge key="status" status={q.status} />,
             <span key="date" style={{ color: '#8494b0', whiteSpace: 'nowrap' }}>{fmtDate(q.createdAt)}</span>,
-            <div key="actions" style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+            <div key="actions" style={{ display: 'flex', gap: 5, flexWrap: 'wrap', alignItems: 'center' }}>
               {q.status === 'draft' && (
                 <button
                   onClick={() => handleSendClick(q)}
@@ -560,16 +532,7 @@ export default function QuotesPage() {
                 </button>
               )}
               {q.status === 'sent' && (
-                <>
-                  <button onClick={() => handleAccept(q)} disabled={actionLoading === q.id + '-accept'}
-                    style={{ padding: '0.3rem 0.65rem', borderRadius: 6, border: 'none', background: '#e8f5e9', color: '#1f6132', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
-                    {actionLoading === q.id + '-accept' ? '...' : 'Accept'}
-                  </button>
-                  <button onClick={() => handleDecline(q)} disabled={actionLoading === q.id + '-decline'}
-                    style={{ padding: '0.3rem 0.65rem', borderRadius: 6, border: 'none', background: '#fef2f2', color: '#e74c3c', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
-                    {actionLoading === q.id + '-decline' ? '...' : 'Decline'}
-                  </button>
-                </>
+                <span style={{ fontSize: '0.75rem', color: '#8494b0', fontWeight: 600 }}>⏳ Awaiting client response</span>
               )}
               {q.status === 'accepted' && !q.convertedInvoiceId && (
                 <button onClick={() => { setConvertQuote(q); setUploadFile(null); setConvertError('') }}
