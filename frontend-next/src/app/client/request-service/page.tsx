@@ -4,6 +4,12 @@ import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { getNmdAuth } from '@/lib/authStorage'
 
+declare global {
+  interface Window {
+    google: any
+  }
+}
+
 const SERVICES = [
   'House Washing','Roof Cleaning','Driveway Cleaning','Sidewalk Cleaning',
   'Patio Cleaning','Pool Deck Cleaning','Deck Cleaning','Fence Cleaning',
@@ -163,6 +169,8 @@ function SignaturePad({ onSigned, onCleared }: { onSigned: (dataUrl: string) => 
 }
 
 export default function ServiceRequestPage() {
+  const GOOGLE_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''
+
   // ── Detect logged-in client and pre-fill ──────────────────────────────────
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [clientName, setClientName] = useState('')
@@ -181,6 +189,7 @@ export default function ServiceRequestPage() {
         firstName: first,
         lastName: last,
         email: auth.user?.email || '',
+        phone: (auth.user as any)?.phone || prev.phone,
       }))
     }
   }, [])
@@ -211,6 +220,76 @@ export default function ServiceRequestPage() {
   const [modalError, setModalError] = useState('')
   const disclaimerRef = useRef<HTMLDivElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+
+  // ── Google Places Autocomplete for Service Address ───────────────────────
+  const [placesStatus, setPlacesStatus] = useState('starting') // starting | script-loaded | widget-attached | failed
+  const addressDivRef = useRef<HTMLDivElement>(null)
+  const placeElementRef = useRef<any>(null)
+
+  useEffect(() => {
+    if (!GOOGLE_KEY) { setPlacesStatus('failed'); return }
+    let cancelled = false
+
+    function waitForPlaces(attemptsLeft: number) {
+      if (cancelled) return
+      if (window.google?.maps?.places?.PlaceAutocompleteElement) { setPlacesStatus('script-loaded'); return }
+      if (attemptsLeft <= 0) { setPlacesStatus('failed'); return }
+      setTimeout(() => waitForPlaces(attemptsLeft - 1), 100)
+    }
+
+    if (window.google?.maps?.places?.PlaceAutocompleteElement) {
+      setPlacesStatus('script-loaded')
+    } else {
+      if (!document.getElementById('google-maps-js')) {
+        const script = document.createElement('script')
+        script.id = 'google-maps-js'
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_KEY}&libraries=places&loading=async&v=beta`
+        script.async = true
+        document.head.appendChild(script)
+      }
+      waitForPlaces(80)
+    }
+    return () => { cancelled = true }
+  }, [GOOGLE_KEY])
+
+  useEffect(() => {
+    if (placesStatus !== 'script-loaded') return
+    if (placeElementRef.current) return
+
+    let cancelled = false
+    function tryAttach(attemptsLeft: number) {
+      if (cancelled) return
+      if (!addressDivRef.current) {
+        if (attemptsLeft <= 0) { setPlacesStatus('failed'); return }
+        setTimeout(() => tryAttach(attemptsLeft - 1), 100)
+        return
+      }
+      try {
+        const google = window.google
+        const placeAutocomplete = new google.maps.places.PlaceAutocompleteElement({
+          includedRegionCodes: ['us'],
+        })
+        placeAutocomplete.style.width = '100%'
+        addressDivRef.current.appendChild(placeAutocomplete)
+        placeElementRef.current = placeAutocomplete
+
+        placeAutocomplete.addEventListener('gmp-select', async (event: any) => {
+          const prediction = event.placePrediction
+          if (!prediction) return
+          const place = prediction.toPlace()
+          await place.fetchFields({ fields: ['formattedAddress'] })
+          const address = place.formattedAddress || ''
+          setForm(prev => ({ ...prev, serviceAddress: address }))
+        })
+
+        setPlacesStatus('widget-attached')
+      } catch {
+        setPlacesStatus('failed')
+      }
+    }
+    tryAttach(30)
+    return () => { cancelled = true }
+  }, [placesStatus])
 
   const update = (field: string, value: string) => setForm(prev => ({ ...prev, [field]: value }))
 
@@ -446,11 +525,23 @@ export default function ServiceRequestPage() {
               </div>
               <div>
                 <label style={labelStyle}>Phone</label>
-                <input style={inputStyle} value={form.phone} onChange={e => update('phone', e.target.value)} placeholder="(555) 000-0000" />
+                <input style={isLoggedIn && form.phone ? readonlyInputStyle : inputStyle} value={form.phone}
+                  onChange={e => update('phone', e.target.value)}
+                  readOnly={isLoggedIn && !!form.phone} placeholder="(555) 000-0000" />
               </div>
               <div style={{ gridColumn: '1 / -1' }}>
                 <label style={labelStyle}>Service Address *</label>
-                <input style={inputStyle} value={form.serviceAddress} onChange={e => update('serviceAddress', e.target.value)} placeholder="123 Main St, Orlando, FL" required />
+                <div ref={addressDivRef} style={{ width: '100%' }}>
+                  {placesStatus !== 'widget-attached' && (
+                    <input
+                      style={inputStyle}
+                      value={form.serviceAddress}
+                      onChange={e => update('serviceAddress', e.target.value)}
+                      placeholder={placesStatus === 'failed' ? '123 Main St, Orlando, FL' : 'Loading address search...'}
+                      required
+                    />
+                  )}
+                </div>
               </div>
             </div>
 
