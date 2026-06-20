@@ -1,13 +1,21 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { apiFetch } from '@/lib/api'
 import { saveNmdAuth } from '@/lib/authStorage'
 import Link from 'next/link'
 
+declare global {
+  interface Window {
+    google: any
+  }
+}
+
 export default function ClientRegisterPage() {
   const router = useRouter()
+  const GOOGLE_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''
+
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
@@ -19,6 +27,75 @@ export default function ClientRegisterPage() {
   const [showConfirm, setShowConfirm] = useState(false)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+
+  // ── Google Places Autocomplete for Service Address ───────────────────────
+  const [placesStatus, setPlacesStatus] = useState('starting') // starting | script-loaded | widget-attached | failed
+  const addressDivRef = useRef<HTMLDivElement>(null)
+  const placeElementRef = useRef<any>(null)
+
+  useEffect(() => {
+    if (!GOOGLE_KEY) { setPlacesStatus('failed'); return }
+    let cancelled = false
+
+    function waitForPlaces(attemptsLeft: number) {
+      if (cancelled) return
+      if (window.google?.maps?.places?.PlaceAutocompleteElement) { setPlacesStatus('script-loaded'); return }
+      if (attemptsLeft <= 0) { setPlacesStatus('failed'); return }
+      setTimeout(() => waitForPlaces(attemptsLeft - 1), 100)
+    }
+
+    if (window.google?.maps?.places?.PlaceAutocompleteElement) {
+      setPlacesStatus('script-loaded')
+    } else {
+      if (!document.getElementById('google-maps-js')) {
+        const script = document.createElement('script')
+        script.id = 'google-maps-js'
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_KEY}&libraries=places&loading=async&v=beta`
+        script.async = true
+        document.head.appendChild(script)
+      }
+      waitForPlaces(80)
+    }
+    return () => { cancelled = true }
+  }, [GOOGLE_KEY])
+
+  useEffect(() => {
+    if (placesStatus !== 'script-loaded') return
+    if (placeElementRef.current) return
+
+    let cancelled = false
+    function tryAttach(attemptsLeft: number) {
+      if (cancelled) return
+      if (!addressDivRef.current) {
+        if (attemptsLeft <= 0) { setPlacesStatus('failed'); return }
+        setTimeout(() => tryAttach(attemptsLeft - 1), 100)
+        return
+      }
+      try {
+        const google = window.google
+        const placeAutocomplete = new google.maps.places.PlaceAutocompleteElement({
+          includedRegionCodes: ['us'],
+        })
+        placeAutocomplete.style.width = '100%'
+        addressDivRef.current.appendChild(placeAutocomplete)
+        placeElementRef.current = placeAutocomplete
+
+        placeAutocomplete.addEventListener('gmp-select', async (event: any) => {
+          const prediction = event.placePrediction
+          if (!prediction) return
+          const place = prediction.toPlace()
+          await place.fetchFields({ fields: ['formattedAddress'] })
+          setAddress(place.formattedAddress || '')
+        })
+
+        setPlacesStatus('widget-attached')
+      } catch {
+        setPlacesStatus('failed')
+      }
+    }
+    tryAttach(30)
+    return () => { cancelled = true }
+  }, [placesStatus])
 
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '0.6rem 0.85rem', borderRadius: 8,
@@ -49,7 +126,7 @@ export default function ClientRegisterPage() {
       setSaving(true)
       const data = await apiFetch<{ token: string; user: object }>(
         '/api/auth/register-client',
-        { method: 'POST', body: JSON.stringify({ displayName: `${firstName} ${lastName}`.trim(), email, phone, password }) }
+        { method: 'POST', body: JSON.stringify({ displayName: `${firstName} ${lastName}`.trim(), email, phone, address, password }) }
       )
       saveNmdAuth(data)
       router.replace('/clientdashboard')
@@ -105,7 +182,17 @@ export default function ClientRegisterPage() {
           </div>
           <input style={inputStyle} placeholder="Email address *" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
           <input style={inputStyle} placeholder="Phone number" value={phone} onChange={e => setPhone(e.target.value)} />
-          <input style={inputStyle} placeholder="Service address" value={address} onChange={e => setAddress(e.target.value)} />
+
+          <div ref={addressDivRef} style={{ width: '100%' }}>
+            {placesStatus !== 'widget-attached' && (
+              <input
+                style={inputStyle}
+                placeholder={placesStatus === 'failed' ? 'Service address' : 'Loading address search...'}
+                value={address}
+                onChange={e => setAddress(e.target.value)}
+              />
+            )}
+          </div>
 
           {/* Password with eye */}
           <div style={{ position: 'relative' }}>

@@ -24,6 +24,7 @@ type DbUser = {
   role: UserRole;
   pay_rate: string | number | null;
   phone: string | null;
+  address: string | null;
   date_joined: string | null;
   created_at: string;
   updated_at: string;
@@ -58,6 +59,7 @@ function mapUser(user: DbUser) {
     role: user.role,
     payRate: user.pay_rate === null || user.pay_rate === undefined ? null : Number(user.pay_rate),
     phone: user.phone,
+    address: user.address,
     dateJoined: user.date_joined,
     createdAt: user.created_at,
     updatedAt: user.updated_at,
@@ -96,11 +98,13 @@ async function ensureUsersTable() {
       role TEXT NOT NULL DEFAULT 'client',
       pay_rate NUMERIC NULL,
       phone TEXT NULL,
+      address TEXT NULL,
       date_joined DATE NULL,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
   `);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS address TEXT NULL;`);
   await pool.query(`ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;`);
   await pool.query(`
     ALTER TABLE users ADD CONSTRAINT users_role_check
@@ -136,22 +140,24 @@ async function upsertTestUser(input: {
   role: UserRole;
   payRate: number | null;
   phone: string | null;
+  address?: string | null;
 }) {
   const passwordHash = await bcrypt.hash(input.password, 12);
   const result = await pool.query<DbUser>(
     `
-    INSERT INTO users (email, password_hash, display_name, role, pay_rate, phone, date_joined, updated_at)
-    VALUES ($1, $2, $3, $4, $5, $6, CURRENT_DATE, NOW())
+    INSERT INTO users (email, password_hash, display_name, role, pay_rate, phone, address, date_joined, updated_at)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_DATE, NOW())
     ON CONFLICT (email) DO UPDATE SET
       password_hash = EXCLUDED.password_hash,
       display_name = EXCLUDED.display_name,
       role = EXCLUDED.role,
       pay_rate = EXCLUDED.pay_rate,
       phone = EXCLUDED.phone,
+      address = EXCLUDED.address,
       updated_at = NOW()
     RETURNING *;
     `,
-    [input.email, passwordHash, input.displayName, input.role, input.payRate, input.phone]
+    [input.email, passwordHash, input.displayName, input.role, input.payRate, input.phone, input.address || null]
   );
   return result.rows[0];
 }
@@ -160,6 +166,7 @@ export async function createClientAccountAndToken(input: {
   email: string;
   displayName: string;
   phone?: string | null;
+  address?: string | null;
 }): Promise<{ userId: string; token: string; isNew: boolean }> {
   const existing = await findUserByEmail(input.email);
   let userId: string;
@@ -171,11 +178,11 @@ export async function createClientAccountAndToken(input: {
     const placeholder = await bcrypt.hash(crypto.randomBytes(32).toString("hex"), 12);
     const result = await pool.query<DbUser>(
       `
-      INSERT INTO users (email, password_hash, display_name, role, pay_rate, phone, updated_at)
-      VALUES ($1, $2, $3, 'client', NULL, $4, NOW())
+      INSERT INTO users (email, password_hash, display_name, role, pay_rate, phone, address, updated_at)
+      VALUES ($1, $2, $3, 'client', NULL, $4, $5, NOW())
       RETURNING *;
       `,
-      [input.email.trim().toLowerCase(), placeholder, input.displayName.trim(), input.phone || null]
+      [input.email.trim().toLowerCase(), placeholder, input.displayName.trim(), input.phone || null, input.address || null]
     );
     userId = result.rows[0].id;
     isNew = true;
@@ -229,7 +236,6 @@ router.post("/login", async (req, res) => {
     }
 
     const token = signToken(user, rememberMe);
-    // ── Return mustChangePassword so frontend can redirect to change-password page ──
     return res.json({ token, user: mapUser(user) });
   } catch (err) {
     console.error("Login error:", err);
@@ -262,6 +268,7 @@ router.post("/register-client", async (req, res) => {
     const password = String(req.body?.password || "");
     const displayName = String(req.body?.displayName || req.body?.name || "").trim();
     const phone = String(req.body?.phone || "").trim() || null;
+    const address = String(req.body?.address || "").trim() || null;
 
     if (!email || !password || !displayName) {
       return res.status(400).json({ message: "Name, email, and password are required." });
@@ -273,11 +280,11 @@ router.post("/register-client", async (req, res) => {
     const passwordHash = await bcrypt.hash(password, 12);
     const result = await pool.query<DbUser>(
       `
-      INSERT INTO users (email, password_hash, display_name, role, pay_rate, phone, updated_at)
-      VALUES ($1, $2, $3, 'client', NULL, $4, NOW())
+      INSERT INTO users (email, password_hash, display_name, role, pay_rate, phone, address, updated_at)
+      VALUES ($1, $2, $3, 'client', NULL, $4, $5, NOW())
       RETURNING *;
       `,
-      [email, passwordHash, displayName, phone]
+      [email, passwordHash, displayName, phone, address]
     );
 
     const user = result.rows[0];
