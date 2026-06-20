@@ -10,8 +10,10 @@ type Request = {
   email: string; phone: string; serviceType: string
   address: string; status: string; createdAt: string
   preferredDate: string | null; preferredTime: string | null
-  notes: string | null; photoDataUrl: string | null; photoNote: string | null
-  waiverSignature: string | null; waiverSignedAt: string | null; waiverAccepted: boolean | null
+  notes: string | null; photoNote: string | null
+  waiverSignedAt: string | null; waiverAccepted: boolean | null
+  hasPhoto?: boolean; hasSignature?: boolean
+  photoDataUrl?: string | null; waiverSignature?: string | null
 }
 
 const inputStyle: React.CSSProperties = {
@@ -27,13 +29,6 @@ const modalOverlay: React.CSSProperties = {
   position: 'fixed', inset: 0, background: 'rgba(14,17,23,0.6)',
   zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// ADD THIS FUNCTION to frontend-next/src/app/requests/page.tsx
-// Place it just before the `export default function RequestsPage()` line.
-//
-// It uses jsPDF loaded from CDN — no npm install needed.
-// ─────────────────────────────────────────────────────────────────────────────
 
 declare global {
   interface Window {
@@ -109,7 +104,7 @@ By signing this agreement, the client confirms they have read and understood thi
 async function downloadAgreementPdf(r: {
   firstName: string; lastName: string; email: string; phone: string
   address: string; serviceType: string; createdAt: string
-  waiverSignedAt: string | null; waiverSignature: string | null
+  waiverSignedAt: string | null; waiverSignature?: string | null
 }) {
   // Load jsPDF from CDN if not already loaded
   if (!window.jspdf) {
@@ -309,22 +304,51 @@ export default function RequestsPage() {
       .catch(() => { setError('Could not load service requests.'); setLoading(false) })
   }, [])
 
+  // ── Fetch the full record (including the heavy base64 photo/signature) on demand ──
+  const fetchRequestDetail = async (id: string): Promise<Request | null> => {
+    const token = getNmdToken()
+    try {
+      const res = await fetch(`${API}/api/requests/${id}`, { headers: { Authorization: `Bearer ${token}` } })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to load details')
+      setRequests(p => p.map(r => r.id === id ? { ...r, ...data.request } : r))
+      return data.request
+    } catch {
+      return null
+    }
+  }
+
+  // ── While the Signature Log tab is open, make sure every signed request's image is loaded ──
+  useEffect(() => {
+    if (activeTab === 'signature-log') {
+      const missing = requests.filter(r => r.hasSignature && r.waiverAccepted && !r.waiverSignature)
+      if (missing.length > 0) {
+        missing.forEach(r => fetchRequestDetail(r.id))
+      }
+    }
+  }, [activeTab, requests])
+
   const filtered = requests.filter(r =>
     `${r.firstName} ${r.lastName} ${r.email} ${r.serviceType} ${r.status}`.toLowerCase().includes(search.toLowerCase())
   )
 
-  const signedRequests = requests.filter(r => r.waiverSignature && r.waiverAccepted)
+  const signedRequests = requests.filter(r => r.hasSignature && r.waiverAccepted)
 
   const pending = requests.filter(r => r.status === 'pending' || r.status === 'new').length
 
   // Check if waiverSignature is a canvas PNG (base64 image) or plain text
-  const isSignatureImage = (sig: string | null) =>
+  const isSignatureImage = (sig: string | null | undefined) =>
     sig ? sig.startsWith('data:image') : false
 
-  const openQuoteModal = (r: Request) => {
-    setQuoteRequest(r)
+  const openQuoteModal = async (r: Request) => {
     setQuoteForm({ total: '', status: 'sent' })
     setQuoteError('')
+    if (r.hasPhoto && !r.photoDataUrl) {
+      const full = await fetchRequestDetail(r.id)
+      setQuoteRequest(full || r)
+    } else {
+      setQuoteRequest(r)
+    }
   }
 
   const handleCreateQuote = async (e: React.FormEvent) => {
@@ -400,11 +424,15 @@ export default function RequestsPage() {
               </div>
               <button onClick={() => setViewPhoto(null)} style={{ background: 'none', border: 'none', color: 'white', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
             </div>
-            <img
-              src={viewPhoto.photoDataUrl!}
-              alt="Client uploaded photo"
-              style={{ width: '100%', borderRadius: 12, maxHeight: '70vh', objectFit: 'contain', background: '#111' }}
-            />
+            {viewPhoto.photoDataUrl ? (
+              <img
+                src={viewPhoto.photoDataUrl}
+                alt="Client uploaded photo"
+                style={{ width: '100%', borderRadius: 12, maxHeight: '70vh', objectFit: 'contain', background: '#111' }}
+              />
+            ) : (
+              <div style={{ color: '#aaa', textAlign: 'center', padding: '2rem' }}>Loading photo…</div>
+            )}
             {viewPhoto.photoNote && (
               <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 8, padding: '0.75rem 1rem', color: 'white', fontSize: '0.85rem' }}>
                 <strong>Client note:</strong> {viewPhoto.photoNote}
@@ -429,14 +457,14 @@ export default function RequestsPage() {
                 <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>Service Agreement & Liability Waiver</div>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
-  <button
-    onClick={() => downloadAgreementPdf(viewSignature)}
-    style={{ padding: '4px 12px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' }}
-  >
-    Download PDF
-  </button>
-  <button onClick={() => setViewSignature(null)} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', borderRadius: 8, padding: '4px 10px', cursor: 'pointer', fontSize: '0.85rem' }}>Close</button>
-</div>
+                <button
+                  onClick={() => downloadAgreementPdf(viewSignature)}
+                  style={{ padding: '4px 12px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' }}
+                >
+                  Download PDF
+                </button>
+                <button onClick={() => setViewSignature(null)} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', borderRadius: 8, padding: '4px 10px', cursor: 'pointer', fontSize: '0.85rem' }}>Close</button>
+              </div>
             </div>
 
             {/* Client info */}
@@ -476,10 +504,14 @@ export default function RequestsPage() {
               <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#3a4660', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Client Signature
               </div>
-              {isSignatureImage(viewSignature.waiverSignature) ? (
+              {!viewSignature.waiverSignature ? (
+                <div style={{ border: '1.5px solid #dde4ef', borderRadius: 10, padding: '1rem 1.25rem', background: '#fafbfc', color: '#8494b0', fontSize: '0.85rem', fontStyle: 'italic' }}>
+                  Loading signature…
+                </div>
+              ) : isSignatureImage(viewSignature.waiverSignature) ? (
                 <div style={{ border: '1.5px solid #dde4ef', borderRadius: 10, padding: '0.75rem', background: '#fafbfc' }}>
                   <img
-                    src={viewSignature.waiverSignature!}
+                    src={viewSignature.waiverSignature}
                     alt="Client signature"
                     style={{ width: '100%', maxHeight: 160, objectFit: 'contain', display: 'block' }}
                   />
@@ -524,23 +556,27 @@ export default function RequestsPage() {
                 )}
               </div>
 
-              {quoteRequest.photoDataUrl && (
+              {quoteRequest.hasPhoto && (
                 <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #dde4ef' }}>
                   <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#3a4660', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Client Photo</div>
-                  <div style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
-                    <img
-                      src={quoteRequest.photoDataUrl}
-                      alt="Client photo"
-                      style={{ width: '100%', maxHeight: 240, objectFit: 'cover', borderRadius: 10, border: '1px solid #dde4ef', cursor: 'zoom-in' }}
-                      onClick={() => setViewPhoto(quoteRequest)}
-                    />
-                    <div
-                      onClick={() => setViewPhoto(quoteRequest)}
-                      style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(0,0,0,0.6)', color: 'white', fontSize: '0.72rem', fontWeight: 600, padding: '0.25rem 0.6rem', borderRadius: 6, cursor: 'zoom-in' }}
-                    >
-                      View Full
+                  {quoteRequest.photoDataUrl ? (
+                    <div style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
+                      <img
+                        src={quoteRequest.photoDataUrl}
+                        alt="Client photo"
+                        style={{ width: '100%', maxHeight: 240, objectFit: 'cover', borderRadius: 10, border: '1px solid #dde4ef', cursor: 'zoom-in' }}
+                        onClick={() => setViewPhoto(quoteRequest)}
+                      />
+                      <div
+                        onClick={() => setViewPhoto(quoteRequest)}
+                        style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(0,0,0,0.6)', color: 'white', fontSize: '0.72rem', fontWeight: 600, padding: '0.25rem 0.6rem', borderRadius: 6, cursor: 'zoom-in' }}
+                      >
+                        View Full
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div style={{ color: '#8494b0', fontSize: '0.85rem', fontStyle: 'italic' }}>Loading photo…</div>
+                  )}
                   {quoteRequest.photoNote && (
                     <div style={{ fontSize: '0.78rem', color: '#5a6a88', marginTop: 6, fontStyle: 'italic' }}>"{quoteRequest.photoNote}"</div>
                   )}
@@ -614,13 +650,16 @@ export default function RequestsPage() {
           emptyMessage="No service requests yet."
           rows={filtered.map(r => [
             <div key="name" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {r.photoDataUrl && (
-                <img
-                  src={r.photoDataUrl}
-                  alt="preview"
-                  onClick={() => setViewPhoto(r)}
-                  style={{ width: 36, height: 36, borderRadius: 6, objectFit: 'cover', border: '1.5px solid #dde4ef', cursor: 'zoom-in', flexShrink: 0 }}
-                />
+              {r.hasPhoto && (
+                <button
+                  onClick={async () => {
+                    if (r.photoDataUrl) { setViewPhoto(r); return }
+                    const full = await fetchRequestDetail(r.id)
+                    if (full) setViewPhoto(full)
+                  }}
+                  title="View photo"
+                  style={{ width: 36, height: 36, borderRadius: 6, border: '1.5px solid #dde4ef', background: '#f4f7fb', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, fontSize: '1rem', padding: 0 }}
+                >📷</button>
               )}
               <div>
                 <div style={{ fontWeight: 600 }}>{r.firstName} {r.lastName}</div>
@@ -644,9 +683,13 @@ export default function RequestsPage() {
             </div>,
             <span key="created" style={{ color: '#8494b0', whiteSpace: 'nowrap' }}>{fmtDate(r.createdAt)}</span>,
             <div key="actions" style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-              {r.waiverSignature && (
+              {r.hasSignature && (
                 <button
-                  onClick={() => setViewSignature(r)}
+                  onClick={async () => {
+                    if (r.waiverSignature) { setViewSignature(r); return }
+                    const full = await fetchRequestDetail(r.id)
+                    if (full) setViewSignature(full)
+                  }}
                   style={{ padding: '0.3rem 0.65rem', borderRadius: 6, border: '1px solid #dde4ef', background: 'white', color: '#3a4660', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}
                 >
                   Signature
@@ -712,15 +755,23 @@ export default function RequestsPage() {
                         ✓ Waiver Accepted
                       </div>
                       <button
-                        onClick={() => setViewSignature(r)}
+                        onClick={async () => {
+                          if (r.waiverSignature) { downloadAgreementPdf(r); return }
+                          const full = await fetchRequestDetail(r.id)
+                          downloadAgreementPdf(full || r)
+                        }}
+                        style={{ padding: '0.35rem 0.85rem', borderRadius: 6, border: 'none', background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}
+                      >
+                        Download PDF
+                      </button>
+                      <button
+                        onClick={async () => {
+                          if (r.waiverSignature) { setViewSignature(r); return }
+                          const full = await fetchRequestDetail(r.id)
+                          if (full) setViewSignature(full)
+                        }}
                         style={{ padding: '0.35rem 0.85rem', borderRadius: 6, border: '1px solid #dde4ef', background: 'white', color: '#3a4660', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}
                       >
-                        <button
-  onClick={() => downloadAgreementPdf(r)}
-  style={{ padding: '0.35rem 0.85rem', borderRadius: 6, border: 'none', background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}
->
-  Download PDF
-</button>
                         View Signature
                       </button>
                     </div>
@@ -731,13 +782,15 @@ export default function RequestsPage() {
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1.5rem', paddingTop: '0.85rem', flexWrap: 'wrap' }}>
                       <div style={{ flex: 1, minWidth: 200 }}>
                         <div style={{ fontSize: '0.72rem', color: '#8494b0', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Signature</div>
-                        {isSignatureImage(r.waiverSignature) ? (
+                        {!r.waiverSignature ? (
+                          <div style={{ fontSize: '0.78rem', color: '#8494b0', fontStyle: 'italic', padding: '0.5rem 0' }}>Loading signature…</div>
+                        ) : isSignatureImage(r.waiverSignature) ? (
                           <div
                             style={{ border: '1px solid #dde4ef', borderRadius: 8, padding: '0.5rem', background: '#fafbfc', cursor: 'zoom-in', maxWidth: 280 }}
                             onClick={() => setViewSignature(r)}
                           >
                             <img
-                              src={r.waiverSignature!}
+                              src={r.waiverSignature}
                               alt="Signature"
                               style={{ width: '100%', maxHeight: 70, objectFit: 'contain', display: 'block' }}
                             />

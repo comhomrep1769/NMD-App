@@ -11,8 +11,10 @@ router.get("/", requireAuth, requireRole("admin"), async (_req, res) => {
   try {
     const result = await pool.query(
       `SELECT id, first_name, last_name, phone, email, address, service_type,
-        preferred_date, preferred_time, notes, photo_data_url, photo_note,
-        waiver_accepted, waiver_signature, waiver_signed_at, status, created_at
+        preferred_date, preferred_time, notes, photo_note, status, created_at,
+        waiver_accepted, waiver_signed_at,
+        (photo_data_url IS NOT NULL) AS has_photo,
+        (waiver_signature IS NOT NULL) AS has_signature
       FROM service_requests ORDER BY created_at DESC`
     );
     return res.json({
@@ -21,13 +23,43 @@ router.get("/", requireAuth, requireRole("admin"), async (_req, res) => {
         phone: row.phone, email: row.email, address: row.address,
         serviceType: row.service_type, preferredDate: row.preferred_date,
         preferredTime: row.preferred_time, notes: row.notes,
-        photoDataUrl: row.photo_data_url, photoNote: row.photo_note,
-        waiverAccepted: row.waiver_accepted, waiverSignature: row.waiver_signature,
-        waiverSignedAt: row.waiver_signed_at, status: row.status, createdAt: row.created_at
+        photoNote: row.photo_note, hasPhoto: row.has_photo, hasSignature: row.has_signature,
+        waiverAccepted: row.waiver_accepted, waiverSignedAt: row.waiver_signed_at,
+        status: row.status, createdAt: row.created_at
       }))
     });
   } catch (error) {
     console.error("service requests list error", error);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ── Full detail (includes the heavy base64 photo/signature) — fetched on demand only ──
+router.get("/:requestId", requireAuth, requireRole("admin"), async (req, res) => {
+  try {
+    const { requestId } = req.params;
+    const result = await pool.query(
+      `SELECT id, first_name, last_name, phone, email, address, service_type,
+        preferred_date, preferred_time, notes, photo_data_url, photo_note,
+        waiver_accepted, waiver_signature, waiver_signed_at, status, created_at
+      FROM service_requests WHERE id = $1 LIMIT 1`,
+      [requestId]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: "Service request not found" });
+    const row = result.rows[0];
+    return res.json({
+      request: {
+        id: row.id, firstName: row.first_name, lastName: row.last_name,
+        phone: row.phone, email: row.email, address: row.address,
+        serviceType: row.service_type, preferredDate: row.preferred_date,
+        preferredTime: row.preferred_time, notes: row.notes,
+        photoDataUrl: row.photo_data_url, photoNote: row.photo_note,
+        waiverAccepted: row.waiver_accepted, waiverSignature: row.waiver_signature,
+        waiverSignedAt: row.waiver_signed_at, status: row.status, createdAt: row.created_at
+      }
+    });
+  } catch (error) {
+    console.error("service request detail error", error);
     return res.status(500).json({ error: "Server error" });
   }
 });
