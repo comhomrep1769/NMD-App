@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { pool } from "../db.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 import { buildNmdEmailTemplate, sendEmail } from "../services/email.js";
+import { logActivity } from "../services/activityLog.js";
 
 const router = Router();
 
@@ -77,6 +78,14 @@ router.post("/", requireAuth, requireRole("admin"), async (req, res) => {
 
     const employee = mapEmployee(result.rows[0]);
     const portalUrl = `${process.env.FRONTEND_URL || "https://nmdpowash.com"}/employee/login`;
+
+    await logActivity({
+      actorType: "admin",
+      actorId: req.user!.id,
+      action: "employee_created",
+      description: `New ${employee.role} account created for ${employee.displayName} (${employee.email})`,
+      metadata: { employeeId: employee.id, role: employee.role },
+    });
 
     await sendEmail({
       to: employee.email,
@@ -199,6 +208,14 @@ router.post("/:employeeId/reset-password", requireAuth, requireRole("admin"), as
       `UPDATE users SET password_hash = $1, must_change_password = TRUE WHERE id = $2`,
       [passwordHash, employeeId]
     );
+
+    await logActivity({
+      actorType: "admin",
+      actorId: req.user!.id,
+      action: "employee_password_reset",
+      description: `Admin reset the password for ${employee.display_name}`,
+      metadata: { employeeId },
+    });
 
     const portalUrl = `${process.env.FRONTEND_URL || "https://nmdpowash.com"}/employee/login`;
 

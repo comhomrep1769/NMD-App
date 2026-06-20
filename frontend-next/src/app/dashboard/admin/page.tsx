@@ -16,6 +16,110 @@ type DashboardData = {
   payroll?: { total: number; draft: number; approved: number; paidInRoll: number }
 }
 
+type ActivityEntry = {
+  id: string
+  actorType: 'client' | 'employee' | 'admin' | 'system'
+  actorName: string | null
+  actorId: string | null
+  action: string
+  description: string
+  metadata: Record<string, any> | null
+  createdAt: string
+}
+
+const ACTOR_STYLE: Record<string, { icon: string; color: string; bg: string }> = {
+  client:   { icon: '👤', color: '#1f6132', bg: '#f0fff4' },
+  employee: { icon: '🧰', color: '#124d83', bg: '#e8f3fd' },
+  admin:    { icon: '⚙️', color: '#6b21a8', bg: '#f3e8ff' },
+  system:   { icon: '🤖', color: '#7a5c00', bg: '#fff9e6' },
+}
+
+function timeAgo(dateStr: string) {
+  const date = new Date(dateStr)
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
+  if (seconds < 60) return 'just now'
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  if (days < 7) return `${days}d ago`
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+function ActivityFeed() {
+  const [activity, setActivity] = useState<ActivityEntry[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [filter, setFilter] = useState<'all' | 'client' | 'employee' | 'admin' | 'system'>('all')
+  const API = process.env.NEXT_PUBLIC_API_URL || ''
+
+  const load = () => {
+    const token = getNmdToken()
+    fetch(`${API}/api/activity?limit=40`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(d => { setActivity(d.activity || []); setLoading(false) })
+      .catch(() => { setError('Could not load activity.'); setLoading(false) })
+  }
+
+  useEffect(() => {
+    load()
+    const interval = setInterval(load, 30000) // refresh every 30s
+    return () => clearInterval(interval)
+  }, [])
+
+  const filtered = filter === 'all' ? activity : activity.filter(a => a.actorType === filter)
+
+  return (
+    <div style={{ background: 'white', border: '1.5px solid #dde4ef', borderRadius: 14, padding: '1.5rem', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: 10 }}>
+        <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#0e1117', letterSpacing: '-0.01em' }}>
+          🔔 Live Activity
+        </div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {['all', 'client', 'employee', 'admin', 'system'].map(f => (
+            <button key={f} onClick={() => setFilter(f as any)}
+              style={{ padding: '0.3rem 0.75rem', borderRadius: 20, border: `1.5px solid ${filter === f ? '#124d83' : '#dde4ef'}`, background: filter === f ? '#e8f3fd' : 'white', color: filter === f ? '#124d83' : '#5a6a88', fontWeight: 600, fontSize: '0.72rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', textTransform: 'capitalize' }}>
+              {f}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {loading && <div style={{ fontSize: '0.85rem', color: '#8494b0', padding: '1rem 0' }}>Loading activity...</div>}
+      {error && <div style={{ fontSize: '0.85rem', color: '#c0392b', padding: '1rem 0' }}>{error}</div>}
+
+      {!loading && !error && filtered.length === 0 && (
+        <div style={{ textAlign: 'center', color: '#8494b0', padding: '2rem', fontSize: '0.875rem' }}>
+          No activity yet. Actions from clients, employees, and admins will appear here in real time.
+        </div>
+      )}
+
+      {!loading && !error && filtered.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 420, overflowY: 'auto' }}>
+          {filtered.map(entry => {
+            const style = ACTOR_STYLE[entry.actorType] || ACTOR_STYLE.system
+            return (
+              <div key={entry.id} style={{ display: 'flex', gap: 10, padding: '0.65rem 0.5rem', borderBottom: '1px solid #f4f7fb', alignItems: 'flex-start' }}>
+                <div style={{ width: 28, height: 28, borderRadius: '50%', background: style.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.85rem', flexShrink: 0 }}>
+                  {style.icon}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '0.85rem', color: '#0e1117', lineHeight: 1.4 }}>{entry.description}</div>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 2 }}>
+                    <span style={{ fontSize: '0.7rem', fontWeight: 700, color: style.color, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{entry.actorType}</span>
+                    <span style={{ fontSize: '0.72rem', color: '#8494b0' }}>{timeAgo(entry.createdAt)}</span>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -29,7 +133,6 @@ export default function DashboardPage() {
     })
       .then(r => r.json())
       .then(d => {
-        // Backend wraps data in { dashboard: {...} }
         setData(d.dashboard || d)
         setLoading(false)
       })
@@ -43,6 +146,9 @@ export default function DashboardPage() {
         <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: '1.75rem', fontWeight: 800, color: '#0e1117', letterSpacing: '-0.03em', marginBottom: 6 }}>Dashboard</h1>
         <p style={{ color: '#5a6a88', fontSize: '0.875rem' }}>Business overview and key metrics.</p>
       </div>
+
+      {/* Live activity feed — always visible regardless of other dashboard data loading state */}
+      <ActivityFeed />
 
       {loading && <LoadingCard />}
       {error && <ErrorCard message={error} />}

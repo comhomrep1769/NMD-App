@@ -3,6 +3,7 @@ import { pool } from "../db.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 import { buildNmdEmailTemplate, sendEmail } from "../services/email.js";
 import { createClientAccountAndToken } from "./auth.js";
+import { logActivity } from "../services/activityLog.js";
 
 const router = Router();
 
@@ -90,6 +91,15 @@ router.post("/public", async (req, res) => {
 
     console.log("[requests/public] saved to DB, email:", email);
 
+    // ── Activity log: new service request submitted ──
+    await logActivity({
+      actorType: "client",
+      actorName: `${firstName} ${lastName || ""}`.trim(),
+      action: "service_request_submitted",
+      description: `${firstName} ${lastName || ""} submitted a new service request: ${serviceType} at ${address}`,
+      metadata: { requestId: row.id, serviceType, address, email: email || null },
+    });
+
     // ── Sync phone + SMS consent to clients table if client exists ──
     if (email && client_phone) {
       try {
@@ -101,12 +111,12 @@ router.post("/public", async (req, res) => {
         );
         console.log("[requests/public] synced phone/sms_consent to clients table for:", email);
       } catch (syncErr) {
-        // Non-fatal — client row may not exist yet (created below during onboarding)
         console.warn("[requests/public] sms sync skipped (client may not exist yet):", syncErr);
       }
     }
 
     const PORTAL_URL = process.env.FRONTEND_URL || "https://nmdpowash.com";
+    let accountWasCreated = false;
 
     if (email) {
       try {
@@ -118,6 +128,16 @@ router.post("/public", async (req, res) => {
           phone: phone || null
         });
         console.log("[requests/public] account ready, isNew:", isNew);
+        accountWasCreated = isNew;
+
+        if (isNew) {
+          await logActivity({
+            actorType: "system",
+            action: "client_account_auto_created",
+            description: `New client account auto-created for ${displayName} (${email}) from a service request`,
+            metadata: { email, displayName },
+          });
+        }
 
         // ── After account is created/confirmed, sync SMS consent again now that the row exists ──
         if (client_phone) {
@@ -182,7 +202,7 @@ router.post("/public", async (req, res) => {
 
     console.log("[requests/public] admin notification sent");
 
-    return res.status(201).json({ request });
+    return res.status(201).json({ request, accountCreated: accountWasCreated });
   } catch (error) {
     console.error("[requests/public] error:", error);
     return res.status(500).json({ error: "Server error" });
@@ -209,6 +229,15 @@ router.patch("/:requestId/status", requireAuth, requireRole("admin"), async (req
     if (result.rows.length === 0) return res.status(404).json({ error: "Service request not found" });
 
     const row = result.rows[0];
+
+    await logActivity({
+      actorType: "admin",
+      actorId: req.user!.id,
+      action: "service_request_status_changed",
+      description: `Service request for ${row.first_name} ${row.last_name || ""} (${row.service_type}) marked as ${status}`,
+      metadata: { requestId: row.id, status },
+    });
+
     return res.json({
       request: {
         id: row.id, firstName: row.first_name, lastName: row.last_name,
@@ -251,6 +280,15 @@ router.post("/:requestId/convert-to-client", requireAuth, requireRole("admin"), 
       await client.query("COMMIT");
 
       const row = clientResult.rows[0];
+
+      await logActivity({
+        actorType: "admin",
+        actorId: req.user!.id,
+        action: "request_converted_to_client",
+        description: `Converted service request from ${row.first_name} ${row.last_name || ""} into a client record`,
+        metadata: { requestId, clientId: row.id },
+      });
+
       return res.status(201).json({
         client: {
           id: row.id, firstName: row.first_name, lastName: row.last_name,
