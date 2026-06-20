@@ -57,6 +57,15 @@ app.use(
   })
 );
 
+// ── CRITICAL: Stripe webhook needs the raw request body to verify its
+// signature. It MUST be registered with express.raw() BEFORE the global
+// express.json() middleware below, or signature verification will always
+// fail and webhook events will be silently dropped. ──
+app.use(
+  "/api/payments/stripe-webhook",
+  express.raw({ type: "application/json" })
+);
+
 app.use(express.json({ limit: "25mb" }));
 app.use(express.urlencoded({ extended: true, limit: "25mb" }));
 
