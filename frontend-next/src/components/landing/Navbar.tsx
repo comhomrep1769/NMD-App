@@ -3,86 +3,110 @@
 import Link from 'next/link'
 import { useState } from 'react'
 
+const NAV_LINKS = [
+  { href: '#services', label: 'Services' },
+  { href: '#recurring', label: 'Recurring Plans' },
+  { href: '#service-areas', label: 'Service Areas' },
+  { href: '#get-app', label: 'Get the App' },
+]
+
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
     <>
-      <nav className="nmd-nav">
-        <Link href="/" className="nmd-nav-logo">
-          <div className="nmd-nav-logo-mark">NMD</div>
+      <nav className="fixed inset-x-0 top-0 z-50 flex h-[68px] items-center border-b border-gray-200 bg-white px-6 sm:px-10">
+        <Link href="/" className="mr-10 flex flex-shrink-0 items-center gap-2.5">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-700 text-xs font-extrabold text-white">
+            NMD
+          </div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: '1rem', lineHeight: 1.2 }}>NMD Pressure Washing</div>
-            <div style={{ fontWeight: 400, fontSize: '0.68rem', color: 'var(--color-text-3)', letterSpacing: '0.02em', lineHeight: 1 }}>Services LLC</div>
+            <div className="text-base font-bold leading-tight text-gray-900">NMD Pressure Washing</div>
+            <div className="text-[11px] font-medium leading-none text-gray-400">Services LLC</div>
           </div>
         </Link>
 
-        <ul className="nmd-nav-links">
-          <li><a href="#services">Services</a></li>
-          <li><a href="#recurring">Recurring Plans</a></li>
-          <li><a href="#service-areas">Service Areas</a></li>
-          <li><a href="#get-app">Get the App</a></li>
-          <li><Link href="/mission" style={{ color: 'var(--color-text-2)', fontWeight: 500, textDecoration: 'none' }}>Our Mission</Link></li>
-          <li><Link href="/client/register" style={{ color: 'var(--nmd-green-600)', fontWeight: 600, textDecoration: 'none' }}>Create Account</Link></li>
+        <ul className="hidden flex-1 items-center justify-center gap-1 lg:flex">
+          {NAV_LINKS.map((link) => (
+            <li key={link.href}>
+              <a href={link.href} className="rounded-md px-2.5 py-1.5 text-[13px] font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900">
+                {link.label}
+              </a>
+            </li>
+          ))}
+          <li>
+            <Link href="/mission" className="rounded-md px-2.5 py-1.5 text-[13px] font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-900">
+              Our Mission
+            </Link>
+          </li>
+          <li>
+            <Link href="/client/register" className="rounded-md px-2.5 py-1.5 text-[13px] font-semibold text-teal-700 hover:bg-teal-50">
+              Create Account
+            </Link>
+          </li>
         </ul>
 
-        <div className="nmd-nav-ctas">
-          <a href="/client/login" className="btn-ghost">Client Login</a>
-          <a href="/client/request-service" className="btn-primary">
+        <div className="ml-auto hidden flex-shrink-0 items-center gap-3 lg:flex">
+          <a href="/client/login" className="px-2.5 py-1.5 text-[13px] font-medium text-gray-700 hover:text-gray-900">
+            Client Login
+          </a>
+          <a
+            href="/client/request-service"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-teal-800 hover:shadow-md"
+          >
             Get a Free Quote
           </a>
-          <button
-            className="nmd-mobile-menu-btn"
-            onClick={() => setMobileOpen(!mobileOpen)}
-            aria-label="Toggle menu"
-          >
-            {mobileOpen ? '✕' : '☰'}
-          </button>
         </div>
+
+        <button
+          onClick={() => setMobileOpen(!mobileOpen)}
+          className="ml-auto flex h-9 w-9 items-center justify-center rounded-md border border-gray-200 lg:hidden"
+          aria-label="Toggle menu"
+        >
+          <span className="text-lg leading-none">{mobileOpen ? '✕' : '☰'}</span>
+        </button>
       </nav>
 
-      {/* Mobile menu */}
       {mobileOpen && (
-        <div style={{
-          position: 'fixed', top: 68, left: 0, right: 0, zIndex: 99,
-          background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)',
-          padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem',
-          boxShadow: '0 8px 30px rgba(0,0,0,0.08)',
-        }}>
-          {[
-            ['#services', 'Services'],
-            ['#recurring', 'Recurring Plans'],
-            ['#service-areas', 'Service Areas'],
-            ['#get-app', 'Get the App'],
-          ].map(([href, label]) => (
-            <a key={href} href={href} onClick={() => setMobileOpen(false)} style={{
-              fontSize: '1rem', fontWeight: 500, color: 'var(--color-text-2)',
-              padding: '0.5rem 0', borderBottom: '1px solid var(--color-border)',
-            }}>
-              {label}
+        <div className="fixed inset-x-0 top-[68px] z-[99] flex flex-col gap-3 border-b border-gray-200 bg-white p-5 shadow-lg lg:hidden">
+          {NAV_LINKS.map((link) => (
+            <a
+              key={link.href}
+              href={link.href}
+              onClick={() => setMobileOpen(false)}
+              className="border-b border-gray-100 pb-2 text-base font-medium text-gray-700"
+            >
+              {link.label}
             </a>
           ))}
 
-          <Link href="/mission" onClick={() => setMobileOpen(false)} style={{
-            fontSize: '1rem', fontWeight: 500, color: 'var(--color-text-2)',
-            padding: '0.5rem 0', borderBottom: '1px solid var(--color-border)', textDecoration: 'none',
-          }}>
+          <Link
+            href="/mission"
+            onClick={() => setMobileOpen(false)}
+            className="border-b border-gray-100 pb-2 text-base font-medium text-gray-700"
+          >
             Our Mission
           </Link>
 
-          {/* Create Account — highlighted in mobile menu */}
-          <Link href="/client/register" onClick={() => setMobileOpen(false)} style={{
-            fontSize: '1rem', fontWeight: 600, color: 'var(--nmd-green-600)',
-            padding: '0.5rem 0', borderBottom: '1px solid var(--color-border)', textDecoration: 'none',
-          }}>
+          <Link
+            href="/client/register"
+            onClick={() => setMobileOpen(false)}
+            className="border-b border-gray-100 pb-2 text-base font-semibold text-teal-700"
+          >
             Create Account →
           </Link>
 
-          <div style={{ display: 'flex', gap: '0.75rem', paddingTop: '0.5rem' }}>
-            <a href="/client/login" className="btn-outline" style={{ flex: 1, justifyContent: 'center' }}>
+          <div className="flex gap-3 pt-2">
+            <a
+              href="/client/login"
+              className="flex-1 rounded-lg border border-gray-300 py-2.5 text-center text-sm font-semibold text-gray-900"
+            >
               Client Login
             </a>
-            <a href="/client/request-service" className="btn-primary" style={{ flex: 1, justifyContent: 'center' }}>
+            <a
+              href="/client/request-service"
+              className="flex-1 rounded-lg bg-teal-700 py-2.5 text-center text-sm font-semibold text-white"
+            >
               Get a Quote
             </a>
           </div>
