@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import PortalShell from '@/components/portal/PortalShell'
 import { MetricCard, LoadingCard, ErrorCard, money } from '@/components/portal/PortalUI'
 import { getNmdToken } from '@/lib/authStorage'
@@ -52,6 +52,8 @@ function ActivityFeed() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [filter, setFilter] = useState<'all' | 'client' | 'employee' | 'admin' | 'system'>('all')
+  const [open, setOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
   const API = process.env.NEXT_PUBLIC_API_URL || ''
 
   const load = () => {
@@ -71,50 +73,81 @@ function ActivityFeed() {
   const filtered = filter === 'all' ? activity : activity.filter(a => a.actorType === filter)
 
   return (
-    <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 10, padding: '20px 24px', marginBottom: '1.5rem' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: 10 }}>
-        <div style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: '14px', color: '#111827', letterSpacing: '-0.01em' }}>
-          🔔 Live Activity
+    <div ref={containerRef} style={{ position: 'relative', marginBottom: '1.5rem' }}>
+      {/* ── Collapsed trigger bar — always takes the same small amount of space ── */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          background: 'white', border: '1px solid #E5E7EB', borderRadius: 10,
+          padding: '14px 20px', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif',
+          textAlign: 'left',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontWeight: 700, fontSize: '14px', color: '#111827', letterSpacing: '-0.01em' }}>🔔 Live Activity</span>
+          {activity.length > 0 && (
+            <span style={{ background: '#0F766E', color: 'white', fontSize: '11px', fontWeight: 700, borderRadius: 100, padding: '2px 8px', minWidth: 20, textAlign: 'center' }}>
+              {activity.length}
+            </span>
+          )}
         </div>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {['all', 'client', 'employee', 'admin', 'system'].map(f => (
-            <button key={f} onClick={() => setFilter(f as any)}
-              style={{ padding: '4px 12px', borderRadius: 100, border: `1px solid ${filter === f ? '#0F766E' : '#E5E7EB'}`, background: filter === f ? '#F0FDF9' : 'white', color: filter === f ? '#0F766E' : '#6B7280', fontWeight: 600, fontSize: '12px', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', textTransform: 'capitalize' }}>
-              {f}
-            </button>
-          ))}
-        </div>
-      </div>
+        <span style={{ color: '#9CA3AF', fontSize: '0.8rem', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>▼</span>
+      </button>
 
-      {loading && <div style={{ fontSize: '13px', color: '#9CA3AF', padding: '1rem 0' }}>Loading activity...</div>}
-      {error && <div style={{ fontSize: '13px', color: '#DC2626', padding: '1rem 0' }}>{error}</div>}
-
-      {!loading && !error && filtered.length === 0 && (
-        <div style={{ textAlign: 'center', color: '#9CA3AF', padding: '2rem', fontSize: '13px' }}>
-          No activity yet. Actions from clients, employees, and admins will appear here in real time.
-        </div>
-      )}
-
-      {!loading && !error && filtered.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 420, overflowY: 'auto' }}>
-          {filtered.map(entry => {
-            const style = ACTOR_STYLE[entry.actorType] || ACTOR_STYLE.system
-            return (
-              <div key={entry.id} style={{ display: 'flex', gap: 10, padding: '0.65rem 0.5rem', borderBottom: '1px solid #F9FAFB', alignItems: 'flex-start' }}>
-                <div style={{ width: 28, height: 28, borderRadius: '50%', background: style.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', flexShrink: 0 }}>
-                  {style.icon}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: '13px', color: '#111827', lineHeight: 1.4 }}>{entry.description}</div>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 2 }}>
-                    <span style={{ fontSize: '10px', fontWeight: 700, color: style.color, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{entry.actorType}</span>
-                    <span style={{ fontSize: '11px', color: '#9CA3AF' }}>{timeAgo(entry.createdAt)}</span>
-                  </div>
-                </div>
+      {/* ── Dropdown panel — floats above page content, never pushes layout ── */}
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+          <div style={{
+            position: 'absolute', top: 'calc(100% + 8px)', left: 0, right: 0, zIndex: 50,
+            background: 'white', border: '1px solid #E5E7EB', borderRadius: 10,
+            padding: '16px 20px', boxShadow: '0 12px 32px rgba(17,24,39,0.12)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem', flexWrap: 'wrap', gap: 10 }}>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {['all', 'client', 'employee', 'admin', 'system'].map(f => (
+                  <button key={f} onClick={() => setFilter(f as any)}
+                    style={{ padding: '4px 12px', borderRadius: 100, border: `1px solid ${filter === f ? '#0F766E' : '#E5E7EB'}`, background: filter === f ? '#F0FDF9' : 'white', color: filter === f ? '#0F766E' : '#6B7280', fontWeight: 600, fontSize: '12px', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', textTransform: 'capitalize' }}>
+                    {f}
+                  </button>
+                ))}
               </div>
-            )
-          })}
-        </div>
+              <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', color: '#9CA3AF', fontSize: '1.1rem', cursor: 'pointer', lineHeight: 1, padding: 0 }}>×</button>
+            </div>
+
+            {loading && <div style={{ fontSize: '13px', color: '#9CA3AF', padding: '1rem 0' }}>Loading activity...</div>}
+            {error && <div style={{ fontSize: '13px', color: '#DC2626', padding: '1rem 0' }}>{error}</div>}
+
+            {!loading && !error && filtered.length === 0 && (
+              <div style={{ textAlign: 'center', color: '#9CA3AF', padding: '2rem', fontSize: '13px' }}>
+                No activity yet. Actions from clients, employees, and admins will appear here in real time.
+              </div>
+            )}
+
+            {!loading && !error && filtered.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 380, overflowY: 'auto' }}>
+                {filtered.map(entry => {
+                  const style = ACTOR_STYLE[entry.actorType] || ACTOR_STYLE.system
+                  return (
+                    <div key={entry.id} style={{ display: 'flex', gap: 10, padding: '0.65rem 0.5rem', borderBottom: '1px solid #F9FAFB', alignItems: 'flex-start' }}>
+                      <div style={{ width: 28, height: 28, borderRadius: '50%', background: style.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', flexShrink: 0 }}>
+                        {style.icon}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '13px', color: '#111827', lineHeight: 1.4 }}>{entry.description}</div>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 2 }}>
+                          <span style={{ fontSize: '10px', fontWeight: 700, color: style.color, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{entry.actorType}</span>
+                          <span style={{ fontSize: '11px', color: '#9CA3AF' }}>{timeAgo(entry.createdAt)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </>
       )}
     </div>
   )
@@ -177,7 +210,7 @@ export default function DashboardPage() {
         <p style={{ color: '#6B7280', fontSize: '14px', margin: 0 }}>Business overview and key metrics.</p>
       </div>
 
-      {/* Live activity feed — always visible regardless of other dashboard data loading state */}
+      {/* Live activity feed — collapsed dropdown, never blocks the rest of the dashboard */}
       <ActivityFeed />
 
       {loading && <LoadingCard />}
