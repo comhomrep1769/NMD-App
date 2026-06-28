@@ -1,164 +1,110 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 
-const BEFORE_AFTER_ITEMS = [
-  {
-    id: 1,
-    label: 'Driveway Cleaning',
-    location: 'Orlando, FL',
-    before: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80',
-    after: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&q=80',
-  },
-  {
-    id: 2,
-    label: 'House Washing',
-    location: 'Melbourne, FL',
-    before: 'https://images.unsplash.com/photo-1523217582562-09d0def993a6?w=600&q=80',
-    after: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=600&q=80',
-  },
-  {
-    id: 3,
-    label: 'Roof Cleaning',
-    location: 'Kissimmee, FL',
-    before: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=600&q=80',
-    after: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=600&q=80',
-  },
-  {
-    id: 4,
-    label: 'Patio Cleaning',
-    location: 'Cocoa, FL',
-    before: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=600&q=80',
-    after: 'https://images.unsplash.com/photo-1600566752355-35792bedcfea?w=600&q=80',
-  },
-]
-
-function BeforeAfterCard({ item }: { item: typeof BEFORE_AFTER_ITEMS[0] }) {
-  const [showAfter, setShowAfter] = useState(false)
-
-  return (
-    <div style={{
-      borderRadius: 16,
-      overflow: 'hidden',
-      border: '1px solid var(--color-border)',
-      background: 'var(--color-surface)',
-      boxShadow: '0 4px 24px rgba(14,17,23,0.06)',
-    }}>
-      {/* Image container */}
-      <div style={{ position: 'relative', aspectRatio: '4/3', overflow: 'hidden', cursor: 'pointer' }} onClick={() => setShowAfter(!showAfter)}>
-        {/* Before image */}
-        <img
-          src={item.before}
-          alt={`Before ${item.label}`}
-          style={{
-            position: 'absolute', inset: 0, width: '100%', height: '100%',
-            objectFit: 'cover',
-            opacity: showAfter ? 0 : 1,
-            transition: 'opacity 0.4s ease',
-          }}
-        />
-        {/* After image */}
-        <img
-          src={item.after}
-          alt={`After ${item.label}`}
-          style={{
-            position: 'absolute', inset: 0, width: '100%', height: '100%',
-            objectFit: 'cover',
-            opacity: showAfter ? 1 : 0,
-            transition: 'opacity 0.4s ease',
-          }}
-        />
-
-        {/* Badge */}
-        <div style={{
-          position: 'absolute', top: 12, left: 12,
-          background: showAfter ? '#1f6132' : '#8494b0',
-          color: 'white', fontSize: '0.7rem', fontWeight: 700,
-          padding: '3px 10px', borderRadius: 20,
-          letterSpacing: '0.05em', textTransform: 'uppercase',
-          transition: 'background 0.3s',
-        }}>
-          {showAfter ? 'After' : 'Before'}
-        </div>
-
-        {/* Tap hint */}
-        <div style={{
-          position: 'absolute', bottom: 12, right: 12,
-          background: 'rgba(0,0,0,0.55)', color: 'white',
-          fontSize: '0.72rem', fontWeight: 500,
-          padding: '4px 10px', borderRadius: 20, backdropFilter: 'blur(4px)',
-        }}>
-          Tap to {showAfter ? 'see before' : 'see after'}
-        </div>
-      </div>
-
-      {/* Toggle bar */}
-      <div style={{ display: 'flex', borderBottom: '1px solid var(--color-border)' }}>
-        {['Before', 'After'].map((label) => (
-          <button
-            key={label}
-            onClick={() => setShowAfter(label === 'After')}
-            style={{
-              flex: 1, padding: '0.6rem',
-              border: 'none', cursor: 'pointer',
-              fontFamily: 'DM Sans, sans-serif',
-              fontSize: '0.82rem', fontWeight: 600,
-              background: (label === 'After') === showAfter
-                ? 'linear-gradient(135deg, #1f6132, #124d83)'
-                : 'transparent',
-              color: (label === 'After') === showAfter ? 'white' : 'var(--color-text-3)',
-              transition: 'all 0.2s',
-            }}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {/* Info */}
-      <div style={{ padding: '0.9rem 1rem' }}>
-        <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--color-text-1)' }}>{item.label}</div>
-        <div style={{ fontSize: '0.78rem', color: 'var(--color-text-3)', marginTop: 2 }}>📍 {item.location}</div>
-      </div>
-    </div>
-  )
+type Item = {
+  title: string
+  location: string
+  tag: string
+  tagBg: string
+  tagColor: string
+  seed: string
 }
 
+const ITEMS: Item[] = [
+  { title: 'Driveway Cleaning', location: 'Winter Park, FL', tag: 'Residential', tagBg: '#F0FDF9', tagColor: '#0F766E', seed: 'nmd-driveway' },
+  { title: 'Roof Soft Wash', location: 'Orlando, FL', tag: 'Specialty', tagBg: '#F0FDF9', tagColor: '#0F766E', seed: 'nmd-roof' },
+  { title: 'Commercial Parking Lot', location: 'Kissimmee, FL', tag: 'Commercial', tagBg: '#EFF6FF', tagColor: '#1D4ED8', seed: 'nmd-parkinglot' },
+  { title: 'Fence Restoration', location: 'Melbourne, FL', tag: 'Specialty', tagBg: '#FEF3C7', tagColor: '#92400E', seed: 'nmd-fence' },
+]
+
 export default function BeforeAfterSection() {
+  const [afterState, setAfterState] = useState<boolean[]>(ITEMS.map(() => false))
+
+  const toggle = (i: number, value: boolean) => {
+    setAfterState((prev) => {
+      const next = [...prev]
+      next[i] = value
+      return next
+    })
+  }
+
   return (
-    <section className="nmd-section" style={{ background: 'var(--color-bg)' }}>
-      <div style={{ maxWidth: 1180, margin: '0 auto', padding: '0 1.5rem' }}>
-        {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-          <p className="nmd-section-eyebrow">Results speak for themselves</p>
-          <h2 className="nmd-section-title">Before & After</h2>
-          <p className="nmd-section-sub" style={{ maxWidth: 520, margin: '0.75rem auto 0' }}>
-            Real results from real jobs. Tap any photo to see the transformation.
+    <section className="bg-[#F8FAF9] px-4 py-24 sm:px-[65px]">
+      <div className="mx-auto max-w-[1440px]">
+        <div className="mb-12">
+          <p className="mb-2.5 text-[11px] font-bold uppercase tracking-wider text-teal-700">Gallery</p>
+          <h2 className="mb-3.5 max-w-[600px] text-[40px] font-bold leading-[1.1] tracking-[-0.025em] text-gray-900">
+            The Proof Is in the Photos.
+          </h2>
+          <p className="max-w-[480px] text-base leading-relaxed text-gray-500">
+            Real jobs. Real results. Toggle between before and after on any card.
           </p>
         </div>
 
-        {/* Grid */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-          gap: '1.5rem',
-        }}>
-          {BEFORE_AFTER_ITEMS.map(item => (
-            <BeforeAfterCard key={item.id} item={item} />
-          ))}
-        </div>
-
-        {/* Placeholder notice */}
-        <div style={{
-          marginTop: '2rem', textAlign: 'center',
-          padding: '0.75rem 1.25rem',
-          background: 'var(--color-surface)',
-          border: '1px dashed var(--color-border)',
-          borderRadius: 10,
-          fontSize: '0.8rem', color: 'var(--color-text-3)',
-          display: 'inline-block',
-        }}>
-          📸 Placeholder photos — real job photos coming soon
+        <div className="grid-gallery grid grid-cols-2 gap-6">
+          {ITEMS.map((item, i) => {
+            const showAfter = afterState[i]
+            const imgUrl = `https://picsum.photos/seed/${item.seed}/900/600`
+            return (
+              <div key={item.title} className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+                <div className="relative h-[280px] overflow-hidden">
+                  <img
+                    src={imgUrl}
+                    alt={`${showAfter ? 'After' : 'Before'} — ${item.title}`}
+                    className="h-full w-full object-cover"
+                    style={
+                      showAfter
+                        ? { filter: 'brightness(1.08) saturate(1.12)' }
+                        : { filter: 'brightness(0.7) saturate(0.4) sepia(0.25)' }
+                    }
+                  />
+                  <div
+                    className="pointer-events-none absolute inset-0"
+                    style={{
+                      background: showAfter
+                        ? 'linear-gradient(to top, rgba(0,0,0,0.18) 0%, transparent 55%)'
+                        : 'linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 55%)',
+                    }}
+                  />
+                  <div className="absolute bottom-3.5 right-3.5 flex gap-0.5 rounded-full bg-black/65 p-[3px]">
+                    <button
+                      onClick={() => toggle(i, false)}
+                      className={
+                        !showAfter
+                          ? 'rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-gray-900'
+                          : 'rounded-full px-3 py-1.5 text-xs font-normal text-white/70'
+                      }
+                    >
+                      Before
+                    </button>
+                    <button
+                      onClick={() => toggle(i, true)}
+                      className={
+                        showAfter
+                          ? 'rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-gray-900'
+                          : 'rounded-full px-3 py-1.5 text-xs font-normal text-white/70'
+                      }
+                    >
+                      After
+                    </button>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between px-5 py-4">
+                  <div>
+                    <div className="text-sm font-semibold text-gray-900">{item.title}</div>
+                    <div className="mt-0.5 text-xs text-gray-500">{item.location}</div>
+                  </div>
+                  <span
+                    className="rounded-md px-2 py-1 text-[11px] font-semibold"
+                    style={{ background: item.tagBg, color: item.tagColor }}
+                  >
+                    {item.tag}
+                  </span>
+                </div>
+              </div>
+            )
+          })}
         </div>
       </div>
     </section>

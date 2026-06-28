@@ -1,61 +1,147 @@
-export default function PricingSection() {
+﻿export default function PricingSection() {
   const services = [
-    { name: "Decks", desc: "Bring your deck back to life.", price: "$120", unit: "Up to 300 sq ft" },
-    { name: "RVs", desc: "Make your RV shine like new.", price: "$150", unit: "Up to 30 ft" },
-    { name: "Fence", desc: "Clean, protect, and enhance.", price: "$100", unit: "Up to 100 ft" },
-    { name: "Driveways", desc: "Remove stains. Boost curb appeal.", price: "$120", unit: "Up to 500 sq ft" },
-    { name: "Houses", desc: "Soft wash for a clean, bright home.", price: "$180", unit: "Up to 2,000 sq ft" },
+    { name: 'Driveway', desc: 'Concrete & asphalt driveways, up to 600 sq ft.', price: '$89' },
+    { name: 'House Exterior', desc: 'Single-story home soft wash, up to 2,000 sq ft.', price: '$249' },
+    { name: 'Deck & Patio', desc: 'Wood or composite decks & pavers, up to 400 sq ft.', price: '$149' },
+    { name: 'Fence', desc: 'Wood, vinyl & chain-link fences, up to 100 linear ft.', price: '$99' },
+    { name: 'RV Cleaning', desc: 'Full exterior RV & boat wash, oxidation treatment.', price: '$199' },
   ]
   const packages = [
-    { name: "Bronze Package", items: ["House", "Driveway"], price: "$250", savings: "Save $50", featured: false },
-    { name: "Silver Package", items: ["House", "Driveway", "Fence"], price: "$450", savings: "Save $100", featured: true },
-    { name: "Gold Package", items: ["House", "Driveway", "Fence", "Deck"], price: "$600", savings: "Save $150", featured: false },
+    {
+      tier: 'Bronze',
+      price: '$329',
+      items: ['Driveway & Sidewalk Cleaning', 'Fence Washing', 'Pool Deck Cleaning'],
+    },
+    {
+      tier: 'Silver',
+      price: '$549',
+      items: ['Driveway & Sidewalk Cleaning', 'House Exterior Soft Wash', 'Deck & Patio Cleaning', 'Fence Washing'],
+    },
+    {
+      tier: 'Gold',
+      price: '$849',
+      items: ['Full Property Deep Clean', 'Roof Soft Wash Included', 'All Hardscape Surfaces', 'Priority Scheduling'],
+    },
   ]
+
   return (
-    <section id="pricing" style={{ background: "#f4f7fb", padding: "5rem 1.5rem" }}>
-      <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-        <div style={{ textAlign: "center", marginBottom: "3rem" }}>
-          <p style={{ fontSize: "0.75rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", color: "#1f6132", marginBottom: 10 }}>Transparent Pricing</p>
-          <h2 style={{ fontFamily: "Syne, sans-serif", fontSize: "clamp(1.75rem, 4vw, 2.5rem)", fontWeight: 800, color: "#0e1117", letterSpacing: "-0.03em", marginBottom: 12 }}>Simple starting prices.</h2>
-          <p style={{ fontSize: "1rem", color: "#5a6a88", maxWidth: 520, margin: "0 auto", lineHeight: 1.6 }}>Every property is different. These are our starting rates - final pricing is based on your property size, condition, and scope.</p>
+    <section id="pricing" className="bg-[#F8FAF9] px-4 py-24 sm:px-[65px]">
+      <div className="mx-auto max-w-[1440px]">
+        <div className="mb-12 max-w-[600px]">
+          <p className="mb-2.5 text-[11px] font-bold uppercase tracking-wider text-teal-700">Pricing</p>
+          <h2 className="mb-3.5 text-[40px] font-bold leading-[1.1] tracking-[-0.025em] text-gray-900">
+            Transparent Pricing. No Surprises.
+          </h2>
+          <p className="text-base leading-relaxed text-gray-500">
+            Starting prices for common services. Final quotes depend on size and condition &mdash; always provided before work begins.
+          </p>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem", marginBottom: "3rem" }}>
-          {services.map(s => (
-            <div key={s.name} style={{ background: "white", borderRadius: 14, border: "1.5px solid #dde4ef", padding: "1.5rem", textAlign: "center", boxShadow: "0 2px 12px rgba(14,17,23,0.04)" }}>
-              <div style={{ fontFamily: "Syne, sans-serif", fontSize: "1.1rem", fontWeight: 700, color: "#0e1117", marginBottom: 6 }}>{s.name}</div>
-              <div style={{ fontSize: "0.82rem", color: "#8494b0", marginBottom: "1rem", lineHeight: 1.4 }}>{s.desc}</div>
-              <div style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "#8494b0", marginBottom: 4 }}>Starting at</div>
-              <div style={{ fontFamily: "Syne, sans-serif", fontSize: "2rem", fontWeight: 800, color: "#1f6132", lineHeight: 1 }}>{s.price}</div>
-              <div style={{ fontSize: "0.75rem", color: "#8494b0", marginTop: 4 }}>{s.unit}</div>
+
+        <div className="grid-pricing-cards mb-12 grid grid-cols-5 gap-4">
+          {services.map((s) => (
+            <div key={s.name} className="flex flex-col rounded-xl border border-gray-200 bg-white p-6">
+              <div className="mb-3 text-[11px] font-bold uppercase tracking-wider text-teal-700">{s.name}</div>
+              <div className="mb-0.5 text-3xl font-extrabold leading-none text-gray-900">{s.price}</div>
+              <div className="mb-4 text-xs text-gray-400">starting price</div>
+              <p className="flex-1 text-[13px] leading-relaxed text-gray-500">{s.desc}</p>
             </div>
           ))}
         </div>
-        <div style={{ textAlign: "center", marginBottom: "2rem" }}>
-          <div style={{ display: "inline-block", background: "linear-gradient(135deg, #1f6132, #124d83)", borderRadius: 10, padding: "0.5rem 1.25rem", marginBottom: "1.5rem" }}>
-            <span style={{ color: "white", fontWeight: 700, fontSize: "0.9rem", letterSpacing: "0.05em" }}>PACKAGE DEAL - SAVE MORE!</span>
+
+        <div className="mb-8 flex items-center gap-5">
+          <div className="h-px flex-1 bg-gray-200" />
+          <span className="whitespace-nowrap text-xs font-bold uppercase tracking-wider text-gray-500">Complete Packages</span>
+          <div className="h-px flex-1 bg-gray-200" />
+        </div>
+
+        <div className="grid-packages grid grid-cols-3 gap-5">
+          {/* Bronze */}
+          <div className="rounded-xl border border-gray-200 bg-white p-7">
+            <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-amber-800">Bronze</div>
+            <div className="mb-1 text-4xl font-extrabold leading-none text-gray-900">{packages[0].price}</div>
+            <div className="mb-5 text-xs text-gray-400">one-time service</div>
+            <div className="mb-6 flex flex-col gap-2.5">
+              {packages[0].items.map((item) => (
+                <div key={item} className="flex items-center gap-2 text-sm text-gray-700">
+                  <span className="flex h-3.5 w-3.5 flex-shrink-0 items-center justify-center rounded-full bg-[#F0FDF9] text-teal-700">
+                    &#10003;
+                  </span>
+                  {item}
+                </div>
+              ))}
+            </div>
+            <a
+              href="/client/request-service"
+              className="block rounded-lg border border-gray-200 py-2.5 text-center text-sm font-semibold text-gray-700"
+            >
+              Get a Quote
+            </a>
           </div>
-          <p style={{ fontSize: "0.85rem", color: "#5a6a88" }}>Bundle and Save - The more you clean, the more you save!</p>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "1rem", marginBottom: "2.5rem" }}>
-          {packages.map(p => (
-            <div key={p.name} style={{ background: p.featured ? "linear-gradient(135deg, #1f6132, #124d83)" : "white", borderRadius: 16, border: p.featured ? "none" : "1.5px solid #dde4ef", padding: "1.75rem", textAlign: "center", boxShadow: p.featured ? "0 8px 32px rgba(31,97,50,0.25)" : "0 2px 12px rgba(14,17,23,0.04)", transform: p.featured ? "scale(1.03)" : "none" }}>
-              <div style={{ fontFamily: "Syne, sans-serif", fontSize: "1rem", fontWeight: 700, color: p.featured ? "rgba(255,255,255,0.9)" : "#0e1117", marginBottom: "1rem" }}>{p.name}</div>
-              <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 6, marginBottom: "1.25rem" }}>
-                {p.items.map(item => (
-                  <span key={item} style={{ fontSize: "0.75rem", padding: "3px 10px", borderRadius: 20, background: p.featured ? "rgba(255,255,255,0.15)" : "#eaf7ef", color: p.featured ? "white" : "#1f6132", fontWeight: 600 }}>{item}</span>
-                ))}
-              </div>
-              <div style={{ fontSize: "0.68rem", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: p.featured ? "rgba(255,255,255,0.6)" : "#8494b0", marginBottom: 4 }}>Starting at</div>
-              <div style={{ fontFamily: "Syne, sans-serif", fontSize: "2.25rem", fontWeight: 800, color: p.featured ? "white" : "#0e1117", lineHeight: 1 }}>{p.price}</div>
-              <div style={{ marginTop: 8, display: "inline-block", background: p.featured ? "rgba(255,255,255,0.2)" : "#eaf7ef", borderRadius: 20, padding: "3px 12px", fontSize: "0.78rem", fontWeight: 700, color: p.featured ? "white" : "#1f6132" }}>{p.savings}</div>
+
+          {/* Silver */}
+          <div className="relative rounded-xl border-2 border-teal-700 bg-white p-7 shadow-lg">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-teal-700 px-3.5 py-1 text-[11px] font-bold uppercase tracking-wider !text-white">
+              Most Popular
             </div>
-          ))}
+            <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-teal-700">Silver</div>
+            <div className="mb-1 text-4xl font-extrabold leading-none text-gray-900">{packages[1].price}</div>
+            <div className="mb-5 text-xs text-gray-400">one-time service</div>
+            <div className="mb-6 flex flex-col gap-2.5">
+              {packages[1].items.map((item) => (
+                <div key={item} className="flex items-center gap-2 text-sm text-gray-700">
+                  <span className="flex h-3.5 w-3.5 flex-shrink-0 items-center justify-center rounded-full bg-teal-100 text-teal-700">
+                    &#10003;
+                  </span>
+                  {item}
+                </div>
+              ))}
+            </div>
+            <a
+              href="/client/request-service"
+              className="block rounded-lg bg-teal-700 py-2.5 text-center text-sm font-semibold !text-white"
+            >
+              Get a Quote
+            </a>
+          </div>
+
+          {/* Gold */}
+          <div className="rounded-xl bg-[#0C3D38] p-7">
+            <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-[#6EE7B7]">Gold</div>
+            <div className="mb-1 text-4xl font-extrabold leading-none !text-white">{packages[2].price}</div>
+            <div className="mb-5 text-xs text-white/40">one-time service</div>
+            <div className="mb-6 flex flex-col gap-2.5">
+              {packages[2].items.map((item) => (
+                <div key={item} className="flex items-center gap-2 text-sm text-white/85">
+                  <span className="flex h-3.5 w-3.5 flex-shrink-0 items-center justify-center rounded-full bg-emerald-400/20 text-emerald-400">
+                    &#10003;
+                  </span>
+                  {item}
+                </div>
+              ))}
+            </div>
+            <a
+              href="/client/request-service"
+              className="block rounded-lg border border-white/20 bg-white/[0.12] py-2.5 text-center text-sm font-semibold !text-white"
+            >
+              Get a Quote
+            </a>
+          </div>
         </div>
-        <div style={{ textAlign: "center" }}>
-          <a href="/client/request-service" style={{ display: "inline-block", padding: "0.85rem 2rem", borderRadius: 10, background: "linear-gradient(135deg, #1f6132, #124d83)", color: "white", fontWeight: 700, fontSize: "1rem", textDecoration: "none", fontFamily: "DM Sans, sans-serif" }}>Get a Free Estimate</a>
-          <p style={{ marginTop: "1rem", fontSize: "0.82rem", color: "#8494b0" }}>Free estimates. No contracts. Fully insured.</p>
+
+        <div className="mt-10 text-center">
+          <a
+            href="/client/request-service"
+            className="inline-flex items-center gap-2 rounded-lg bg-teal-700 px-7 py-3.5 text-base font-semibold !text-white shadow-sm hover:bg-teal-800"
+          >
+            Get a Free Estimate
+          </a>
+          <p className="mt-4 text-sm text-gray-400">Free estimates. No contracts. Fully insured.</p>
         </div>
       </div>
     </section>
   )
 }
+
+
+
+

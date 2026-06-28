@@ -1,7 +1,7 @@
 ﻿"use client"
 import { useEffect, useState } from "react"
 import PortalShell from "@/components/portal/PortalShell"
-import { LoadingCard, ErrorCard, DataTable, StatusBadge, fmtDate } from "@/components/portal/PortalUI"
+import { LoadingCard, ErrorCard, DataTable, StatusBadge, SectionHeader, fmtDate } from "@/components/portal/PortalUI"
 import { getNmdToken } from "@/lib/authStorage"
 
 type Job = {
@@ -14,13 +14,13 @@ type Employee = { id: string; name: string; email: string }
 
 const inputStyle: React.CSSProperties = {
   width: '100%', padding: '0.65rem 0.9rem', borderRadius: 8,
-  border: '1.5px solid #dde4ef', fontSize: '0.875rem',
-  fontFamily: 'DM Sans, sans-serif', color: '#0e1117',
-  background: '#f4f7fb', boxSizing: 'border-box',
+  border: '1px solid #E5E7EB', fontSize: '0.875rem',
+  fontFamily: 'DM Sans, sans-serif', color: '#111827',
+  background: 'white', boxSizing: 'border-box',
 }
 
 const labelStyle: React.CSSProperties = {
-  fontSize: '0.8rem', fontWeight: 500, color: '#3a4660',
+  fontSize: '0.8rem', fontWeight: 500, color: '#374151',
   display: 'block', marginBottom: 4,
 }
 
@@ -117,18 +117,18 @@ export default function SchedulePage() {
 
       {/* ── Create Job Modal ── */}
       {showModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(14,17,23,0.6)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ background: 'white', borderRadius: 16, width: '100%', maxWidth: 560, maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(14,17,23,0.25)' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(17,24,39,0.65)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+          <div style={{ background: 'white', borderRadius: 14, width: '100%', maxWidth: 560, maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(17,24,39,0.2)' }}>
 
-            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #dde4ef' }}>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '1.1rem', fontWeight: 700, color: '#0e1117' }}>Create New Job</div>
-              <div style={{ fontSize: '0.82rem', color: '#8494b0', marginTop: 4 }}>Fill in the job details below.</div>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #E5E7EB' }}>
+              <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '1.1rem', fontWeight: 700, color: '#111827' }}>Create New Job</div>
+              <div style={{ fontSize: '0.82rem', color: '#9CA3AF', marginTop: 4 }}>Fill in the job details below.</div>
             </div>
 
             <div style={{ flex: 1, overflowY: 'auto', padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
 
               {modalError && (
-                <div style={{ background: '#fff0f0', border: '1.5px solid #ffc0c0', borderRadius: 8, padding: '0.65rem 1rem', fontSize: '0.82rem', color: '#c0392b' }}>
+                <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '0.65rem 1rem', fontSize: '0.82rem', color: '#B91C1C' }}>
                   {modalError}
                 </div>
               )}
@@ -174,15 +174,15 @@ export default function SchedulePage() {
                     <label style={labelStyle}>Assign Employees</label>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       {employees.map(emp => (
-                        <label key={emp.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0.6rem 0.9rem', background: form.assignedUserIds.includes(emp.id) ? 'rgba(31,97,50,0.06)' : '#f4f7fb', border: `1.5px solid ${form.assignedUserIds.includes(emp.id) ? 'rgba(31,97,50,0.3)' : '#dde4ef'}`, borderRadius: 8, cursor: 'pointer' }}>
+                        <label key={emp.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0.6rem 0.9rem', background: form.assignedUserIds.includes(emp.id) ? 'rgba(15,118,110,0.08)' : '#F9FAFB', border: `1px solid ${form.assignedUserIds.includes(emp.id) ? 'rgba(15,118,110,0.3)' : '#E5E7EB'}`, borderRadius: 8, cursor: 'pointer' }}>
                           <input
                             type="checkbox"
                             checked={form.assignedUserIds.includes(emp.id)}
                             onChange={() => toggleEmployee(emp.id)}
-                            style={{ accentColor: '#1f6132', width: 16, height: 16 }}
+                            style={{ accentColor: '#0F766E', width: 16, height: 16 }}
                           />
-                          <span style={{ fontSize: '0.875rem', fontWeight: 500, color: '#0e1117' }}>{emp.name}</span>
-                          <span style={{ fontSize: '0.75rem', color: '#8494b0', marginLeft: 'auto' }}>{emp.email}</span>
+                          <span style={{ fontSize: '0.875rem', fontWeight: 500, color: '#111827' }}>{emp.name}</span>
+                          <span style={{ fontSize: '0.75rem', color: '#9CA3AF', marginLeft: 'auto' }}>{emp.email}</span>
                         </label>
                       ))}
                     </div>
@@ -191,17 +191,17 @@ export default function SchedulePage() {
               </div>
             </div>
 
-            <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #dde4ef', display: 'flex', gap: 10 }}>
+            <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #E5E7EB', display: 'flex', gap: 10 }}>
               <button
                 onClick={() => { setShowModal(false); setModalError('') }}
-                style={{ flex: 1, padding: '0.7rem', borderRadius: 8, border: '1.5px solid #dde4ef', background: 'white', color: '#5a6a88', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}
+                style={{ flex: 1, padding: '0.7rem', borderRadius: 8, border: '1px solid #E5E7EB', background: 'white', color: '#6B7280', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={saving}
-                style={{ flex: 2, padding: '0.7rem', borderRadius: 8, border: 'none', background: saving ? '#dde4ef' : 'linear-gradient(135deg, #1f6132, #124d83)', color: saving ? '#8494b0' : 'white', fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif' }}
+                style={{ flex: 2, padding: '0.7rem', borderRadius: 8, border: 'none', background: saving ? '#E5E7EB' : '#0F766E', color: saving ? '#9CA3AF' : 'white', fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif' }}
               >
                 {saving ? 'Creating...' : 'Create Job'}
               </button>
@@ -210,32 +210,32 @@ export default function SchedulePage() {
         </div>
       )}
 
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <div style={{ fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#1f6132", marginBottom: 6 }}>Admin Portal</div>
-          <h1 style={{ fontFamily: "Syne, sans-serif", fontSize: "1.75rem", fontWeight: 800, color: "#0e1117", letterSpacing: "-0.03em", marginBottom: 6 }}>Schedule</h1>
-          <p style={{ color: "#5a6a88", fontSize: "0.875rem" }}>All jobs and assigned employees.</p>
-        </div>
-        <button
-          onClick={() => { setShowModal(true); setModalError('') }}
-          style={{ padding: '0.65rem 1.4rem', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 700, fontSize: '0.875rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', whiteSpace: 'nowrap' }}
-        >
-          + Create Job
-        </button>
-      </div>
+      <SectionHeader
+        title="Schedule"
+        sub="All jobs and assigned employees."
+        action={
+          <button
+            onClick={() => { setShowModal(true); setModalError('') }}
+            style={{ padding: '0.65rem 1.4rem', borderRadius: 8, border: 'none', background: '#0F766E', color: 'white', fontWeight: 700, fontSize: '0.875rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', whiteSpace: 'nowrap' }}
+          >
+            + Create Job
+          </button>
+        }
+      />
 
       {loading && <LoadingCard />}
       {error && <ErrorCard message={error} />}
       {!loading && !error && (
         <DataTable
-          headers={["Job", "Client", "Address", "Start", "Assigned To", "Status"]}
+          headers={["Job", "Client", "Address", "Start", "End", "Assigned To", "Status"]}
           rows={jobs.map(j => [
-            j.title,
-            j.clientName || "N/A",
-            j.address || "N/A",
-            j.startTime ? fmtDate(j.startTime) : "N/A",
-            j.assignedEmployees.map(e => e.displayName).join(", ") || "Unassigned",
-            <StatusBadge key={j.id} status={j.status} />
+            <span key="title" style={{ fontWeight: 600 }}>{j.title}</span>,
+            <span key="client" style={{ color: '#374151' }}>{j.clientName || "—"}</span>,
+            <span key="addr" style={{ color: '#6B7280' }}>{j.address || "—"}</span>,
+            <span key="start" style={{ color: '#6B7280', whiteSpace: 'nowrap' }}>{j.startTime ? fmtDate(j.startTime) : "—"}</span>,
+            <span key="end" style={{ color: '#9CA3AF', whiteSpace: 'nowrap' }}>{j.endTime ? fmtDate(j.endTime) : "—"}</span>,
+            <span key="assigned" style={{ color: '#374151' }}>{j.assignedEmployees.map(e => e.displayName).join(", ") || "Unassigned"}</span>,
+            <StatusBadge key="status" status={j.status} />
           ])}
           emptyMessage="No jobs scheduled."
         />

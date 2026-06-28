@@ -1,1 +1,64 @@
 ﻿@import "tailwindcss";
+
+@theme {
+  --breakpoint-lg: 48rem;
+}
+
+@media (max-width: 767px) {
+  .nav-desktop-only { display: none !important; }
+  .nav-mobile-toggle { display: flex !important; }
+}
+@media (min-width: 768px) {
+  .nav-mobile-toggle { display: none !important; }
+}
+
+@media (max-width: 767px) {
+  .grid-services { grid-template-columns: 1fr !important; }
+  .grid-pricing-cards { grid-template-columns: 1fr !important; }
+  .grid-packages { grid-template-columns: 1fr !important; }
+  .grid-recurring { grid-template-columns: repeat(2, 1fr) !important; }
+}
+
+@media (max-width: 767px) {
+  .grid-gallery { grid-template-columns: 1fr !important; }
+}
+
+@media (max-width: 767px) {
+  .grid-footer { grid-template-columns: 1fr !important; }
+}
+
+@media (max-width: 767px) {
+  .grid-values { grid-template-columns: 1fr !important; }
+}
+
+@media (max-width: 767px) {
+  .grid-mission-statement { flex-direction: column !important; }
+  .grid-mission-statement > div:first-child { width: 100% !important; }
+}
+
+/* ===== Join Our Team page — mobile overrides ===== */
+@media (max-width: 768px) {
+  .jt-container { padding-left: 24px !important; padding-right: 24px !important; }
+  .jt-hero-inner h1 { font-size: 34px !important; }
+  .jt-why-grid { grid-template-columns: 1fr 1fr !important; gap: 24px !important; }
+  .jt-positions-row { flex-direction: column !important; gap: 40px !important; }
+  .jt-positions-col { flex: 1 1 auto !important; width: 100% !important; }
+  .jt-form-col { width: 100% !important; min-width: 0 !important; }
+  .jt-form-grid { grid-template-columns: 1fr !important; }
+  .jt-footer-row { flex-direction: column !important; align-items: flex-start !important; text-align: left !important; }
+}
+
+/* ===== Request Service wizard — mobile overrides ===== */
+@media (max-width: 768px) {
+  .rs-container { padding-left: 20px !important; padding-right: 20px !important; }
+  .rs-page { padding-left: 20px !important; padding-right: 20px !important; }
+  .rs-cards { grid-template-columns: 1fr 1fr !important; }
+  .rs-form-grid { grid-template-columns: 1fr !important; }
+  .rs-photo-grid { grid-template-columns: 1fr 1fr !important; }
+}
+
+/* ===== Login page — mobile overrides ===== */
+@media (max-width: 768px) {
+  .nmd-login-brand { display: none !important; }
+  .nmd-login-right { padding-left: 24px !important; padding-right: 24px !important; }
+}

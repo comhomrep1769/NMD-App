@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import PortalShell from '@/components/portal/PortalShell'
-import { LoadingCard, ErrorCard, SectionHeader } from '@/components/portal/PortalUI'
+import { LoadingCard, ErrorCard } from '@/components/portal/PortalUI'
 import { getNmdToken } from '@/lib/authStorage'
 
 type Applicant = {
@@ -14,16 +14,24 @@ type Applicant = {
 const STATUS_OPTIONS = ['new', 'reviewed', 'interview', 'hired', 'rejected']
 
 const statusStyle = (status: string): React.CSSProperties => {
-  const map: Record<string, { color: string; bg: string; border: string }> = {
-    new:       { color: '#124d83', bg: '#e8f3fd', border: '#96c8f5' },
-    reviewed:  { color: '#7a5c00', bg: '#fff9e6', border: '#f5e6a0' },
-    interview: { color: '#6b21a8', bg: '#f3e8ff', border: '#d8b4fe' },
-    hired:     { color: '#1f6132', bg: '#f0fff4', border: '#c0dd97' },
-    rejected:  { color: '#c0392b', bg: '#fff0f0', border: '#ffc0c0' },
+  const map: Record<string, { color: string; bg: string }> = {
+    new:       { color: '#1D4ED8', bg: '#EFF6FF' },
+    reviewed:  { color: '#92400E', bg: '#FEF9C3' },
+    interview: { color: '#6D28D9', bg: '#F5F3FF' },
+    hired:     { color: '#059669', bg: '#F0FDF9' },
+    rejected:  { color: '#B91C1C', bg: '#FEF2F2' },
   }
   const s = map[status] || map.new
-  return { fontSize: '0.72rem', fontWeight: 700, padding: '2px 10px', borderRadius: 100, color: s.color, background: s.bg, border: `1px solid ${s.border}` }
+  return { fontSize: '0.72rem', fontWeight: 700, padding: '2px 10px', borderRadius: 100, color: s.color, background: s.bg }
 }
+
+const filterTabStyle = (active: boolean): React.CSSProperties => ({
+  padding: '0.35rem 0.85rem', borderRadius: 20,
+  border: `1px solid ${active ? '#0F766E' : '#E5E7EB'}`,
+  background: active ? '#F0FDF9' : 'white',
+  color: active ? '#0F766E' : '#6B7280',
+  fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif',
+})
 
 function fmtDate(dt: string) {
   return new Date(dt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -106,22 +114,23 @@ export default function ApplicantsPage() {
 
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '0.6rem 0.9rem', borderRadius: 8,
-    border: '1.5px solid #dde4ef', fontSize: '0.875rem', outline: 'none',
-    fontFamily: 'DM Sans, sans-serif', color: '#0e1117', background: '#f4f7fb', boxSizing: 'border-box',
+    border: '1.5px solid #E5E7EB', fontSize: '0.875rem', outline: 'none',
+    fontFamily: 'DM Sans, sans-serif', color: '#111827', background: '#fff', boxSizing: 'border-box',
   }
 
   return (
     <PortalShell requiredRole={['admin', 'superadmin']}>
-      <SectionHeader
-        title="Applicants"
-        sub={`${applicants.length} total applications`}
-        action={
-          <a href="/join" target="_blank" rel="noopener noreferrer"
-            style={{ padding: '0.6rem 1.25rem', borderRadius: 8, background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 600, fontSize: '0.85rem', textDecoration: 'none', whiteSpace: 'nowrap' }}>
-            View Join Page ↗
-          </a>
-        }
-      />
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#0F766E', marginBottom: 6 }}>NMD Portal</div>
+          <h1 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '28px', fontWeight: 800, color: '#111827', letterSpacing: '-0.025em', marginBottom: 6 }}>Applicants</h1>
+          <p style={{ color: '#6B7280', fontSize: '14px', margin: 0 }}>{applicants.length} total applications</p>
+        </div>
+        <a href="/join-our-team" target="_blank" rel="noopener noreferrer"
+          style={{ padding: '0.6rem 1.25rem', borderRadius: 8, background: '#0F766E', color: 'white', fontWeight: 600, fontSize: '0.85rem', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+          View Join Page ↗
+        </a>
+      </div>
 
       {loading && <LoadingCard />}
       {error && <ErrorCard message={error} />}
@@ -134,17 +143,16 @@ export default function ApplicantsPage() {
             {/* Status filter tabs */}
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: '1rem' }}>
               {['all', ...STATUS_OPTIONS].map(s => (
-                <button key={s} onClick={() => setStatusFilter(s)}
-                  style={{ padding: '0.35rem 0.85rem', borderRadius: 20, border: `1.5px solid ${statusFilter === s ? '#124d83' : '#dde4ef'}`, background: statusFilter === s ? '#e8f3fd' : 'white', color: statusFilter === s ? '#124d83' : '#5a6a88', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
+                <button key={s} onClick={() => setStatusFilter(s)} style={filterTabStyle(statusFilter === s)}>
                   {s.charAt(0).toUpperCase() + s.slice(1)} ({counts[s] || 0})
                 </button>
               ))}
             </div>
 
             {filtered.length === 0 ? (
-              <div style={{ background: 'white', border: '1.5px solid #dde4ef', borderRadius: 14, padding: '3rem', textAlign: 'center', color: '#8494b0' }}>
+              <div style={{ background: 'white', border: '1.5px solid #E5E7EB', borderRadius: 10, padding: '3rem', textAlign: 'center', color: '#9CA3AF' }}>
                 <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>👥</div>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, color: '#0e1117', marginBottom: 8 }}>No applicants yet</div>
+                <div style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 600, color: '#111827', marginBottom: 8 }}>No applicants yet</div>
                 <div style={{ fontSize: '0.875rem' }}>Applications submitted via the Join page will appear here.</div>
               </div>
             ) : (
@@ -152,13 +160,13 @@ export default function ApplicantsPage() {
                 {filtered.map(a => (
                   <div key={a.id}
                     onClick={() => { setSelected(a); setNotes(a.adminNotes || '') }}
-                    style={{ background: 'white', border: `1.5px solid ${selected?.id === a.id ? '#124d83' : '#dde4ef'}`, borderRadius: 12, padding: '1rem', cursor: 'pointer', transition: 'border-color 0.15s' }}>
+                    style={{ background: 'white', border: `1.5px solid ${selected?.id === a.id ? '#0F766E' : '#E5E7EB'}`, borderRadius: 10, padding: '1rem', cursor: 'pointer', transition: 'border-color 0.15s' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, flexWrap: 'wrap', gap: 6 }}>
-                      <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0e1117' }}>{a.fullName}</div>
+                      <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#111827' }}>{a.fullName}</div>
                       <span style={statusStyle(a.status)}>{a.status}</span>
                     </div>
-                    <div style={{ fontSize: '0.8rem', color: '#124d83', marginBottom: 2 }}>{a.position}</div>
-                    <div style={{ fontSize: '0.78rem', color: '#8494b0' }}>{a.email} · {fmtDate(a.createdAt)}</div>
+                    <div style={{ fontSize: '0.8rem', color: '#0F766E', marginBottom: 2 }}>{a.position}</div>
+                    <div style={{ fontSize: '0.78rem', color: '#9CA3AF' }}>{a.email} · {fmtDate(a.createdAt)}</div>
                   </div>
                 ))}
               </div>
@@ -167,10 +175,10 @@ export default function ApplicantsPage() {
 
           {/* Right — detail panel */}
           {selected && (
-            <div style={{ width: 340, background: 'white', border: '1.5px solid #dde4ef', borderRadius: 14, overflow: 'hidden', flexShrink: 0 }}>
-              <div style={{ padding: '1.25rem', borderBottom: '1px solid #dde4ef', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '0.95rem', color: '#0e1117' }}>{selected.fullName}</div>
-                <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', fontSize: '1.1rem', cursor: 'pointer', color: '#8494b0' }}>×</button>
+            <div style={{ width: 340, background: 'white', border: '1.5px solid #E5E7EB', borderRadius: 10, overflow: 'hidden', flexShrink: 0 }}>
+              <div style={{ padding: '1.25rem', borderBottom: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: '0.95rem', color: '#111827' }}>{selected.fullName}</div>
+                <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', fontSize: '1.1rem', cursor: 'pointer', color: '#9CA3AF' }}>×</button>
               </div>
 
               <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -183,8 +191,8 @@ export default function ApplicantsPage() {
                     { label: 'Applied', value: fmtDate(selected.createdAt) },
                   ].map(({ label, value }) => (
                     <div key={label} style={{ display: 'flex', gap: 8 }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#8494b0', minWidth: 60, textTransform: 'uppercase', letterSpacing: '0.05em', paddingTop: 2 }}>{label}</span>
-                      <span style={{ fontSize: '0.85rem', color: '#0e1117', flex: 1 }}>{value}</span>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#9CA3AF', minWidth: 60, textTransform: 'uppercase', letterSpacing: '0.05em', paddingTop: 2 }}>{label}</span>
+                      <span style={{ fontSize: '0.85rem', color: '#111827', flex: 1 }}>{value}</span>
                     </div>
                   ))}
                 </div>
@@ -192,17 +200,17 @@ export default function ApplicantsPage() {
                 {/* Message */}
                 {selected.message && (
                   <div>
-                    <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8494b0', marginBottom: 6 }}>Message</div>
-                    <div style={{ fontSize: '0.85rem', color: '#3a4660', background: '#f4f7fb', borderRadius: 8, padding: '0.75rem', lineHeight: 1.6 }}>{selected.message}</div>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 6 }}>Message</div>
+                    <div style={{ fontSize: '0.85rem', color: '#374151', background: '#F8FAF9', borderRadius: 8, padding: '0.75rem', lineHeight: 1.6 }}>{selected.message}</div>
                   </div>
                 )}
 
                 {/* Resume */}
                 {selected.resumeDataUrl && (
                   <div>
-                    <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8494b0', marginBottom: 6 }}>Resume</div>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 6 }}>Resume</div>
                     <a href={selected.resumeDataUrl} download={selected.resumeFileName || 'resume'}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0.5rem 1rem', borderRadius: 8, border: '1.5px solid #dde4ef', background: '#f4f7fb', color: '#124d83', fontWeight: 600, fontSize: '0.82rem', textDecoration: 'none' }}>
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0.5rem 1rem', borderRadius: 8, border: '1.5px solid #E5E7EB', background: 'white', color: '#0F766E', fontWeight: 600, fontSize: '0.82rem', textDecoration: 'none' }}>
                       ⬇ {selected.resumeFileName || 'Download Resume'}
                     </a>
                   </div>
@@ -210,12 +218,12 @@ export default function ApplicantsPage() {
 
                 {/* Status */}
                 <div>
-                  <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8494b0', marginBottom: 6 }}>Status</div>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 6 }}>Status</div>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                     {STATUS_OPTIONS.map(s => (
                       <button key={s} onClick={() => handleStatusChange(selected, s)}
                         disabled={updatingId === selected.id}
-                        style={{ padding: '0.35rem 0.75rem', borderRadius: 20, border: `1.5px solid ${selected.status === s ? '#124d83' : '#dde4ef'}`, background: selected.status === s ? '#e8f3fd' : 'white', color: selected.status === s ? '#124d83' : '#5a6a88', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
+                        style={filterTabStyle(selected.status === s)}>
                         {s}
                       </button>
                     ))}
@@ -224,7 +232,7 @@ export default function ApplicantsPage() {
 
                 {/* Admin notes */}
                 <div>
-                  <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8494b0', marginBottom: 6 }}>Admin Notes</div>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 6 }}>Admin Notes</div>
                   <textarea
                     value={notes}
                     onChange={e => setNotes(e.target.value)}
@@ -232,14 +240,14 @@ export default function ApplicantsPage() {
                     style={{ ...inputStyle, minHeight: 80, resize: 'vertical', fontSize: '0.82rem' }}
                   />
                   <button onClick={handleSaveNotes} disabled={updatingId === selected.id}
-                    style={{ marginTop: 6, padding: '0.5rem 1rem', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: updatingId === selected.id ? 0.6 : 1 }}>
+                    style={{ marginTop: 6, padding: '0.5rem 1rem', borderRadius: 8, border: 'none', background: '#0F766E', color: 'white', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: updatingId === selected.id ? 0.6 : 1 }}>
                     {updatingId === selected.id ? 'Saving...' : 'Save Notes'}
                   </button>
                 </div>
 
                 {/* Delete */}
                 <button onClick={() => handleDelete(selected.id)} disabled={deletingId === selected.id}
-                  style={{ padding: '0.6rem', borderRadius: 8, border: '1.5px solid #ffc0c0', background: '#fff0f0', color: '#c0392b', fontWeight: 600, fontSize: '0.82rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: deletingId === selected.id ? 0.6 : 1 }}>
+                  style={{ padding: '0.6rem', borderRadius: 8, border: 'none', background: '#FEF2F2', color: '#B91C1C', fontWeight: 600, fontSize: '0.82rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: deletingId === selected.id ? 0.6 : 1 }}>
                   {deletingId === selected.id ? 'Deleting...' : 'Delete Applicant'}
                 </button>
               </div>

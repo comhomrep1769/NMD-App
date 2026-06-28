@@ -52,14 +52,14 @@ export default function ClientQuotesPage() {
   return (
     <PortalShell requiredRole="client">
       <div style={{ marginBottom: '1.5rem' }}>
-        <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#1f6132', marginBottom: 6 }}>Client Portal</div>
-        <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: '1.75rem', fontWeight: 800, color: '#0e1117', letterSpacing: '-0.03em', marginBottom: 6 }}>My Quotes</h1>
-        <p style={{ color: '#5a6a88', fontSize: '0.875rem' }}>{quotes.length} quote{quotes.length !== 1 ? 's' : ''} from NMD Pressure Washing Services LLC.</p>
+        <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#0F766E', marginBottom: 6 }}>Client Portal</div>
+        <h1 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '28px', fontWeight: 800, color: '#111827', letterSpacing: '-0.025em', marginBottom: 6 }}>My Quotes</h1>
+        <p style={{ color: '#6B7280', fontSize: '14px', margin: 0 }}>{quotes.length} quote{quotes.length !== 1 ? 's' : ''} from NMD Pressure Washing Services LLC.</p>
       </div>
       {loading && <LoadingCard />}
       {error && <ErrorCard message={error} />}
       {actionError && (
-        <div style={{ background: '#fff0f0', border: '1.5px solid #ffc0c0', borderRadius: 8, padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.85rem', color: '#c0392b' }}>
+        <div style={{ background: '#FEF2F2', borderRadius: 8, padding: '0.75rem 1rem', marginBottom: '1rem', fontSize: '0.85rem', color: '#B91C1C' }}>
           {actionError}
         </div>
       )}
@@ -68,24 +68,25 @@ export default function ClientQuotesPage() {
           headers={['Quote #', 'Service', 'Total', 'Status', 'Date', '']}
           emptyMessage="No quotes yet. Request a service to get started."
           rows={quotes.map(q => [
-            <span key="num" style={{ fontWeight: 700, color: '#124d83' }}>#{q.quoteNumber}</span>,
+            <span key="num" style={{ fontWeight: 700, color: '#1D4ED8' }}>#{q.quoteNumber}</span>,
             <span key="svc">{q.serviceType || '—'}</span>,
             <span key="total" style={{ fontWeight: 600 }}>{money(q.total)}</span>,
             <StatusBadge key="status" status={q.status} />,
-            <span key="date" style={{ color: '#8494b0', whiteSpace: 'nowrap' }}>{fmtDate(q.createdAt)}</span>,
+            <span key="date" style={{ color: '#9CA3AF', whiteSpace: 'nowrap' }}>{fmtDate(q.createdAt)}</span>,
             <div key="actions" style={{ display: 'flex', gap: 6 }}>
               {q.status === 'sent' && (
                 <>
-                  <button onClick={() => handleAccept(q.id)} disabled={actionLoading === q.id + '-accept'} style={{ padding: '0.35rem 0.85rem', borderRadius: 6, border: 'none', background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: actionLoading === q.id + '-accept' ? 0.6 : 1 }}>
+                  <button onClick={() => handleAccept(q.id)} disabled={actionLoading === q.id + '-accept'} style={{ padding: '0.35rem 0.85rem', borderRadius: 6, border: 'none', background: '#0F766E', color: 'white', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: actionLoading === q.id + '-accept' ? 0.6 : 1 }}>
                     {actionLoading === q.id + '-accept' ? '...' : 'Accept'}
                   </button>
-                  <button onClick={() => handleDecline(q.id)} disabled={actionLoading === q.id + '-decline'} style={{ padding: '0.35rem 0.85rem', borderRadius: 6, border: '1.5px solid #ffc0c0', background: 'white', color: '#e74c3c', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: actionLoading === q.id + '-decline' ? 0.6 : 1 }}>
+                  <button onClick={() => handleDecline(q.id)} disabled={actionLoading === q.id + '-decline'} style={{ padding: '0.35rem 0.85rem', borderRadius: 6, border: 'none', background: '#FEF2F2', color: '#B91C1C', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: actionLoading === q.id + '-decline' ? 0.6 : 1 }}>
                     {actionLoading === q.id + '-decline' ? '...' : 'Decline'}
                   </button>
                 </>
               )}
-              {q.status === 'accepted' && <span style={{ fontSize: '0.78rem', color: '#1f6132', fontWeight: 600 }}>Accepted</span>}
-              {q.status === 'declined' && <span style={{ fontSize: '0.78rem', color: '#e74c3c', fontWeight: 600 }}>Declined</span>}
+              {q.status === 'accepted' && q.acceptedAt && (
+                <span style={{ fontSize: '0.78rem', color: '#9CA3AF' }}>Accepted {fmtDate(q.acceptedAt)}</span>
+              )}
             </div>
           ])}
         />

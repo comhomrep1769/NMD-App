@@ -1,762 +1,251 @@
-"use client";
+﻿import Navbar from '@/components/landing/Navbar'
 
-import { useEffect, useRef, useState } from "react";
+
+const HERO_IMAGE = 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=1800&q=80'
+const FOUNDER_IMAGE = 'https://images.unsplash.com/photo-1556761175-4b46a572b786?auto=format&fit=crop&w=600&q=80'
+const EQUIPMENT_IMAGE = 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&w=800&q=80'
+const TRUCK_IMAGE = 'https://images.unsplash.com/photo-1586864387967-d02ef85d93e8?auto=format&fit=crop&w=600&q=80'
+const TEAM_IMAGE = 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=600&q=80'
+
+const VALUES = [
+  {
+    title: 'Accountability',
+    desc: "We own every outcome. If a job isn't right, we come back. No arguments, no excuses.",
+    icon: (
+      <path d="M10 2L3 5.5V10C3 14 6.25 17.75 10 19C13.75 17.75 17 14 17 10V5.5L10 2Z" />
+    ),
+  },
+  {
+    title: 'Transparency',
+    desc: "Every quote is itemized. Every photo is documented. You always know exactly what you're getting and why.",
+    icon: (
+      <>
+        <circle cx="10" cy="10" r="8" />
+        <path d="M7 10L9 12L13 8" />
+      </>
+    ),
+  },
+  {
+    title: 'Craftsmanship',
+    desc: "We don't rush. We use the right pressure, the right chemicals, and the right technique for each surface type.",
+    icon: <path d="M10 2C10 2 4 8 4 12.5C4 15.5 6.75 18 10 18C13.25 18 16 15.5 16 12.5C16 8 10 2 10 2Z" />,
+  },
+  {
+    title: 'Community',
+    desc: "We live and work in Central Florida. Keeping our neighbors' properties clean is a point of genuine pride for us.",
+    icon: (
+      <>
+        <path d="M17 8C17 12.5 10 18 10 18C10 18 3 12.5 3 8C3 5.2 6.1 3 10 3C13.9 3 17 5.2 17 8Z" />
+        <circle cx="10" cy="8" r="2.5" />
+      </>
+    ),
+  },
+]
+
+const CREDENTIALS = [
+  'Licensed & bonded in Florida',
+  'Full liability insurance on every job',
+  'Background-checked, certified technicians',
+  'Eco-friendly biodegradable cleaning chemicals',
+]
+
+function CheckIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="flex-shrink-0">
+      <circle cx="8" cy="8" r="7.5" fill="#F0FDF9" />
+      <path d="M5.5 8L7 9.5L10.5 6" stroke="#0F766E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    </svg>
+  )
+}
 
 export default function MissionPage() {
-  const [visible, setVisible] = useState<Set<string>>(new Set());
-  const refs = useRef<Record<string, HTMLElement | null>>({});
-
-  useEffect(() => {
-    const observers: IntersectionObserver[] = [];
-    Object.entries(refs.current).forEach(([key, el]) => {
-      if (!el) return;
-      const obs = new IntersectionObserver(
-        ([entry]) => {
-          if (entry.isIntersecting) {
-            setVisible((prev) => new Set([...prev, key]));
-            obs.disconnect();
-          }
-        },
-        { threshold: 0.15 }
-      );
-      obs.observe(el);
-      observers.push(obs);
-    });
-    return () => observers.forEach((o) => o.disconnect());
-  }, []);
-
-  const setRef = (key: string) => (el: HTMLElement | null) => {
-    refs.current[key] = el;
-  };
-
-  const isVisible = (key: string) => visible.has(key);
-
   return (
-    <main className="mission-root">
-      {/* ── HERO ── */}
-      <section className="hero">
-        <div className="hero-bg" aria-hidden="true">
-          <div className="hero-grid" />
-          <div className="hero-orb orb-1" />
-          <div className="hero-orb orb-2" />
-        </div>
-        <div className="container">
-          <div
-            ref={setRef("hero-badge")}
-            className={`badge fade-up ${isVisible("hero-badge") ? "in" : ""}`}
-          >
-            <span className="badge-dot" />
-            Who We Are
-          </div>
-          <h1
-            ref={setRef("hero-h1")}
-            className={`hero-title fade-up delay-1 ${isVisible("hero-h1") ? "in" : ""}`}
-          >
-            Built on
-            <br />
-            <em>Trust & Results</em>
-          </h1>
-          <p
-            ref={setRef("hero-sub")}
-            className={`hero-sub fade-up delay-2 ${isVisible("hero-sub") ? "in" : ""}`}
-          >
-            NMD Pressure Washing Services LLC — where every job is personal,
-            every property matters, and every team member is valued.
-          </p>
-          <div
-            ref={setRef("hero-divider")}
-            className={`hero-divider fade-up delay-3 ${isVisible("hero-divider") ? "in" : ""}`}
-            aria-hidden="true"
-          />
-        </div>
-      </section>
+    <>
+      <Navbar />
 
-      {/* ── COMPANY MISSION ── */}
-      <section className="mission-section">
-        <div className="container two-col">
-          <div
-            ref={setRef("company-label")}
-            className={`col-label fade-left ${isVisible("company-label") ? "in" : ""}`}
-          >
-            <div className="label-line" />
-            <span>Company Mission</span>
-          </div>
-
-          <div className="col-content">
-            <h2
-              ref={setRef("company-h2")}
-              className={`section-title fade-up ${isVisible("company-h2") ? "in" : ""}`}
-            >
-              Restore. Protect. Revive.
-            </h2>
-
-            <div
-              ref={setRef("company-card-1")}
-              className={`mission-card primary-card fade-up delay-1 ${isVisible("company-card-1") ? "in" : ""}`}
-            >
-              <div className="card-accent" aria-hidden="true" />
-              <p className="mission-text">
-                At NMD Pressure Washing Services LLC, our mission is to{" "}
-                <strong>restore, protect, and revive properties</strong> with
-                professionalism, integrity, and attention to detail. We believe
-                every client deserves honest communication, quality workmanship,
-                fair pricing, and service performed with genuine care for their
-                home or business.
-              </p>
-              <p className="mission-text">
-                Our goal is not just to clean surfaces, but to{" "}
-                <strong>build long-term trust</strong>, create lasting results,
-                and continuously raise the standard for exterior restoration
-                through discipline, innovation, and respect for both people and
-                property.
-              </p>
-            </div>
-
-            <div
-              ref={setRef("company-card-2")}
-              className={`mission-card secondary-card fade-up delay-2 ${isVisible("company-card-2") ? "in" : ""}`}
-            >
-              <div className="secondary-header">
-                <span className="secondary-label">Leadership Standard</span>
-              </div>
-              <p className="mission-text">
-                Our mission is to deliver{" "}
-                <strong>high-quality exterior restoration services</strong> that
-                improve the appearance, value, and longevity of every property
-                we touch. We operate with honesty, accountability, precision,
-                and respect — treating every customer's property as if it were
-                our own.
-              </p>
-              <p className="mission-text">
-                Through hard work, continuous learning, and a commitment to
-                excellence, we aim to build a company known not only for
-                exceptional results, but for the way we treat people, solve
-                problems, and stand behind our work.
-              </p>
-            </div>
-
-            {/* Value pillars */}
-            <div
-              ref={setRef("company-pillars")}
-              className={`pillars fade-up delay-3 ${isVisible("company-pillars") ? "in" : ""}`}
-            >
-              {[
-                { icon: "🤝", label: "Integrity" },
-                { icon: "🎯", label: "Precision" },
-                { icon: "💬", label: "Honesty" },
-                { icon: "🏆", label: "Excellence" },
-              ].map(({ icon, label }) => (
-                <div key={label} className="pillar">
-                  <span className="pillar-icon">{icon}</span>
-                  <span className="pillar-label">{label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── DIVIDER ── */}
-      <div className="section-divider" aria-hidden="true">
-        <div className="divider-line" />
-        <div className="divider-diamond" />
-        <div className="divider-line" />
-      </div>
-
-      {/* ── EMPLOYEE MISSION ── */}
-      <section className="employee-section">
-        <div className="container two-col reverse">
-          <div className="col-content">
-            <h2
-              ref={setRef("emp-h2")}
-              className={`section-title fade-up ${isVisible("emp-h2") ? "in" : ""}`}
-            >
-              Our People Are Our Foundation
-            </h2>
-
-            <div
-              ref={setRef("emp-card-1")}
-              className={`mission-card emp-card fade-up delay-1 ${isVisible("emp-card-1") ? "in" : ""}`}
-            >
-              <div className="card-accent emp-accent" aria-hidden="true" />
-              <p className="mission-text">
-                At NMD Pressure Washing Services LLC, we believe{" "}
-                <strong>great employees are the foundation</strong> of a great
-                company. Our mission is to create an environment where team
-                members are respected, properly trained, fairly rewarded, and
-                given opportunities to grow both professionally and personally.
-              </p>
-              <p className="mission-text">
-                We value accountability, teamwork, communication, reliability,
-                and pride in workmanship. Every employee represents the company
-                in the field, and we strive to build a culture where hard work,
-                positive attitude, continuous improvement, and mutual respect
-                are recognized and rewarded.
-              </p>
-            </div>
-
-            <div
-              ref={setRef("emp-card-2")}
-              className={`mission-card emp-card-2 fade-up delay-2 ${isVisible("emp-card-2") ? "in" : ""}`}
-            >
-              <div className="secondary-header">
-                <span className="secondary-label team-label">Team Vision</span>
-              </div>
-              <p className="mission-text">
-                We are building more than a workforce —{" "}
-                <strong>we are building a team of dependable professionals</strong>{" "}
-                who take pride in their work and in how they treat others. Our
-                mission is to create opportunities for growth, reward effort and
-                performance, maintain a respectful and supportive work
-                environment, and help every employee develop valuable skills
-                that benefit them both inside and outside the company.
-              </p>
-              <p className="mission-text">
-                Success at NMD Pressure Washing Services LLC comes from
-                discipline, teamwork, integrity, and consistently showing up
-                with the mindset to improve every day.{" "}
-                <strong>
-                  It's important for people to understand what this company
-                  stands for — and for every employee to know how they will be
-                  treated.
-                </strong>
-              </p>
-            </div>
-
-            {/* Culture pillars */}
-            <div
-              ref={setRef("emp-pillars")}
-              className={`pillars fade-up delay-3 ${isVisible("emp-pillars") ? "in" : ""}`}
-            >
-              {[
-                { icon: "💪", label: "Accountability" },
-                { icon: "🌱", label: "Growth" },
-                { icon: "🤜", label: "Teamwork" },
-                { icon: "⭐", label: "Reward" },
-              ].map(({ icon, label }) => (
-                <div key={label} className="pillar emp-pillar">
-                  <span className="pillar-icon">{icon}</span>
-                  <span className="pillar-label">{label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div
-            ref={setRef("emp-label")}
-            className={`col-label fade-right ${isVisible("emp-label") ? "in" : ""}`}
-          >
-            <div className="label-line" />
-            <span>Employee Mission</span>
-          </div>
-        </div>
-      </section>
-
-      {/* ── CLOSING CTA ── */}
-      <section className="cta-section">
+      {/* HERO */}
+      <section className="relative mt-[68px] flex min-h-[520px] items-center overflow-hidden bg-[#0A2720]">
         <div
-          ref={setRef("cta")}
-          className={`container cta-inner fade-up ${isVisible("cta") ? "in" : ""}`}
-        >
-          <h2 className="cta-title">
-            Ready to experience the NMD difference?
-          </h2>
-          <p className="cta-sub">
-            Whether you're a homeowner, business owner, or looking to join our
-            growing team — we'd love to hear from you.
-          </p>
-          <div className="cta-actions">
-            <a href="/client/request-service" className="btn-primary">
-              Request a Quote
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url("${HERO_IMAGE}")` }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{ background: 'linear-gradient(105deg, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.35) 100%)' }}
+        />
+        <div className="relative z-10 mx-auto w-full max-w-[1440px] px-4 py-20 text-center sm:px-[65px]">
+          <p className="mb-5 text-[11px] font-bold uppercase tracking-wider text-emerald-400">Our Mission</p>
+          <h1 className="mx-auto max-w-[640px] text-[40px] font-extrabold leading-[1.05] tracking-tight text-white sm:text-5xl lg:text-[52px]">
+            &ldquo;We show up, we do the work right, and we stand behind every job &mdash; every time.&rdquo;
+          </h1>
+        </div>
+      </section>
+
+      {/* MISSION STATEMENT */}
+      <section className="bg-white px-4 py-24 sm:px-[65px]">
+        <div className="grid-mission-statement mx-auto flex max-w-[1440px] gap-12">
+          <div className="flex-shrink-0" style={{ width: '380px' }}>
+            <p className="mb-4 text-[11px] font-bold uppercase tracking-wider text-teal-700">Who We Are</p>
+            <h2 className="mb-6 text-3xl font-bold leading-[1.1] tracking-tight text-gray-900 sm:text-4xl">
+              A Central Florida company built on reliability
+            </h2>
+            <div className="mb-6 h-[3px] w-12 rounded bg-teal-700" />
+            <div className="relative h-[280px] overflow-hidden rounded-xl bg-[#C8D8D6]">
+              <img src={FOUNDER_IMAGE} alt="NMD founder" className="h-full w-full object-cover" />
+              <div
+                className="pointer-events-none absolute inset-0"
+                style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.25) 0%, transparent 50%)' }}
+              />
+            </div>
+          </div>
+
+          <div className="min-w-0 flex-1 pt-2">
+            <p className="mb-[28px] text-lg leading-relaxed text-gray-700">
+              NMD Pressure Washing Services LLC was built from the ground up in Central Florida &mdash;
+              not from a franchise model, not from a corporate playbook. We started with one truck, one
+              commitment: do the job so well that every client refers us to someone they know.
+            </p>
+            <p className="mb-[28px] text-base leading-relaxed text-gray-500">
+              That commitment has driven us across 6 counties, through hundreds of jobs, and into a
+              team of trained, licensed professionals who genuinely care about the work. Pressure
+              washing is our craft &mdash; and we take pride in it.
+            </p>
+            <p className="mb-[48px] text-base leading-relaxed text-gray-500">
+              We believe in transparent pricing, real before-and-after documentation, and showing up
+              when we say we will. These aren&apos;t marketing points &mdash; they&apos;re the minimum
+              standard we hold ourselves to on every single job.
+            </p>
+            <div className="flex flex-wrap gap-12">
+              <div>
+                <div className="text-3xl font-extrabold leading-none tracking-tight text-teal-700">500+</div>
+                <div className="mt-1 text-[13px] text-gray-500">Jobs completed</div>
+              </div>
+              <div>
+                <div className="text-3xl font-extrabold leading-none tracking-tight text-teal-700">6</div>
+                <div className="mt-1 text-[13px] text-gray-500">Counties served</div>
+              </div>
+              <div>
+                <div className="text-3xl font-extrabold leading-none tracking-tight text-teal-700">100%</div>
+                <div className="mt-1 text-[13px] text-gray-500">Satisfaction guarantee</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* VALUES */}
+      <section className="bg-[#F8FAF9] px-4 py-24 sm:px-[65px]">
+        <div className="mx-auto max-w-[1440px]">
+          <div className="mb-14">
+            <p className="mb-2.5 text-[11px] font-bold uppercase tracking-wider text-teal-700">Our Values</p>
+            <h2 className="text-[40px] font-bold leading-[1.1] tracking-[-0.025em] text-gray-900">
+              What we believe in
+            </h2>
+          </div>
+          <div className="grid-values grid grid-cols-4 gap-6">
+            {VALUES.map((v) => (
+              <div key={v.title} className="rounded-xl border border-gray-200 bg-white p-7">
+                <div className="mb-5 flex h-10 w-10 items-center justify-center rounded-[10px] bg-[#F0FDF9]">
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#0F766E" strokeWidth="1.4" strokeLinejoin="round">
+                    {v.icon}
+                  </svg>
+                </div>
+                <h3 className="mb-2.5 text-base font-bold tracking-tight text-gray-900">{v.title}</h3>
+                <p className="text-sm leading-relaxed text-gray-500">{v.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* OPERATIONS PHOTO BAND */}
+      <section className="bg-white px-4 py-24 sm:px-[65px]">
+        <div className="mx-auto flex max-w-[1440px] flex-wrap items-center gap-12">
+          <div className="min-w-0 flex-1 basis-[400px]">
+            <p className="mb-[16px] text-[11px] font-bold uppercase tracking-wider text-teal-700">How We Work</p>
+            <h2 className="mb-[24px] text-[32px] font-bold leading-[1.1] tracking-tight text-gray-900">
+              Every job is documented from start to finish
+            </h2>
+            <p className="mb-[28px] text-base leading-relaxed text-gray-500">
+              Before any equipment is turned on, we photograph the full scope. After the job, we
+              photograph again &mdash; so you have a complete visual record of every surface we touched.
+            </p>
+            <p className="mb-[40px] text-base leading-relaxed text-gray-500">
+              Our technicians are background-checked, trained in surface-specific techniques, and
+              certified for chemical handling. We carry full liability insurance and are bonded in
+              the state of Florida.
+            </p>
+            <div className="flex flex-col gap-[14px]">
+              {CREDENTIALS.map((c) => (
+                <div key={c} className="flex items-center gap-3">
+                  <CheckIcon />
+                  <span className="text-sm text-gray-700">{c}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex min-w-0 flex-1 basis-[320px] flex-col gap-4">
+            <div className="relative h-[220px] overflow-hidden rounded-xl bg-[#C4C0B8]">
+              <img src={EQUIPMENT_IMAGE} alt="Pressure washing equipment" className="h-full w-full object-cover" />
+              <div
+                className="pointer-events-none absolute inset-0"
+                style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.2) 0%, transparent 50%)' }}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="relative h-[140px] overflow-hidden rounded-[10px] bg-[#C8D8D6]">
+                <img src={TRUCK_IMAGE} alt="Service truck" className="h-full w-full object-cover" />
+              </div>
+              <div className="relative h-[140px] overflow-hidden rounded-[10px] bg-[#B8AC98]">
+                <img src={TEAM_IMAGE} alt="NMD team" className="h-full w-full object-cover brightness-[0.88]" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FINAL CTA */}
+      <section className="bg-gray-900 px-4 py-20 sm:px-10">
+        <div className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-12">
+          <div>
+            <h2 className="mb-3.5 whitespace-nowrap text-3xl font-extrabold leading-[1.1] tracking-[-0.03em] text-white sm:text-4xl">
+              Ready to see the difference?
+            </h2>
+            <p className="text-base leading-relaxed text-white/50">
+              Join hundreds of Central Florida property owners who trust NMD.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <a
+              href="/client/request-service"
+              className="inline-flex items-center rounded-lg bg-teal-700 px-6 py-3 text-[15px] font-semibold !text-white"
+            >
+              Get a Free Quote
             </a>
-            <a href="/employee/login" className="btn-secondary">
+            <a
+              href="/join-our-team"
+              className="inline-flex items-center rounded-lg border border-white/20 px-5 py-3 text-sm font-medium !text-white/70"
+            >
               Join Our Team
             </a>
           </div>
         </div>
       </section>
 
-      <style>{`
-        /* ── RESET & BASE ── */
-        .mission-root {
-          font-family: 'DM Sans', sans-serif;
-          background: #0a0f0d;
-          color: #e8ede9;
-          overflow-x: hidden;
-        }
-
-        .container {
-          max-width: 1160px;
-          margin: 0 auto;
-          padding: 0 24px;
-        }
-
-        /* ── ANIMATIONS ── */
-        .fade-up {
-          opacity: 0;
-          transform: translateY(32px);
-          transition: opacity 0.7s ease, transform 0.7s ease;
-        }
-        .fade-up.in { opacity: 1; transform: translateY(0); }
-
-        .fade-left {
-          opacity: 0;
-          transform: translateX(-32px);
-          transition: opacity 0.7s ease, transform 0.7s ease;
-        }
-        .fade-left.in { opacity: 1; transform: translateX(0); }
-
-        .fade-right {
-          opacity: 0;
-          transform: translateX(32px);
-          transition: opacity 0.7s ease, transform 0.7s ease;
-        }
-        .fade-right.in { opacity: 1; transform: translateX(0); }
-
-        .delay-1 { transition-delay: 0.1s; }
-        .delay-2 { transition-delay: 0.22s; }
-        .delay-3 { transition-delay: 0.34s; }
-
-        /* ── HERO ── */
-        .hero {
-          position: relative;
-          padding: 120px 0 100px;
-          text-align: center;
-          overflow: hidden;
-        }
-
-        .hero-bg {
-          position: absolute;
-          inset: 0;
-          pointer-events: none;
-        }
-
-        .hero-grid {
-          position: absolute;
-          inset: 0;
-          background-image:
-            linear-gradient(rgba(30,180,80,0.06) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(30,180,80,0.06) 1px, transparent 1px);
-          background-size: 60px 60px;
-          mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black, transparent);
-        }
-
-        .hero-orb {
-          position: absolute;
-          border-radius: 50%;
-          filter: blur(80px);
-        }
-        .orb-1 {
-          width: 500px; height: 500px;
-          background: radial-gradient(circle, rgba(22,163,74,0.18), transparent 70%);
-          top: -150px; left: 50%;
-          transform: translateX(-50%);
-        }
-        .orb-2 {
-          width: 300px; height: 300px;
-          background: radial-gradient(circle, rgba(14,116,144,0.12), transparent 70%);
-          bottom: -100px; right: 10%;
-        }
-
-        .badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          background: rgba(22,163,74,0.1);
-          border: 1px solid rgba(22,163,74,0.25);
-          color: #4ade80;
-          font-size: 12px;
-          font-weight: 600;
-          letter-spacing: 0.12em;
-          text-transform: uppercase;
-          padding: 6px 14px;
-          border-radius: 100px;
-          margin-bottom: 28px;
-        }
-
-        .badge-dot {
-          width: 6px; height: 6px;
-          border-radius: 50%;
-          background: #4ade80;
-          animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.5; transform: scale(0.7); }
-        }
-
-        .hero-title {
-          font-family: 'Syne', sans-serif;
-          font-size: clamp(48px, 8vw, 88px);
-          font-weight: 800;
-          line-height: 1.05;
-          color: #f0f7f1;
-          margin: 0 0 24px;
-          letter-spacing: -0.03em;
-        }
-
-        .hero-title em {
-          font-style: normal;
-          background: linear-gradient(135deg, #4ade80 0%, #22d3ee 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-        }
-
-        .hero-sub {
-          font-size: clamp(16px, 2vw, 20px);
-          color: #8fa895;
-          max-width: 560px;
-          margin: 0 auto 40px;
-          line-height: 1.65;
-        }
-
-        .hero-divider {
-          width: 60px;
-          height: 3px;
-          background: linear-gradient(90deg, #16a34a, #0e7490);
-          border-radius: 2px;
-          margin: 0 auto;
-        }
-
-        /* ── TWO-COL LAYOUT ── */
-        .two-col {
-          display: grid;
-          grid-template-columns: 160px 1fr;
-          gap: 64px;
-          align-items: start;
-          padding-top: 80px;
-          padding-bottom: 80px;
-        }
-
-        .two-col.reverse {
-          grid-template-columns: 1fr 160px;
-        }
-
-        .col-label {
-          display: flex;
-          flex-direction: column;
-          align-items: flex-start;
-          gap: 12px;
-          position: sticky;
-          top: 80px;
-        }
-
-        .two-col.reverse .col-label {
-          align-items: flex-end;
-          text-align: right;
-        }
-
-        .label-line {
-          width: 2px;
-          height: 48px;
-          background: linear-gradient(180deg, #16a34a, transparent);
-        }
-
-        .two-col.reverse .label-line {
-          background: linear-gradient(180deg, #0e7490, transparent);
-        }
-
-        .col-label span {
-          font-family: 'Syne', sans-serif;
-          font-size: 11px;
-          font-weight: 700;
-          letter-spacing: 0.16em;
-          text-transform: uppercase;
-          color: #4ade80;
-          writing-mode: vertical-rl;
-          transform: rotate(180deg);
-        }
-
-        .two-col.reverse .col-label span {
-          color: #22d3ee;
-          transform: none;
-          writing-mode: vertical-rl;
-        }
-
-        /* ── SECTION TITLE ── */
-        .section-title {
-          font-family: 'Syne', sans-serif;
-          font-size: clamp(28px, 4vw, 44px);
-          font-weight: 800;
-          color: #f0f7f1;
-          margin: 0 0 36px;
-          letter-spacing: -0.02em;
-          line-height: 1.15;
-        }
-
-        /* ── MISSION CARDS ── */
-        .mission-card {
-          position: relative;
-          background: rgba(255,255,255,0.03);
-          border: 1px solid rgba(255,255,255,0.07);
-          border-radius: 16px;
-          padding: 32px;
-          margin-bottom: 20px;
-          overflow: hidden;
-          transition: border-color 0.3s ease;
-        }
-
-        .mission-card:hover {
-          border-color: rgba(22,163,74,0.25);
-        }
-
-        .card-accent {
-          position: absolute;
-          top: 0; left: 0;
-          width: 100%; height: 3px;
-          background: linear-gradient(90deg, #16a34a, #0e7490, transparent);
-        }
-
-        .emp-accent {
-          background: linear-gradient(90deg, #0e7490, #16a34a, transparent);
-        }
-
-        .secondary-header {
-          margin-bottom: 16px;
-        }
-
-        .secondary-label {
-          font-size: 11px;
-          font-weight: 700;
-          letter-spacing: 0.14em;
-          text-transform: uppercase;
-          color: #4ade80;
-          background: rgba(22,163,74,0.1);
-          border: 1px solid rgba(22,163,74,0.2);
-          padding: 4px 10px;
-          border-radius: 100px;
-        }
-
-        .team-label {
-          color: #22d3ee;
-          background: rgba(14,116,144,0.1);
-          border-color: rgba(14,116,144,0.2);
-        }
-
-        .mission-text {
-          font-size: 16px;
-          line-height: 1.75;
-          color: #b8c9bc;
-          margin: 0 0 16px;
-        }
-
-        .mission-text:last-child { margin-bottom: 0; }
-
-        .mission-text strong {
-          color: #e8ede9;
-          font-weight: 600;
-        }
-
-        /* ── PILLARS ── */
-        .pillars {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 12px;
-          margin-top: 8px;
-        }
-
-        .pillar {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 8px;
-          padding: 20px 12px;
-          background: rgba(22,163,74,0.06);
-          border: 1px solid rgba(22,163,74,0.12);
-          border-radius: 12px;
-          transition: background 0.2s ease, border-color 0.2s ease;
-        }
-
-        .pillar:hover {
-          background: rgba(22,163,74,0.12);
-          border-color: rgba(22,163,74,0.25);
-        }
-
-        .emp-pillar {
-          background: rgba(14,116,144,0.06);
-          border-color: rgba(14,116,144,0.12);
-        }
-
-        .emp-pillar:hover {
-          background: rgba(14,116,144,0.12);
-          border-color: rgba(14,116,144,0.25);
-        }
-
-        .pillar-icon { font-size: 22px; }
-
-        .pillar-label {
-          font-size: 11px;
-          font-weight: 700;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
-          color: #8fa895;
-        }
-
-        /* ── DIVIDER ── */
-        .section-divider {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-          max-width: 1160px;
-          margin: 0 auto;
-          padding: 0 24px;
-        }
-
-        .divider-line {
-          flex: 1;
-          height: 1px;
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
-        }
-
-        .divider-diamond {
-          width: 8px; height: 8px;
-          background: #16a34a;
-          transform: rotate(45deg);
-          flex-shrink: 0;
-        }
-
-        /* ── EMPLOYEE SECTION ── */
-        .employee-section {
-          background: rgba(14,116,144,0.04);
-          border-top: 1px solid rgba(14,116,144,0.1);
-          border-bottom: 1px solid rgba(14,116,144,0.1);
-        }
-
-        .emp-card:hover {
-          border-color: rgba(14,116,144,0.25);
-        }
-
-        .emp-card-2:hover {
-          border-color: rgba(14,116,144,0.25);
-        }
-
-        /* ── CTA ── */
-        .cta-section {
-          padding: 100px 0;
-          text-align: center;
-        }
-
-        .cta-inner {
-          background: linear-gradient(135deg, rgba(22,163,74,0.08), rgba(14,116,144,0.08));
-          border: 1px solid rgba(22,163,74,0.15);
-          border-radius: 24px;
-          padding: 64px 48px;
-        }
-
-        .cta-title {
-          font-family: 'Syne', sans-serif;
-          font-size: clamp(26px, 4vw, 40px);
-          font-weight: 800;
-          color: #f0f7f1;
-          margin: 0 0 16px;
-          letter-spacing: -0.02em;
-        }
-
-        .cta-sub {
-          font-size: 17px;
-          color: #8fa895;
-          max-width: 480px;
-          margin: 0 auto 36px;
-          line-height: 1.65;
-        }
-
-        .cta-actions {
-          display: flex;
-          gap: 16px;
-          justify-content: center;
-          flex-wrap: wrap;
-        }
-
-        .btn-primary {
-          display: inline-flex;
-          align-items: center;
-          padding: 14px 32px;
-          background: linear-gradient(135deg, #16a34a, #15803d);
-          color: #fff;
-          font-weight: 700;
-          font-size: 15px;
-          border-radius: 10px;
-          text-decoration: none;
-          transition: opacity 0.2s ease, transform 0.2s ease;
-          letter-spacing: 0.01em;
-        }
-
-        .btn-primary:hover {
-          opacity: 0.9;
-          transform: translateY(-1px);
-        }
-
-        .btn-secondary {
-          display: inline-flex;
-          align-items: center;
-          padding: 14px 32px;
-          background: transparent;
-          color: #4ade80;
-          font-weight: 700;
-          font-size: 15px;
-          border: 1px solid rgba(22,163,74,0.3);
-          border-radius: 10px;
-          text-decoration: none;
-          transition: background 0.2s ease, border-color 0.2s ease;
-        }
-
-        .btn-secondary:hover {
-          background: rgba(22,163,74,0.08);
-          border-color: rgba(22,163,74,0.5);
-        }
-
-        /* ── RESPONSIVE ── */
-        @media (max-width: 768px) {
-          .two-col,
-          .two-col.reverse {
-            grid-template-columns: 1fr;
-            gap: 32px;
-            padding-top: 60px;
-            padding-bottom: 60px;
-          }
-
-          .col-label {
-            flex-direction: row;
-            align-items: center;
-            position: static;
-          }
-
-          .two-col.reverse .col-label {
-            order: -1;
-            align-items: center;
-            text-align: left;
-          }
-
-          .col-label span {
-            writing-mode: horizontal-tb;
-            transform: none;
-          }
-
-          .two-col.reverse .col-label span {
-            writing-mode: horizontal-tb;
-          }
-
-          .label-line {
-            width: 32px;
-            height: 2px;
-            background: linear-gradient(90deg, #16a34a, transparent);
-          }
-
-          .pillars {
-            grid-template-columns: repeat(2, 1fr);
-          }
-
-          .cta-inner {
-            padding: 40px 24px;
-          }
-
-          .hero {
-            padding: 80px 0 64px;
-          }
-        }
-      `}</style>
-    </main>
-  );
+    <footer className="border-t border-white/[0.08] bg-gray-900 px-4 py-8 sm:px-10">
+        <div className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-col">
+            <span className="text-[15px] font-bold tracking-tight !text-white">NMD Pressure Washing</span>
+            <span className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.14em] !text-teal-700">Services LLC</span>
+          </div>
+          <span className="text-xs !text-white/22">&copy; 2025 NMD Pressure Washing Services LLC. All rights reserved.</span>
+          <div className="flex gap-5">
+            <a href="#" className="text-xs !text-white/22">Privacy Policy</a>
+            <a href="#" className="text-xs !text-white/22">Terms of Service</a>
+          </div>
+        </div>
+      </footer>
+    </>
+  )
 }

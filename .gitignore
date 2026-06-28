@@ -6,3 +6,5 @@ frontend-next/node_modules/
 .next/
 *.local
 .env.local
+
+backend/.env

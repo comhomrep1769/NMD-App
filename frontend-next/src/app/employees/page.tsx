@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import PortalShell from '@/components/portal/PortalShell'
-import { DataTable, LoadingCard, ErrorCard, SearchInput, SectionHeader, StatusBadge, money, fmtDate } from '@/components/portal/PortalUI'
+import { DataTable, LoadingCard, ErrorCard, SearchInput, StatusBadge, money, fmtDate } from '@/components/portal/PortalUI'
 import { getNmdToken } from '@/lib/authStorage'
 
 type Employee = {
@@ -13,25 +13,34 @@ type Employee = {
 
 const inputStyle: React.CSSProperties = {
   width: '100%', padding: '0.65rem 0.9rem', borderRadius: 8,
-  border: '1.5px solid #dde4ef', fontSize: '0.875rem', outline: 'none',
-  fontFamily: 'DM Sans, sans-serif', color: '#0e1117',
-  background: '#f4f7fb', boxSizing: 'border-box',
+  border: '1.5px solid #E5E7EB', fontSize: '0.875rem', outline: 'none',
+  fontFamily: 'DM Sans, sans-serif', color: '#111827',
+  background: '#fff', boxSizing: 'border-box',
 }
 const labelStyle: React.CSSProperties = {
-  fontSize: '0.78rem', fontWeight: 500, color: '#3a4660', display: 'block', marginBottom: 4,
+  fontSize: '0.78rem', fontWeight: 500, color: '#374151', display: 'block', marginBottom: 4,
 }
 const modalOverlay: React.CSSProperties = {
-  position: 'fixed', inset: 0, background: 'rgba(14,17,23,0.6)',
+  position: 'fixed', inset: 0, background: 'rgba(17,24,39,0.65)',
   zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
 }
 const modalBox: React.CSSProperties = {
-  background: 'white', borderRadius: 16, width: '100%', maxWidth: 480,
-  boxShadow: '0 20px 60px rgba(14,17,23,0.2)', overflow: 'hidden'
+  background: 'white', borderRadius: 10, width: '100%', maxWidth: 480,
+  boxShadow: '0 20px 60px rgba(17,24,39,0.15)', overflow: 'hidden'
 }
 const modalHeader: React.CSSProperties = {
-  padding: '1.25rem 1.5rem', borderBottom: '1px solid #dde4ef',
+  padding: '1.25rem 1.5rem', borderBottom: '1px solid #E5E7EB',
   display: 'flex', alignItems: 'center', justifyContent: 'space-between'
 }
+const cancelButtonStyle: React.CSSProperties = {
+  flex: 1, padding: '0.7rem', borderRadius: 8, border: '1.5px solid #E5E7EB',
+  background: 'white', color: '#6B7280', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif'
+}
+const primaryButtonStyle = (disabled: boolean): React.CSSProperties => ({
+  flex: 2, padding: '0.7rem', borderRadius: 8, border: 'none',
+  background: '#0F766E', color: 'white', fontWeight: 600,
+  cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: disabled ? 0.7 : 1
+})
 
 export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([])
@@ -167,12 +176,12 @@ export default function EmployeesPage() {
         <div style={modalOverlay}>
           <div style={modalBox}>
             <div style={modalHeader}>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#0e1117' }}>Add New Employee</div>
-              <button onClick={() => { setShowCreate(false); setFormError('') }} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#8494b0' }}>×</button>
+              <div style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#111827' }}>Add New Employee</div>
+              <button onClick={() => { setShowCreate(false); setFormError('') }} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#9CA3AF' }}>×</button>
             </div>
             <form onSubmit={handleCreate} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {formError && <div style={{ background: '#fff0f0', border: '1.5px solid #ffc0c0', borderRadius: 8, padding: '0.65rem 1rem', fontSize: '0.82rem', color: '#c0392b' }}>{formError}</div>}
-              <div style={{ background: '#f0fff4', border: '1px solid #c0dd97', borderRadius: 8, padding: '0.75rem 1rem', fontSize: '0.82rem', color: '#1f6132', lineHeight: 1.5 }}>
+              {formError && <div style={{ background: '#FEF2F2', borderRadius: 8, padding: '0.65rem 1rem', fontSize: '0.82rem', color: '#B91C1C' }}>{formError}</div>}
+              <div style={{ background: '#EFF6FF', borderRadius: 8, padding: '0.75rem 1rem', fontSize: '0.82rem', color: '#1D4ED8', lineHeight: 1.5 }}>
                 🔐 A secure temporary password will be automatically generated and emailed to the employee. They will be required to set their own password on first login.
               </div>
               <div>
@@ -197,8 +206,8 @@ export default function EmployeesPage() {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-                <button type="button" onClick={() => { setShowCreate(false); setFormError('') }} style={{ flex: 1, padding: '0.7rem', borderRadius: 8, border: '1.5px solid #dde4ef', background: 'white', color: '#5a6a88', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Cancel</button>
-                <button type="submit" disabled={saving} style={{ flex: 2, padding: '0.7rem', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: saving ? 0.7 : 1 }}>
+                <button type="button" onClick={() => { setShowCreate(false); setFormError('') }} style={cancelButtonStyle}>Cancel</button>
+                <button type="submit" disabled={saving} style={primaryButtonStyle(saving)}>
                   {saving ? 'Creating...' : '+ Create & Send Welcome Email'}
                 </button>
               </div>
@@ -212,11 +221,11 @@ export default function EmployeesPage() {
         <div style={modalOverlay}>
           <div style={modalBox}>
             <div style={modalHeader}>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#0e1117' }}>Edit Employee</div>
-              <button onClick={() => setEditEmployee(null)} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#8494b0' }}>×</button>
+              <div style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#111827' }}>Edit Employee</div>
+              <button onClick={() => setEditEmployee(null)} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#9CA3AF' }}>×</button>
             </div>
             <form onSubmit={handleEdit} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {editError && <div style={{ background: '#fff0f0', border: '1.5px solid #ffc0c0', borderRadius: 8, padding: '0.65rem 1rem', fontSize: '0.82rem', color: '#c0392b' }}>{editError}</div>}
+              {editError && <div style={{ background: '#FEF2F2', borderRadius: 8, padding: '0.65rem 1rem', fontSize: '0.82rem', color: '#B91C1C' }}>{editError}</div>}
               <div>
                 <label style={labelStyle}>Full Name</label>
                 <input style={inputStyle} value={editForm.displayName} onChange={e => updateEdit('displayName', e.target.value)} required />
@@ -239,8 +248,8 @@ export default function EmployeesPage() {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-                <button type="button" onClick={() => setEditEmployee(null)} style={{ flex: 1, padding: '0.7rem', borderRadius: 8, border: '1.5px solid #dde4ef', background: 'white', color: '#5a6a88', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Cancel</button>
-                <button type="submit" disabled={editSaving} style={{ flex: 2, padding: '0.7rem', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 600, cursor: editSaving ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: editSaving ? 0.7 : 1 }}>
+                <button type="button" onClick={() => setEditEmployee(null)} style={cancelButtonStyle}>Cancel</button>
+                <button type="submit" disabled={editSaving} style={primaryButtonStyle(editSaving)}>
                   {editSaving ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
@@ -254,23 +263,23 @@ export default function EmployeesPage() {
         <div style={modalOverlay}>
           <div style={{ ...modalBox, maxWidth: 440 }}>
             <div style={modalHeader}>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#0e1117' }}>Reset Password</div>
-              <button onClick={() => { setResetEmployee(null); setResetMsg('') }} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#8494b0' }}>×</button>
+              <div style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#111827' }}>Reset Password</div>
+              <button onClick={() => { setResetEmployee(null); setResetMsg('') }} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#9CA3AF' }}>×</button>
             </div>
             <div style={{ padding: '1.5rem' }}>
               {resetMsg ? (
-                <div style={{ background: '#f0fff4', border: '1px solid #c0dd97', borderRadius: 8, padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#1f6132', fontWeight: 500, marginBottom: '1rem' }}>{resetMsg}</div>
+                <div style={{ background: '#F0FDF9', borderRadius: 8, padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#059669', fontWeight: 500, marginBottom: '1rem' }}>{resetMsg}</div>
               ) : (
-                <p style={{ color: '#3a4660', fontSize: '0.9rem', marginBottom: '1.5rem', lineHeight: 1.6 }}>
+                <p style={{ color: '#374151', fontSize: '0.9rem', marginBottom: '1.5rem', lineHeight: 1.6 }}>
                   This will generate a new temporary password and email it to <strong>{resetEmployee.displayName}</strong> ({resetEmployee.email}). They will be required to set a new password on next login.
                 </p>
               )}
               <div style={{ display: 'flex', gap: 10 }}>
-                <button onClick={() => { setResetEmployee(null); setResetMsg('') }} style={{ flex: 1, padding: '0.7rem', borderRadius: 8, border: '1.5px solid #dde4ef', background: 'white', color: '#5a6a88', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
+                <button onClick={() => { setResetEmployee(null); setResetMsg('') }} style={cancelButtonStyle}>
                   {resetMsg ? 'Close' : 'Cancel'}
                 </button>
                 {!resetMsg && (
-                  <button onClick={handleResetPassword} disabled={resetting} style={{ flex: 2, padding: '0.7rem', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #e67e22, #d35400)', color: 'white', fontWeight: 600, cursor: resetting ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: resetting ? 0.7 : 1 }}>
+                  <button onClick={handleResetPassword} disabled={resetting} style={{ flex: 2, padding: '0.7rem', borderRadius: 8, border: 'none', background: '#FEF9C3', color: '#92400E', fontWeight: 600, cursor: resetting ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: resetting ? 0.7 : 1 }}>
                     {resetting ? 'Resetting...' : '🔄 Reset & Email New Password'}
                   </button>
                 )}
@@ -285,16 +294,16 @@ export default function EmployeesPage() {
         <div style={modalOverlay}>
           <div style={{ ...modalBox, maxWidth: 420 }}>
             <div style={modalHeader}>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#0e1117' }}>Delete Employee</div>
-              <button onClick={() => setDeleteEmployee(null)} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#8494b0' }}>×</button>
+              <div style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#111827' }}>Delete Employee</div>
+              <button onClick={() => setDeleteEmployee(null)} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#9CA3AF' }}>×</button>
             </div>
             <div style={{ padding: '1.5rem' }}>
-              <p style={{ color: '#3a4660', fontSize: '0.9rem', marginBottom: '1.5rem', lineHeight: 1.6 }}>
+              <p style={{ color: '#374151', fontSize: '0.9rem', marginBottom: '1.5rem', lineHeight: 1.6 }}>
                 Are you sure you want to delete <strong>{deleteEmployee.displayName}</strong>? This cannot be undone.
               </p>
               <div style={{ display: 'flex', gap: 10 }}>
-                <button onClick={() => setDeleteEmployee(null)} style={{ flex: 1, padding: '0.7rem', borderRadius: 8, border: '1.5px solid #dde4ef', background: 'white', color: '#5a6a88', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Cancel</button>
-                <button onClick={handleDelete} disabled={deleting} style={{ flex: 1, padding: '0.7rem', borderRadius: 8, border: 'none', background: '#e74c3c', color: 'white', fontWeight: 600, cursor: deleting ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: deleting ? 0.7 : 1 }}>
+                <button onClick={() => setDeleteEmployee(null)} style={cancelButtonStyle}>Cancel</button>
+                <button onClick={handleDelete} disabled={deleting} style={{ flex: 1, padding: '0.7rem', borderRadius: 8, border: 'none', background: '#DC2626', color: 'white', fontWeight: 600, cursor: deleting ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: deleting ? 0.7 : 1 }}>
                   {deleting ? 'Deleting...' : 'Yes, Delete'}
                 </button>
               </div>
@@ -303,18 +312,19 @@ export default function EmployeesPage() {
         </div>
       )}
 
-      <SectionHeader
-        title="Employees"
-        sub={`${employees.length} team members`}
-        action={
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <SearchInput value={search} onChange={setSearch} placeholder="Search employees..." />
-            <button onClick={() => setShowCreate(true)} style={{ padding: '0.6rem 1.25rem', borderRadius: 8, background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 600, fontSize: '0.85rem', border: 'none', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', whiteSpace: 'nowrap' }}>
-              + Add Employee
-            </button>
-          </div>
-        }
-      />
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#0F766E', marginBottom: 6 }}>NMD Portal</div>
+          <h1 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '28px', fontWeight: 800, color: '#111827', letterSpacing: '-0.025em', marginBottom: 6 }}>Employees</h1>
+          <p style={{ color: '#6B7280', fontSize: '14px', margin: 0 }}>{employees.length} team members</p>
+        </div>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <SearchInput value={search} onChange={setSearch} placeholder="Search employees..." />
+          <button onClick={() => setShowCreate(true)} style={{ padding: '0.6rem 1.25rem', borderRadius: 8, background: '#0F766E', color: 'white', fontWeight: 600, fontSize: '0.85rem', border: 'none', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', whiteSpace: 'nowrap' }}>
+            + Add Employee
+          </button>
+        </div>
+      </div>
 
       {loading && <LoadingCard />}
       {error && <ErrorCard message={error} />}
@@ -324,22 +334,22 @@ export default function EmployeesPage() {
           emptyMessage="No employees found."
           rows={filtered.map(e => [
             <div key="name" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, #1f6132, #124d83)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.75rem', fontWeight: 700, flexShrink: 0 }}>
+              <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#0F766E', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.75rem', fontWeight: 700, flexShrink: 0 }}>
                 {(e.displayName || 'U')[0].toUpperCase()}
               </div>
-              <span style={{ fontWeight: 600 }}>{e.displayName}</span>
+              <span style={{ fontWeight: 600, color: '#111827' }}>{e.displayName}</span>
             </div>,
-            <a key="email" href={`mailto:${e.email}`} style={{ color: '#124d83', textDecoration: 'none' }}>{e.email}</a>,
+            <a key="email" href={`mailto:${e.email}`} style={{ color: '#1D4ED8', textDecoration: 'none' }}>{e.email}</a>,
             <StatusBadge key="role" status={e.role} />,
-            <span key="pay" style={{ fontWeight: 600 }}>{money(e.payRate)}/hr</span>,
-            <span key="date" style={{ color: '#8494b0', whiteSpace: 'nowrap' }}>{fmtDate(e.createdAt)}</span>,
-            <span key="status" style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: 100, background: e.mustChangePassword ? '#fff9e6' : '#f0fff4', color: e.mustChangePassword ? '#7a5c00' : '#1f6132', border: `1px solid ${e.mustChangePassword ? '#f5e6a0' : '#c0dd97'}` }}>
+            <span key="pay" style={{ fontWeight: 600, color: '#111827' }}>{money(e.payRate)}/hr</span>,
+            <span key="date" style={{ color: '#9CA3AF', whiteSpace: 'nowrap' }}>{fmtDate(e.createdAt)}</span>,
+            <span key="status" style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: 100, background: e.mustChangePassword ? '#FEF9C3' : '#F0FDF9', color: e.mustChangePassword ? '#92400E' : '#059669' }}>
               {e.mustChangePassword ? '⏳ Pending Setup' : '✓ Active'}
             </span>,
             <div key="actions" style={{ display: 'flex', gap: 6 }}>
-              <button onClick={() => openEdit(e)} style={{ padding: '0.35rem 0.75rem', borderRadius: 6, border: '1.5px solid #dde4ef', background: 'white', color: '#3a4660', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Edit</button>
-              <button onClick={() => { setResetEmployee(e); setResetMsg('') }} style={{ padding: '0.35rem 0.75rem', borderRadius: 6, border: '1.5px solid rgba(230,126,34,0.3)', background: 'rgba(230,126,34,0.06)', color: '#e67e22', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Reset PW</button>
-              <button onClick={() => setDeleteEmployee(e)} style={{ padding: '0.35rem 0.75rem', borderRadius: 6, border: 'none', background: '#fef2f2', color: '#e74c3c', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Delete</button>
+              <button onClick={() => openEdit(e)} style={{ padding: '0.35rem 0.75rem', borderRadius: 6, border: '1.5px solid #E5E7EB', background: 'white', color: '#374151', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Edit</button>
+              <button onClick={() => { setResetEmployee(e); setResetMsg('') }} style={{ padding: '0.35rem 0.75rem', borderRadius: 6, border: 'none', background: '#FEF9C3', color: '#92400E', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Reset PW</button>
+              <button onClick={() => setDeleteEmployee(e)} style={{ padding: '0.35rem 0.75rem', borderRadius: 6, border: 'none', background: '#FEF2F2', color: '#B91C1C', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Delete</button>
             </div>
           ])}
         />

@@ -361,6 +361,56 @@ router.post("/set-password", async (req, res) => {
   }
 });
 
+// ── Change password (logged-in client/employee/admin updating their own password) ──
+// Distinct from /set-password above, which is the one-time token-based flow used
+// the first time a self-registered client sets a password from an emailed link.
+router.post("/change-password", async (req, res) => {
+  try {
+    await ensureUsersTable();
+    const token = getBearerToken(req);
+    if (!token) return res.status(401).json({ error: "Missing authorization token." });
+
+    let decoded: { id?: string };
+    try {
+      decoded = jwt.verify(token, getJwtSecret()) as { id?: string };
+    } catch {
+      return res.status(401).json({ error: "Invalid or expired session. Please log in again." });
+    }
+    if (!decoded.id) return res.status(401).json({ error: "Invalid authorization token." });
+
+    const { currentPassword, newPassword } = req.body as {
+      currentPassword?: string;
+      newPassword?: string;
+    };
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: "Current password and new password are required." });
+    }
+    if (newPassword.length < 8) {
+      return res.status(400).json({ error: "New password must be at least 8 characters." });
+    }
+
+    const user = await findUserById(decoded.id);
+    if (!user) return res.status(401).json({ error: "User no longer exists." });
+
+    const passwordValid = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!passwordValid) {
+      return res.status(401).json({ error: "Current password is incorrect." });
+    }
+
+    const newHash = await bcrypt.hash(newPassword, 12);
+    await pool.query(
+      `UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2`,
+      [newHash, user.id]
+    );
+
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error("change-password error:", err);
+    return res.status(500).json({ error: err instanceof Error ? err.message : "Failed to update password." });
+  }
+});
+
 router.post("/seed-test-users", async (req, res) => {
   try {
     await ensureUsersTable();
