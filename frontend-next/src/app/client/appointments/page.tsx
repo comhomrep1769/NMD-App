@@ -1,7 +1,11 @@
-'use client'
+﻿'use client'
 import PortalShell from '@/components/portal/PortalShell'
 import { useClientPortal } from '@/hooks/useClientPortal'
 import { LoadingCard, ErrorCard, StatusBadge, fmtDate } from '@/components/portal/PortalUI'
+
+function fmtTime(dt: string) {
+  return new Date(dt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+}
 
 export default function ClientAppointmentsPage() {
   const { data, loading, error } = useClientPortal()
@@ -9,11 +13,11 @@ export default function ClientAppointmentsPage() {
 
   const today = new Date()
   const upcoming = jobs
-    .filter(j => new Date(j.scheduledDate) >= today && j.status !== 'completed' && j.status !== 'cancelled')
-    .sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime())
+    .filter(j => new Date(j.startTime) >= today && j.status !== 'completed' && j.status !== 'cancelled')
+    .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
   const past = jobs
     .filter(j => !upcoming.find(u => u.id === j.id))
-    .sort((a, b) => new Date(b.scheduledDate).getTime() - new Date(a.scheduledDate).getTime())
+    .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
 
   return (
     <PortalShell requiredRole="client">
@@ -44,8 +48,8 @@ export default function ClientAppointmentsPage() {
                 {upcoming.map(job => (
                   <div key={job.id} style={{ background: 'white', border: '1.5px solid #E5E7EB', borderLeft: '3px solid #0F766E', borderRadius: 10, padding: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
                     <div>
-                      <div style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 600, fontSize: '0.95rem', color: '#111827', marginBottom: 4 }}>{job.title || job.serviceType}</div>
-                      <div style={{ fontSize: '0.82rem', color: '#6B7280' }}>{job.scheduledDate ? fmtDate(job.scheduledDate) : '—'}{job.startTime ? ` · ${job.startTime}` : ''}</div>
+                      <div style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 600, fontSize: '0.95rem', color: '#111827', marginBottom: 4 }}>{job.title}</div>
+                      <div style={{ fontSize: '0.82rem', color: '#6B7280' }}>{job.startTime ? `${fmtDate(job.startTime)} · ${fmtTime(job.startTime)}` : '—'}</div>
                     </div>
                     <StatusBadge status={job.status} />
                   </div>
@@ -60,8 +64,8 @@ export default function ClientAppointmentsPage() {
                   {past.map(job => (
                     <div key={job.id} style={{ background: 'white', border: '1.5px solid #E5E7EB', borderRadius: 10, padding: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
                       <div>
-                        <div style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 600, fontSize: '0.95rem', color: '#374151', marginBottom: 4 }}>{job.title || job.serviceType}</div>
-                        <div style={{ fontSize: '0.82rem', color: '#9CA3AF' }}>{job.scheduledDate ? fmtDate(job.scheduledDate) : '—'}{job.startTime ? ` · ${job.startTime}` : ''}</div>
+                        <div style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 600, fontSize: '0.95rem', color: '#374151', marginBottom: 4 }}>{job.title}</div>
+                        <div style={{ fontSize: '0.82rem', color: '#9CA3AF' }}>{job.startTime ? `${fmtDate(job.startTime)} · ${fmtTime(job.startTime)}` : '—'}</div>
                       </div>
                       <StatusBadge status={job.status} />
                     </div>
