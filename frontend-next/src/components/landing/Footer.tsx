@@ -49,7 +49,7 @@ export default function Footer() {
               <a href="/join-our-team" className="text-sm !text-white/50">Join Our Team</a>
               <a href="#" className="text-sm !text-white/50">Follow Us</a>
               <div className="my-1.5 h-px bg-white/10" />
-              <a href="/admin/login" className="flex items-center gap-1.5 text-sm !text-white/35">
+              <a href="/admin" className="flex items-center gap-1.5 text-sm !text-white/35">
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                   <rect x="1" y="1" width="10" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
                   <path d="M4 6h4M6 4v4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
