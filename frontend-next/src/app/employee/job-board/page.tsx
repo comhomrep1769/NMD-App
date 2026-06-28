@@ -90,69 +90,68 @@ export default function JobBoardPage() {
       ' at ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
   }
 
-  const smsBtnStyle = (active: boolean): React.CSSProperties => ({
+  const smsBtnStyle = (active: boolean, color: string, bg: string): React.CSSProperties => ({
     padding: '0.5rem 0.85rem',
     borderRadius: 8,
-    border: '1.5px solid rgba(22,163,74,0.25)',
-    background: 'rgba(22,163,74,0.07)',
-    color: '#1a7a3c',
-    fontWeight: 600,
+    border: 'none',
+    background: bg,
+    color: '#fff',
+    fontWeight: 700,
     fontSize: '0.78rem',
     cursor: active ? 'not-allowed' : 'pointer',
     fontFamily: 'DM Sans, sans-serif',
     opacity: active ? 0.6 : 1,
     whiteSpace: 'nowrap' as const,
-    transition: 'background 0.2s',
   })
 
   const JobCard = ({ job, claimed }: { job: Job; claimed: boolean }) => (
-    <div style={{ background: 'white', border: '1.5px solid #dde4ef', borderRadius: 14, padding: '1.5rem', boxShadow: '0 2px 8px rgba(14,17,23,0.04)' }}>
+    <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 10, padding: '1.5rem' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#0e1117', marginBottom: 6 }}>{job.title}</div>
-          <div style={{ fontSize: '0.85rem', color: '#5a6a88', marginBottom: 4 }}><span style={{ fontWeight: 500 }}>Client:</span> {job.client_name}</div>
-          <div style={{ fontSize: '0.85rem', color: '#5a6a88', marginBottom: 4 }}>
+          <div style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#111827', marginBottom: 6 }}>{job.title}</div>
+          <div style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: 4 }}><span style={{ fontWeight: 500 }}>Client:</span> {job.client_name}</div>
+          <div style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: 4 }}>
             <span style={{ fontWeight: 500 }}>Address:</span> {job.address}
-            <a href={`https://maps.google.com/?q=${encodeURIComponent(job.address)}`} target="_blank" rel="noopener noreferrer" style={{ marginLeft: 8, fontSize: '0.78rem', color: '#124d83', fontWeight: 600, textDecoration: 'none' }}>
+            <a href={`https://maps.google.com/?q=${encodeURIComponent(job.address)}`} target="_blank" rel="noopener noreferrer" style={{ marginLeft: 8, fontSize: '0.78rem', color: '#0F766E', fontWeight: 600, textDecoration: 'none' }}>
               Get Directions
             </a>
           </div>
-          <div style={{ fontSize: '0.85rem', color: '#5a6a88', marginBottom: 4 }}>
+          <div style={{ fontSize: '0.85rem', color: '#6B7280', marginBottom: 4 }}>
             <span style={{ fontWeight: 500 }}>When:</span> {fmt(job.start_time)}{job.end_time ? ` — ${fmt(job.end_time)}` : ''}
           </div>
           {job.notes && (
-            <div style={{ fontSize: '0.82rem', color: '#8494b0', marginTop: 6, background: '#f4f7fb', borderRadius: 6, padding: '0.5rem 0.75rem', border: '1px solid #dde4ef' }}>
+            <div style={{ fontSize: '0.82rem', color: '#9CA3AF', marginTop: 6, background: '#F8FAF9', borderRadius: 6, padding: '0.5rem 0.75rem', border: '1px solid #E5E7EB' }}>
               <span style={{ fontWeight: 500 }}>Notes:</span> {job.notes}
             </div>
           )}
           {job.assigned_employees.length > 0 && (
-            <div style={{ fontSize: '0.78rem', color: '#8494b0', marginTop: 6 }}>
+            <div style={{ fontSize: '0.78rem', color: '#9CA3AF', marginTop: 6 }}>
               Also assigned: {job.assigned_employees.map(e => e.displayName).join(', ')}
             </div>
           )}
 
           {/* ── SMS Buttons — only show on claimed jobs ── */}
           {claimed && (
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14, paddingTop: 14, borderTop: '1px solid #eef1f6' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#8494b0', alignSelf: 'center', marginRight: 4 }}>Notify client:</span>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14, paddingTop: 14, borderTop: '1px solid #E5E7EB' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#9CA3AF', alignSelf: 'center', marginRight: 4 }}>Notify client:</span>
               <button
                 onClick={() => handleSms('on-way', job.id)}
                 disabled={smsFiring === `${job.id}-on-way`}
-                style={smsBtnStyle(smsFiring === `${job.id}-on-way`)}
+                style={smsBtnStyle(smsFiring === `${job.id}-on-way`, '#fff', '#F59E0B')}
               >
                 {smsFiring === `${job.id}-on-way` ? 'Sending...' : '🚗 On My Way'}
               </button>
               <button
                 onClick={() => handleSms('arrived', job.id)}
                 disabled={smsFiring === `${job.id}-arrived`}
-                style={smsBtnStyle(smsFiring === `${job.id}-arrived`)}
+                style={smsBtnStyle(smsFiring === `${job.id}-arrived`, '#fff', '#1D4ED8')}
               >
                 {smsFiring === `${job.id}-arrived` ? 'Sending...' : '📍 Arrived'}
               </button>
               <button
                 onClick={() => handleSms('job-complete', job.id)}
                 disabled={smsFiring === `${job.id}-job-complete`}
-                style={smsBtnStyle(smsFiring === `${job.id}-job-complete`)}
+                style={smsBtnStyle(smsFiring === `${job.id}-job-complete`, '#fff', '#059669')}
               >
                 {smsFiring === `${job.id}-job-complete` ? 'Sending...' : '✅ Job Complete'}
               </button>
@@ -164,14 +163,14 @@ export default function JobBoardPage() {
           <button
             onClick={() => handleClaim(job)}
             disabled={claimingId === job.id}
-            style={{ padding: '0.65rem 1.5rem', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 700, fontSize: '0.875rem', cursor: claimingId === job.id ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: claimingId === job.id ? 0.7 : 1, whiteSpace: 'nowrap', flexShrink: 0 }}
+            style={{ padding: '0.65rem 1.5rem', borderRadius: 8, border: 'none', background: '#0F766E', color: 'white', fontWeight: 700, fontSize: '0.875rem', cursor: claimingId === job.id ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: claimingId === job.id ? 0.7 : 1, whiteSpace: 'nowrap', flexShrink: 0 }}
           >
             {claimingId === job.id ? 'Claiming...' : 'Claim Job'}
           </button>
         )}
 
         {claimed && (
-          <div style={{ padding: '0.4rem 0.85rem', borderRadius: 8, background: '#f0fff4', border: '1.5px solid #c0dd97', color: '#1f6132', fontWeight: 700, fontSize: '0.78rem', whiteSpace: 'nowrap', flexShrink: 0, alignSelf: 'flex-start' }}>
+          <div style={{ padding: '0.4rem 0.85rem', borderRadius: 8, background: '#F0FDF9', border: '1px solid #A7F3D0', color: '#059669', fontWeight: 700, fontSize: '0.78rem', whiteSpace: 'nowrap', flexShrink: 0, alignSelf: 'flex-start' }}>
             ✓ Claimed
           </div>
         )}
@@ -182,9 +181,9 @@ export default function JobBoardPage() {
   return (
     <PortalShell requiredRole="employee">
       <div style={{ marginBottom: '1.5rem' }}>
-        <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#1f6132', marginBottom: 6 }}>Employee Portal</div>
-        <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: '1.75rem', fontWeight: 800, color: '#0e1117', letterSpacing: '-0.03em', marginBottom: 6 }}>Job Board</h1>
-        <p style={{ color: '#5a6a88', fontSize: '0.875rem' }}>Available jobs you can claim. Once claimed the job appears on your schedule.</p>
+        <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#0F766E', marginBottom: 6 }}>Employee Portal</div>
+        <h1 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '28px', fontWeight: 800, color: '#111827', letterSpacing: '-0.025em', marginBottom: 6 }}>Job Board</h1>
+        <p style={{ color: '#6B7280', fontSize: '14px', margin: 0 }}>Available jobs you can claim. Once claimed the job appears on your schedule.</p>
       </div>
 
       {loading && <LoadingCard />}
@@ -193,7 +192,7 @@ export default function JobBoardPage() {
       {/* ── Claimed jobs this session (with SMS buttons) ── */}
       {claimedJobs.length > 0 && (
         <div style={{ marginBottom: '1.5rem' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#1f6132', marginBottom: 10 }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#0F766E', marginBottom: 10 }}>
             Claimed This Session
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -206,9 +205,9 @@ export default function JobBoardPage() {
 
       {/* ── Available jobs ── */}
       {!loading && !error && jobs.length === 0 && claimedJobs.length === 0 && (
-        <div style={{ background: 'white', border: '1.5px solid #dde4ef', borderRadius: 14, padding: '3rem', textAlign: 'center', color: '#8494b0' }}>
+        <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 10, padding: '3rem', textAlign: 'center', color: '#9CA3AF' }}>
           <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>📋</div>
-          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, color: '#0e1117', marginBottom: 8 }}>No available jobs right now</div>
+          <div style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 600, color: '#111827', marginBottom: 8 }}>No available jobs right now</div>
           <div style={{ fontSize: '0.875rem' }}>Check back later or contact your admin for assignments.</div>
         </div>
       )}
@@ -216,7 +215,7 @@ export default function JobBoardPage() {
       {!loading && !error && jobs.length > 0 && (
         <>
           {claimedJobs.length > 0 && (
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8494b0', marginBottom: 10 }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 10 }}>
               Available Jobs
             </div>
           )}
@@ -229,7 +228,7 @@ export default function JobBoardPage() {
       )}
 
       {claimedCount > 0 && (
-        <div style={{ marginTop: '1.5rem', background: '#f0fff4', border: '1.5px solid #c0dd97', borderRadius: 10, padding: '1rem 1.25rem', fontSize: '0.875rem', color: '#1f6132', fontWeight: 500 }}>
+        <div style={{ marginTop: '1.5rem', background: '#F0FDF9', border: '1px solid #A7F3D0', borderRadius: 10, padding: '1rem 1.25rem', fontSize: '0.875rem', color: '#059669', fontWeight: 500 }}>
           You claimed {claimedCount} job{claimedCount > 1 ? 's' : ''} this session. Use the SMS buttons above to notify your client when you're on the way, when you arrive, and when the job is complete.
         </div>
       )}

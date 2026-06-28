@@ -144,7 +144,7 @@ const CHEMICALS: Chemical[] = [
     name: 'Sodium Metasilicate',
     category: 'Wood Restoration',
     price: '~$25 (Texas PW Store)',
-    useCases: 'Wood cleaner/light stripper, fence/deck cleaning, algae/mildew removal on wood. Use before oxalic acid brightening.',
+    useCases: 'Wood cleaner/light stripper, fence/deck cleaning, algae/mildew removal on wood. Use before oxalic acid brightener.',
     purchaseUrl: 'https://www.texaspressurewashingstore.com/product/sodium-metasilicate/',
   },
   {
@@ -342,17 +342,22 @@ const CATEGORIES = ['All', 'Organic Growth', 'Degreaser', 'Rust & Mineral', 'Woo
 
 const SEALER_SURFACES = ['All', 'Pavers — Wet Look', 'Pavers — Premium', 'Pavers / Concrete — Budget Wet Look', 'Concrete / Brick — Natural Look', 'Concrete / Masonry — Natural Look', 'Concrete — Wet Look', 'Natural Stone / Tile / Travertine', 'Stucco', 'Wood — Stained Finish', 'Wood — Clear', 'Cement / Barrel Tile Roof', 'Flat / Metal Roof Coating', 'Metal Roof', 'Multi-Surface', 'Pool Decks / Slip Areas', 'Commercial Concrete']
 
+// ── Category colors: aligned to the confirmed status palette where the meaning
+// genuinely overlaps (Rust & Mineral = danger, Degreaser = warning, Organic
+// Growth = success, Surfactant = info, Maintenance = purple, Testing = neutral).
+// Categories with no confirmed-system equivalent keep distinct bespoke colors
+// in the same soft-pastel style so they stay visually distinguishable.
 const CATEGORY_COLORS: Record<string, { bg: string; color: string; border: string }> = {
-  'Organic Growth': { bg: '#f0fff4', color: '#1f6132', border: '#c0dd97' },
-  'Degreaser':      { bg: '#fff9e6', color: '#7a5c00', border: '#f5e6a0' },
-  'Rust & Mineral': { bg: '#fef2f2', color: '#a32d2d', border: '#ffc0c0' },
-  'Wood Restoration':{ bg: '#fef8ee', color: '#8b4513', border: '#f5d8a0' },
-  'Masonry':        { bg: '#f0f4ff', color: '#2d4aa3', border: '#b0c0f0' },
-  'Surfactant':     { bg: '#f0f8ff', color: '#124d83', border: '#96c8f5' },
-  'Maintenance':    { bg: '#f5f0ff', color: '#5b2d8b', border: '#c8a0f5' },
-  'Specialty':      { bg: '#fff0f8', color: '#8b2d6b', border: '#f5a0d8' },
-  'Testing':        { bg: '#f4f7fb', color: '#5a6a88', border: '#dde4ef' },
-  'Sealer / Coating':{ bg: '#f0fff8', color: '#0d6b4a', border: '#90d4b8' },
+  'Organic Growth':   { bg: '#F0FDF9', color: '#059669', border: '#A7F3D0' },
+  'Degreaser':         { bg: '#FEF9C3', color: '#92400E', border: '#FDE68A' },
+  'Rust & Mineral':    { bg: '#FEF2F2', color: '#B91C1C', border: '#FECACA' },
+  'Wood Restoration':  { bg: '#FEF8EE', color: '#8B4513', border: '#F5D8A0' },
+  'Masonry':           { bg: '#F0F4FF', color: '#2D4AA3', border: '#B0C0F0' },
+  'Surfactant':        { bg: '#EFF6FF', color: '#1D4ED8', border: '#93C5FD' },
+  'Maintenance':       { bg: '#F5F3FF', color: '#6D28D9', border: '#DDD6FE' },
+  'Specialty':         { bg: '#FFF0F8', color: '#8B2D6B', border: '#F5A0D8' },
+  'Testing':           { bg: '#F8FAF9', color: '#6B7280', border: '#E5E7EB' },
+  'Sealer / Coating':  { bg: '#F0FDF9', color: '#0F766E', border: '#A7F3D0' },
 }
 
 export default function EmployeeChemicalsPage() {
@@ -376,16 +381,16 @@ export default function EmployeeChemicalsPage() {
   return (
     <PortalShell requiredRole="employee">
       <div style={{ marginBottom: '1.5rem' }}>
-        <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#1f6132', marginBottom: 6 }}>Employee Portal</div>
-        <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: '1.75rem', fontWeight: 800, color: '#0e1117', letterSpacing: '-0.03em', marginBottom: 6 }}>Chemicals & Sealers</h1>
-        <p style={{ color: '#5a6a88', fontSize: '0.875rem' }}>Reference guide for all NMD chemicals and sealers. Tap any item to see full details and purchase link.</p>
+        <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#0F766E', marginBottom: 6 }}>Employee Portal</div>
+        <h1 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '28px', fontWeight: 800, color: '#111827', letterSpacing: '-0.025em', marginBottom: 6 }}>Chemicals & Sealers</h1>
+        <p style={{ color: '#6B7280', fontSize: '14px', margin: 0 }}>Reference guide for all NMD chemicals and sealers. Tap any item to see full details and purchase link.</p>
       </div>
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 8, marginBottom: '1.25rem' }}>
         {(['chemicals', 'sealers'] as const).map(t => (
           <button key={t} onClick={() => { setTab(t); setCategory('All'); setSearch('') }}
-            style={{ padding: '0.55rem 1.25rem', borderRadius: 8, border: `1.5px solid ${tab === t ? '#1f6132' : '#dde4ef'}`, background: tab === t ? 'linear-gradient(135deg, #1f6132, #124d83)' : 'white', color: tab === t ? 'white' : '#5a6a88', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', textTransform: 'capitalize' }}>
+            style={{ padding: '0.55rem 1.25rem', borderRadius: 8, border: `1px solid ${tab === t ? '#0F766E' : '#E5E7EB'}`, background: tab === t ? '#0F766E' : 'white', color: tab === t ? 'white' : '#6B7280', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', textTransform: 'capitalize' }}>
             {t === 'chemicals' ? `🧪 Chemicals (${CHEMICALS.length})` : `🛡️ Sealers (${SEALERS.length})`}
           </button>
         ))}
@@ -396,10 +401,10 @@ export default function EmployeeChemicalsPage() {
         <input
           type="text" value={search} onChange={e => setSearch(e.target.value)}
           placeholder={tab === 'chemicals' ? 'Search chemicals...' : 'Search sealers...'}
-          style={{ flex: 1, minWidth: 200, padding: '0.6rem 0.9rem', borderRadius: 8, border: '1.5px solid #dde4ef', fontSize: '0.875rem', fontFamily: 'DM Sans, sans-serif', color: '#0e1117', background: 'white', outline: 'none' }}
+          style={{ flex: 1, minWidth: 200, padding: '0.6rem 0.9rem', borderRadius: 8, border: '1.5px solid #E5E7EB', fontSize: '0.875rem', fontFamily: 'DM Sans, sans-serif', color: '#111827', background: 'white', outline: 'none' }}
         />
         <select value={category} onChange={e => setCategory(e.target.value)}
-          style={{ padding: '0.6rem 0.9rem', borderRadius: 8, border: '1.5px solid #dde4ef', fontSize: '0.875rem', fontFamily: 'DM Sans, sans-serif', color: '#0e1117', background: 'white', outline: 'none' }}>
+          style={{ padding: '0.6rem 0.9rem', borderRadius: 8, border: '1.5px solid #E5E7EB', fontSize: '0.875rem', fontFamily: 'DM Sans, sans-serif', color: '#111827', background: 'white', outline: 'none' }}>
           {(tab === 'chemicals' ? CATEGORIES.filter(c => c === 'All' || CHEMICALS.some(ch => ch.category === c)) : ['All', ...SEALER_SURFACES.filter(s => s !== 'All')]).map(c => (
             <option key={c} value={c}>{c}</option>
           ))}
@@ -407,7 +412,7 @@ export default function EmployeeChemicalsPage() {
       </div>
 
       {/* Results count */}
-      <div style={{ fontSize: '0.78rem', color: '#8494b0', marginBottom: '0.75rem', fontWeight: 500 }}>
+      <div style={{ fontSize: '0.78rem', color: '#9CA3AF', marginBottom: '0.75rem', fontWeight: 500 }}>
         Showing {tab === 'chemicals' ? filteredChemicals.length : filteredSealers.length} {tab === 'chemicals' ? 'chemicals' : 'sealers'}
         {search && ` matching "${search}"`}
       </div>
@@ -416,47 +421,47 @@ export default function EmployeeChemicalsPage() {
       {tab === 'chemicals' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           {filteredChemicals.length === 0 ? (
-            <div style={{ background: 'white', border: '1.5px solid #dde4ef', borderRadius: 14, padding: '3rem', textAlign: 'center', color: '#8494b0' }}>
+            <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 10, padding: '3rem', textAlign: 'center', color: '#9CA3AF' }}>
               No chemicals found matching your search.
             </div>
           ) : filteredChemicals.map(chem => {
-            const catStyle = CATEGORY_COLORS[chem.category] || { bg: '#f4f7fb', color: '#5a6a88', border: '#dde4ef' }
+            const catStyle = CATEGORY_COLORS[chem.category] || { bg: '#F8FAF9', color: '#6B7280', border: '#E5E7EB' }
             const isOpen = expanded === chem.name
             return (
-              <div key={chem.name} style={{ background: 'white', border: '1.5px solid #dde4ef', borderRadius: 12, overflow: 'hidden' }}>
+              <div key={chem.name} style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 10, overflow: 'hidden' }}>
                 <div onClick={() => setExpanded(isOpen ? null : chem.name)}
                   style={{ padding: '1rem 1.25rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
-                      <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0e1117' }}>{chem.name}</span>
-                      {chem.caution && <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: '#fef2f2', color: '#a32d2d', border: '1px solid #ffc0c0' }}>⚠️ Caution</span>}
+                      <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#111827' }}>{chem.name}</span>
+                      {chem.caution && <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: '#FEF2F2', color: '#B91C1C', border: '1px solid #FECACA' }}>⚠️ Caution</span>}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: 100, background: catStyle.bg, color: catStyle.color, border: `1px solid ${catStyle.border}` }}>
                         {chem.category}
                       </span>
-                      <span style={{ fontSize: '0.78rem', color: '#8494b0' }}>{chem.price}</span>
+                      <span style={{ fontSize: '0.78rem', color: '#9CA3AF' }}>{chem.price}</span>
                     </div>
                   </div>
-                  <span style={{ color: '#8494b0', flexShrink: 0 }}>{isOpen ? '▲' : '▼'}</span>
+                  <span style={{ color: '#9CA3AF', flexShrink: 0 }}>{isOpen ? '▲' : '▼'}</span>
                 </div>
                 {isOpen && (
-                  <div style={{ borderTop: '1px solid #dde4ef', padding: '1rem 1.25rem', background: '#f8fbff', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ borderTop: '1px solid #E5E7EB', padding: '1rem 1.25rem', background: '#F8FAF9', display: 'flex', flexDirection: 'column', gap: 10 }}>
                     <div>
-                      <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8494b0', marginBottom: 4 }}>Use Cases</div>
-                      <div style={{ fontSize: '0.875rem', color: '#3a4660', lineHeight: 1.6 }}>{chem.useCases}</div>
+                      <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 4 }}>Use Cases</div>
+                      <div style={{ fontSize: '0.875rem', color: '#374151', lineHeight: 1.6 }}>{chem.useCases}</div>
                     </div>
                     {chem.caution && (
-                      <div style={{ background: '#fef2f2', border: '1px solid #ffc0c0', borderRadius: 8, padding: '0.65rem 0.9rem', fontSize: '0.82rem', color: '#a32d2d', lineHeight: 1.5 }}>
+                      <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '0.65rem 0.9rem', fontSize: '0.82rem', color: '#B91C1C', lineHeight: 1.5 }}>
                         ⚠️ <strong>Caution:</strong> {chem.caution}
                       </div>
                     )}
                     <div>
-                      <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8494b0', marginBottom: 4 }}>Current Price Reference</div>
-                      <div style={{ fontSize: '0.875rem', color: '#3a4660' }}>{chem.price}</div>
+                      <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 4 }}>Current Price Reference</div>
+                      <div style={{ fontSize: '0.875rem', color: '#374151' }}>{chem.price}</div>
                     </div>
                     <a href={chem.purchaseUrl} target="_blank" rel="noopener noreferrer"
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0.5rem 1rem', borderRadius: 8, background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 600, fontSize: '0.82rem', textDecoration: 'none', alignSelf: 'flex-start' }}>
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0.5rem 1rem', borderRadius: 8, background: '#0F766E', color: 'white', fontWeight: 600, fontSize: '0.82rem', textDecoration: 'none', alignSelf: 'flex-start' }}>
                       🛒 Purchase / View Product →
                     </a>
                   </div>
@@ -471,42 +476,42 @@ export default function EmployeeChemicalsPage() {
       {tab === 'sealers' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           {filteredSealers.length === 0 ? (
-            <div style={{ background: 'white', border: '1.5px solid #dde4ef', borderRadius: 14, padding: '3rem', textAlign: 'center', color: '#8494b0' }}>
+            <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 10, padding: '3rem', textAlign: 'center', color: '#9CA3AF' }}>
               No sealers found matching your search.
             </div>
           ) : filteredSealers.map(sealer => {
             const isOpen = expanded === sealer.name
             return (
-              <div key={sealer.name} style={{ background: 'white', border: '1.5px solid #dde4ef', borderRadius: 12, overflow: 'hidden' }}>
+              <div key={sealer.name} style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 10, overflow: 'hidden' }}>
                 <div onClick={() => setExpanded(isOpen ? null : sealer.name)}
                   style={{ padding: '1rem 1.25rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0e1117', marginBottom: 4 }}>{sealer.name}</div>
+                    <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#111827', marginBottom: 4 }}>{sealer.name}</div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: 100, background: '#f0fff8', color: '#0d6b4a', border: '1px solid #90d4b8' }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: 100, background: '#F0FDF9', color: '#0F766E', border: '1px solid #A7F3D0' }}>
                         {sealer.surface}
                       </span>
-                      <span style={{ fontSize: '0.78rem', color: '#8494b0' }}>{sealer.price}</span>
+                      <span style={{ fontSize: '0.78rem', color: '#9CA3AF' }}>{sealer.price}</span>
                     </div>
                   </div>
-                  <span style={{ color: '#8494b0', flexShrink: 0 }}>{isOpen ? '▲' : '▼'}</span>
+                  <span style={{ color: '#9CA3AF', flexShrink: 0 }}>{isOpen ? '▲' : '▼'}</span>
                 </div>
                 {isOpen && (
-                  <div style={{ borderTop: '1px solid #dde4ef', padding: '1rem 1.25rem', background: '#f8fbff', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ borderTop: '1px solid #E5E7EB', padding: '1rem 1.25rem', background: '#F8FAF9', display: 'flex', flexDirection: 'column', gap: 10 }}>
                     <div>
-                      <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8494b0', marginBottom: 4 }}>Best For</div>
-                      <div style={{ fontSize: '0.875rem', color: '#3a4660', lineHeight: 1.6 }}>{sealer.bestFor}</div>
+                      <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 4 }}>Best For</div>
+                      <div style={{ fontSize: '0.875rem', color: '#374151', lineHeight: 1.6 }}>{sealer.bestFor}</div>
                     </div>
                     <div>
-                      <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8494b0', marginBottom: 4 }}>Notes</div>
-                      <div style={{ fontSize: '0.875rem', color: '#3a4660', lineHeight: 1.6 }}>{sealer.notes}</div>
+                      <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 4 }}>Notes</div>
+                      <div style={{ fontSize: '0.875rem', color: '#374151', lineHeight: 1.6 }}>{sealer.notes}</div>
                     </div>
                     <div>
-                      <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8494b0', marginBottom: 4 }}>Price Reference</div>
-                      <div style={{ fontSize: '0.875rem', color: '#3a4660' }}>{sealer.price}</div>
+                      <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 4 }}>Price Reference</div>
+                      <div style={{ fontSize: '0.875rem', color: '#374151' }}>{sealer.price}</div>
                     </div>
                     <a href={sealer.purchaseUrl} target="_blank" rel="noopener noreferrer"
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0.5rem 1rem', borderRadius: 8, background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 600, fontSize: '0.82rem', textDecoration: 'none', alignSelf: 'flex-start' }}>
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '0.5rem 1rem', borderRadius: 8, background: '#0F766E', color: 'white', fontWeight: 600, fontSize: '0.82rem', textDecoration: 'none', alignSelf: 'flex-start' }}>
                       🛒 Purchase / View Product →
                     </a>
                   </div>

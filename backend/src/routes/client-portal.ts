@@ -86,12 +86,29 @@ router.get("/me", requireAuth, requireRole("client"), async (req, res) => {
           [client.id, fullName]
         ),
 
+        // ── Jobs, with associated job_photos aggregated (before/after/job uploads) ──
         pool.query(
           `
-          SELECT id, title, client_name, address, start_time, end_time, status, notes, created_at
-          FROM jobs
-          WHERE LOWER(client_name) = LOWER($1) OR LOWER(address) = LOWER($2)
-          ORDER BY start_time DESC
+          SELECT
+            j.id, j.title, j.client_name, j.address, j.start_time, j.end_time,
+            j.status, j.notes, j.created_at,
+            COALESCE(
+              json_agg(
+                json_build_object(
+                  'id', jp.id,
+                  'photoDataUrl', jp.photo_data_url,
+                  'caption', jp.caption,
+                  'photoType', jp.photo_type,
+                  'createdAt', jp.created_at
+                ) ORDER BY jp.created_at ASC
+              ) FILTER (WHERE jp.id IS NOT NULL),
+              '[]'
+            ) AS photos
+          FROM jobs j
+          LEFT JOIN job_photos jp ON jp.job_id = j.id
+          WHERE LOWER(j.client_name) = LOWER($1) OR LOWER(j.address) = LOWER($2)
+          GROUP BY j.id
+          ORDER BY j.start_time DESC
           `,
           [fullName, client.address]
         ),
@@ -156,7 +173,8 @@ router.get("/me", requireAuth, requireRole("client"), async (req, res) => {
       jobs: jobsResult.rows.map((row) => ({
         id: row.id, title: row.title, clientName: row.client_name,
         address: row.address, startTime: row.start_time, endTime: row.end_time,
-        status: row.status, notes: row.notes, createdAt: row.created_at
+        status: row.status, notes: row.notes, createdAt: row.created_at,
+        photos: row.photos || []
       })),
 
       recurringServices: recurringResult.rows.map((row) => ({

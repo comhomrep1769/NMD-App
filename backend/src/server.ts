@@ -31,6 +31,8 @@ import smsRoutes from "./routes/sms.js";
 import routePlannerRoutes from "./routes/routePlanner.js";
 import applicantsRoutes from "./routes/applicants.js";
 import activityRoutes from "./routes/activity.js";
+import siteContentRoutes from "./routes/site-content.js";
+
 
 const app = express();
 
@@ -107,6 +109,9 @@ app.use("/api/routes", routePlannerRoutes);
 app.use("/api/applicants", applicantsRoutes);
 app.use("/api/sales", salesRoutes);
 app.use("/api/activity", activityRoutes);
+app.use("/api/site-content", siteContentRoutes);
+
+
 
 app.use((req, res) => {
   res.status(404).json({ message: `Route not found: ${req.method} ${req.originalUrl}` });

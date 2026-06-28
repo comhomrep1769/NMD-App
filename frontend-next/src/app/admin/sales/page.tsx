@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import PortalShell from '@/components/portal/PortalShell'
-import { LoadingCard, ErrorCard, SectionHeader } from '@/components/portal/PortalUI'
+import { LoadingCard, ErrorCard, MetricCard, DataTable } from '@/components/portal/PortalUI'
 import { getNmdToken } from '@/lib/authStorage'
 
 type Commission = {
@@ -32,18 +32,26 @@ const TIER_RATES: Record<number, Record<string, number>> = {
 
 const inputStyle: React.CSSProperties = {
   width: '100%', padding: '0.6rem 0.9rem', borderRadius: 8,
-  border: '1.5px solid #dde4ef', fontSize: '0.875rem', outline: 'none',
-  fontFamily: 'DM Sans, sans-serif', color: '#0e1117', background: '#f4f7fb', boxSizing: 'border-box',
+  border: '1.5px solid #E5E7EB', fontSize: '0.875rem', outline: 'none',
+  fontFamily: 'DM Sans, sans-serif', color: '#111827', background: '#fff', boxSizing: 'border-box',
 }
 
-const statusStyle = (s: string): React.CSSProperties => {
-  const map: Record<string, { color: string; bg: string; border: string }> = {
-    pending:  { color: '#7a5c00', bg: '#fff9e6', border: '#f5e6a0' },
-    approved: { color: '#124d83', bg: '#e8f3fd', border: '#96c8f5' },
-    paid:     { color: '#1f6132', bg: '#f0fff4', border: '#c0dd97' },
-  }
-  const st = map[s] || map.pending
-  return { fontSize: '0.72rem', fontWeight: 700, padding: '2px 10px', borderRadius: 100, color: st.color, background: st.bg, border: `1px solid ${st.border}` }
+const labelStyle: React.CSSProperties = {
+  fontSize: '0.78rem', fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4,
+}
+
+const filterTabStyle = (active: boolean): React.CSSProperties => ({
+  padding: '0.35rem 0.85rem', borderRadius: 20,
+  border: `1.5px solid ${active ? '#0F766E' : '#E5E7EB'}`,
+  background: active ? '#F0FDF9' : 'white',
+  color: active ? '#0F766E' : '#6B7280',
+  fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif',
+})
+
+const statusColors: Record<string, { color: string; bg: string }> = {
+  pending:  { color: '#92400E', bg: '#FEF9C3' },
+  approved: { color: '#1D4ED8', bg: '#EFF6FF' },
+  paid:     { color: '#059669', bg: '#F0FDF9' },
 }
 
 export default function AdminSalesPage() {
@@ -152,7 +160,11 @@ export default function AdminSalesPage() {
 
   return (
     <PortalShell requiredRole={['admin', 'superadmin']}>
-      <SectionHeader title="Sales & Commissions" sub={`${commissions.length} total commissions`} />
+      <div style={{ marginBottom: '1.5rem' }}>
+        <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#0F766E', marginBottom: 6 }}>NMD Portal</div>
+        <h1 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '28px', fontWeight: 800, color: '#111827', letterSpacing: '-0.025em', marginBottom: 6 }}>Sales &amp; Commissions</h1>
+        <p style={{ color: '#6B7280', fontSize: '14px', margin: 0 }}>{commissions.length} total commissions</p>
+      </div>
 
       {loading && <LoadingCard />}
       {error && <ErrorCard message={error} />}
@@ -160,25 +172,18 @@ export default function AdminSalesPage() {
       {!loading && !error && (
         <>
           {/* Summary */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-            {[
-              { label: 'Paid Out', value: money(totalPaid), color: '#1f6132' },
-              { label: 'Approved', value: money(totalApproved), color: '#124d83' },
-              { label: 'Pending', value: money(totalPending), color: '#e67e22' },
-              { label: 'Sales Reps', value: String(reps.length), color: '#0e1117' },
-            ].map(c => (
-              <div key={c.label} style={{ background: 'white', border: '1.5px solid #dde4ef', borderRadius: 12, padding: '1rem', borderTop: `3px solid ${c.color}` }}>
-                <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8494b0', marginBottom: 6 }}>{c.label}</div>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '1.4rem', fontWeight: 800, color: c.color }}>{c.value}</div>
-              </div>
-            ))}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '14px', marginBottom: '1.5rem' }}>
+            <MetricCard label="Paid Out" value={money(totalPaid)} accent="#0F766E" />
+            <MetricCard label="Approved" value={money(totalApproved)} accent="#1D4ED8" />
+            <MetricCard label="Pending" value={money(totalPending)} accent="#F59E0B" />
+            <MetricCard label="Sales Reps" value={reps.length} accent="#6D28D9" />
           </div>
 
           {/* Tabs */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: '1.25rem', borderBottom: '1.5px solid #dde4ef', paddingBottom: 0 }}>
+          <div style={{ display: 'flex', gap: 8, marginBottom: '1.25rem', borderBottom: '1.5px solid #E5E7EB', paddingBottom: 0 }}>
             {[{ key: 'commissions', label: 'Commissions' }, { key: 'reps', label: 'Sales Reps' }, { key: 'add', label: '+ Add Commission' }].map(t => (
               <button key={t.key} onClick={() => setTab(t.key as any)}
-                style={{ padding: '0.6rem 1.1rem', borderRadius: '8px 8px 0 0', border: `1.5px solid ${tab === t.key ? '#dde4ef' : 'transparent'}`, borderBottom: tab === t.key ? '1.5px solid white' : '1.5px solid transparent', background: tab === t.key ? 'white' : 'transparent', color: tab === t.key ? '#0e1117' : '#8494b0', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', marginBottom: -1.5 }}>
+                style={{ padding: '0.6rem 1.1rem', borderRadius: '8px 8px 0 0', border: `1.5px solid ${tab === t.key ? '#E5E7EB' : 'transparent'}`, borderBottom: tab === t.key ? '1.5px solid white' : '1.5px solid transparent', background: tab === t.key ? 'white' : 'transparent', color: tab === t.key ? '#0F766E' : '#6B7280', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', marginBottom: -1.5 }}>
                 {t.label}
               </button>
             ))}
@@ -189,56 +194,44 @@ export default function AdminSalesPage() {
             <>
               <div style={{ display: 'flex', gap: 8, marginBottom: '1rem', flexWrap: 'wrap' }}>
                 {['all', 'pending', 'approved', 'paid'].map(s => (
-                  <button key={s} onClick={() => setStatusFilter(s)}
-                    style={{ padding: '0.35rem 0.85rem', borderRadius: 20, border: `1.5px solid ${statusFilter === s ? '#124d83' : '#dde4ef'}`, background: statusFilter === s ? '#e8f3fd' : 'white', color: statusFilter === s ? '#124d83' : '#5a6a88', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
+                  <button key={s} onClick={() => setStatusFilter(s)} style={filterTabStyle(statusFilter === s)}>
                     {s.charAt(0).toUpperCase() + s.slice(1)} ({s === 'all' ? commissions.length : commissions.filter(c => c.status === s).length})
                   </button>
                 ))}
               </div>
-              <div style={{ background: 'white', border: '1.5px solid #dde4ef', borderRadius: 14, overflow: 'hidden' }}>
-                {filtered.length === 0 ? (
-                  <div style={{ textAlign: 'center', color: '#8494b0', padding: '3rem', fontSize: '0.875rem' }}>No commissions found.</div>
-                ) : (
-                  <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                      <thead>
-                        <tr style={{ background: '#f4f7fb', borderBottom: '1.5px solid #dde4ef' }}>
-                          {['Rep', 'Invoice', 'Client', 'Type', 'Rate', 'Amount', 'Status', 'Date', ''].map(h => (
-                            <th key={h} style={{ padding: '0.6rem 1rem', textAlign: 'left', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8494b0' }}>{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filtered.map(c => (
-                          <tr key={c.id} style={{ borderBottom: '1px solid #f0f4f9' }}>
-                            <td style={{ padding: '0.65rem 1rem', fontWeight: 600, color: '#0e1117' }}>{c.salesRepName}</td>
-                            <td style={{ padding: '0.65rem 1rem', fontWeight: 700, color: '#124d83' }}>#{c.invoiceNumber}</td>
-                            <td style={{ padding: '0.65rem 1rem', color: '#5a6a88' }}>{c.clientName}</td>
-                            <td style={{ padding: '0.65rem 1rem', color: '#5a6a88', textTransform: 'capitalize' }}>{c.commissionType.replace('_', ' ')}</td>
-                            <td style={{ padding: '0.65rem 1rem', color: '#1f6132', fontWeight: 600 }}>{(c.rate * 100).toFixed(1)}%</td>
-                            <td style={{ padding: '0.65rem 1rem', fontWeight: 700, color: '#1f6132' }}>{money(c.amount)}</td>
-                            <td style={{ padding: '0.65rem 1rem' }}>
-                              <select value={c.status} onChange={e => handleStatusChange(c, e.target.value)} disabled={updatingId === c.id}
-                                style={{ padding: '3px 6px', borderRadius: 6, border: '1px solid #dde4ef', fontSize: '0.78rem', fontFamily: 'DM Sans, sans-serif', cursor: 'pointer', background: 'white' }}>
-                                <option value="pending">Pending</option>
-                                <option value="approved">Approved</option>
-                                <option value="paid">Paid</option>
-                              </select>
-                            </td>
-                            <td style={{ padding: '0.65rem 1rem', color: '#8494b0', whiteSpace: 'nowrap' }}>{fmtDate(c.createdAt)}</td>
-                            <td style={{ padding: '0.65rem 1rem' }}>
-                              <button onClick={() => handleDelete(c.id)}
-                                style={{ padding: '3px 8px', borderRadius: 5, border: 'none', background: '#fef2f2', color: '#e74c3c', fontWeight: 600, fontSize: '0.72rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
-                                Delete
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
+
+              <DataTable
+                headers={['Rep', 'Invoice', 'Client', 'Type', 'Subtotal', 'Tier / Rate', 'Amount', 'Status', 'Date', '']}
+                emptyMessage="No commissions found."
+                rows={filtered.map(c => [
+                  <span key="rep" style={{ fontWeight: 600, color: '#111827' }}>{c.salesRepName}</span>,
+                  <span key="inv" style={{ fontWeight: 700, color: '#1D4ED8' }}>#{c.invoiceNumber}</span>,
+                  <span key="client" style={{ color: '#6B7280' }}>
+                    {c.clientName}
+                    {c.notes && <span title={c.notes} style={{ marginLeft: 5, cursor: 'help' }}>📝</span>}
+                  </span>,
+                  <span key="type" style={{ color: '#6B7280', textTransform: 'capitalize' }}>{c.commissionType.replace('_', ' ')}</span>,
+                  <span key="subtotal" style={{ color: '#6B7280' }}>{money(c.subtotal)}</span>,
+                  <span key="tier" style={{ color: '#0F766E', fontWeight: 600 }}>T{c.tier} · {(c.rate * 100).toFixed(1)}%</span>,
+                  <span key="amount" style={{ fontWeight: 700, color: '#059669' }}>{money(c.amount)}</span>,
+                  <select key="status" value={c.status} onChange={e => handleStatusChange(c, e.target.value)} disabled={updatingId === c.id}
+                    style={{
+                      padding: '3px 8px', borderRadius: 6, border: 'none', fontSize: '0.78rem', fontWeight: 700,
+                      fontFamily: 'DM Sans, sans-serif', cursor: 'pointer',
+                      background: statusColors[c.status]?.bg || statusColors.pending.bg,
+                      color: statusColors[c.status]?.color || statusColors.pending.color,
+                    }}>
+                    <option value="pending">Pending</option>
+                    <option value="approved">Approved</option>
+                    <option value="paid">Paid</option>
+                  </select>,
+                  <span key="date" style={{ color: '#9CA3AF', whiteSpace: 'nowrap' }}>{fmtDate(c.createdAt)}</span>,
+                  <button key="delete" onClick={() => handleDelete(c.id)}
+                    style={{ padding: '3px 8px', borderRadius: 5, border: 'none', background: '#FEF2F2', color: '#B91C1C', fontWeight: 600, fontSize: '0.72rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
+                    Delete
+                  </button>,
+                ])}
+              />
             </>
           )}
 
@@ -246,32 +239,33 @@ export default function AdminSalesPage() {
           {tab === 'reps' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {reps.length === 0 ? (
-                <div style={{ background: 'white', border: '1.5px solid #dde4ef', borderRadius: 14, padding: '3rem', textAlign: 'center', color: '#8494b0' }}>
+                <div style={{ background: 'white', border: '1.5px solid #E5E7EB', borderRadius: 10, padding: '3rem', textAlign: 'center', color: '#9CA3AF' }}>
                   <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>👤</div>
-                  <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, color: '#0e1117', marginBottom: 8 }}>No sales reps yet</div>
+                  <div style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 600, color: '#111827', marginBottom: 8 }}>No sales reps yet</div>
                   <div style={{ fontSize: '0.875rem' }}>Create a user with the "sales" role to add a sales rep.</div>
                 </div>
               ) : reps.map(rep => (
-                <div key={rep.id} style={{ background: 'white', border: '1.5px solid #dde4ef', borderRadius: 12, padding: '1.25rem' }}>
+                <div key={rep.id} style={{ background: 'white', border: '1.5px solid #E5E7EB', borderRadius: 10, padding: '1.25rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 800, fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#0F766E', color: 'white', fontWeight: 800, fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         {rep.display_name?.[0]?.toUpperCase() || 'S'}
                       </div>
                       <div>
-                        <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#0e1117' }}>{rep.display_name}</div>
-                        <div style={{ fontSize: '0.78rem', color: '#8494b0' }}>{rep.email}</div>
+                        <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#111827' }}>{rep.display_name}</div>
+                        <div style={{ fontSize: '0.78rem', color: '#9CA3AF' }}>{rep.email}</div>
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
                       {[
-                        { label: 'Paid', value: money(rep.total_paid), color: '#1f6132' },
-                        { label: 'Approved', value: money(rep.total_approved), color: '#124d83' },
-                        { label: 'Pending', value: money(rep.total_pending), color: '#e67e22' },
+                        { label: 'Paid', value: money(rep.total_paid), color: '#059669' },
+                        { label: 'Approved', value: money(rep.total_approved), color: '#1D4ED8' },
+                        { label: 'Pending', value: money(rep.total_pending), color: '#92400E' },
+                        { label: 'Total', value: money(rep.total_commissions), color: '#0F766E' },
                       ].map(m => (
                         <div key={m.label} style={{ textAlign: 'right' }}>
-                          <div style={{ fontSize: '0.7rem', color: '#8494b0', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{m.label}</div>
-                          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: '1rem', color: m.color }}>{m.value}</div>
+                          <div style={{ fontSize: '0.7rem', color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{m.label}</div>
+                          <div style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 800, fontSize: '1rem', color: m.color }}>{m.value}</div>
                         </div>
                       ))}
                     </div>
@@ -283,19 +277,19 @@ export default function AdminSalesPage() {
 
           {/* Add commission tab */}
           {tab === 'add' && (
-            <div style={{ background: 'white', border: '1.5px solid #dde4ef', borderRadius: 14, padding: '1.5rem', maxWidth: 560 }}>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#0e1117', marginBottom: '1.25rem' }}>Add Commission Entry</div>
-              {addError && <div style={{ background: '#fff0f0', border: '1.5px solid #ffc0c0', borderRadius: 8, padding: '0.65rem 1rem', marginBottom: '1rem', fontSize: '0.82rem', color: '#c0392b' }}>{addError}</div>}
+            <div style={{ background: 'white', border: '1.5px solid #E5E7EB', borderRadius: 10, padding: '1.5rem', maxWidth: 560 }}>
+              <div style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#111827', marginBottom: '1.25rem' }}>Add Commission Entry</div>
+              {addError && <div style={{ background: '#FEF2F2', borderRadius: 8, padding: '0.65rem 1rem', marginBottom: '1rem', fontSize: '0.82rem', color: '#B91C1C' }}>{addError}</div>}
               <form onSubmit={handleAdd} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div>
-                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#3a4660', display: 'block', marginBottom: 4 }}>Sales Rep *</label>
+                  <label style={labelStyle}>Sales Rep *</label>
                   <select style={inputStyle} value={form.salesRepId} onChange={e => setForm(p => ({ ...p, salesRepId: e.target.value }))} required>
                     <option value="">Select rep...</option>
                     {reps.map(r => <option key={r.id} value={r.id}>{r.display_name}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#3a4660', display: 'block', marginBottom: 4 }}>Paid Invoice *</label>
+                  <label style={labelStyle}>Paid Invoice *</label>
                   <select style={inputStyle} value={form.invoiceId} onChange={e => { const inv = invoices.find(i => i.id === e.target.value); setForm(p => ({ ...p, invoiceId: e.target.value, subtotal: inv ? String(inv.total) : p.subtotal })) }} required>
                     <option value="">Select invoice...</option>
                     {invoices.map(i => <option key={i.id} value={i.id}>#{i.invoiceNumber} — {i.clientName} ({money(i.total)})</option>)}
@@ -303,7 +297,7 @@ export default function AdminSalesPage() {
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                   <div>
-                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#3a4660', display: 'block', marginBottom: 4 }}>Commission Type *</label>
+                    <label style={labelStyle}>Commission Type *</label>
                     <select style={inputStyle} value={form.commissionType} onChange={e => setForm(p => ({ ...p, commissionType: e.target.value }))}>
                       <option value="one_time">One-time (Single Service)</option>
                       <option value="package">Package</option>
@@ -312,7 +306,7 @@ export default function AdminSalesPage() {
                     </select>
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#3a4660', display: 'block', marginBottom: 4 }}>Tier *</label>
+                    <label style={labelStyle}>Tier *</label>
                     <select style={inputStyle} value={form.tier} onChange={e => setForm(p => ({ ...p, tier: e.target.value }))}>
                       <option value="1">Tier 1</option>
                       <option value="2">Tier 2</option>
@@ -321,18 +315,18 @@ export default function AdminSalesPage() {
                   </div>
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#3a4660', display: 'block', marginBottom: 4 }}>Collected Subtotal ($) *</label>
+                  <label style={labelStyle}>Collected Subtotal ($) *</label>
                   <input style={inputStyle} type="number" value={form.subtotal} onChange={e => setForm(p => ({ ...p, subtotal: e.target.value }))} placeholder="0.00" min="0" step="0.01" required />
                 </div>
-                <div style={{ background: '#f0fff4', border: '1px solid #c0dd97', borderRadius: 8, padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#1f6132' }}>
+                <div style={{ background: '#F0FDF9', borderRadius: 8, padding: '0.75rem 1rem', fontSize: '0.85rem', color: '#059669' }}>
                   Rate: <strong>{(computedRate() * 100).toFixed(1)}%</strong> · Commission amount: <strong>{money(parseFloat(computedAmount()))}</strong>
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#3a4660', display: 'block', marginBottom: 4 }}>Notes</label>
+                  <label style={labelStyle}>Notes</label>
                   <input style={inputStyle} value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} placeholder="Optional notes..." />
                 </div>
                 <button type="submit" disabled={adding}
-                  style={{ padding: '0.75rem', borderRadius: 8, border: 'none', background: adding ? '#dde4ef' : 'linear-gradient(135deg, #1f6132, #124d83)', color: adding ? '#8494b0' : 'white', fontWeight: 700, fontSize: '0.9rem', cursor: adding ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
+                  style={{ padding: '0.75rem', borderRadius: 8, border: 'none', background: adding ? '#E5E7EB' : '#0F766E', color: adding ? '#9CA3AF' : 'white', fontWeight: 700, fontSize: '0.9rem', cursor: adding ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
                   {adding ? 'Adding...' : 'Add Commission'}
                 </button>
               </form>

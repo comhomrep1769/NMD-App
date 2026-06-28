@@ -1,64 +1,102 @@
 import type { Metadata } from 'next'
+import { DM_Sans } from 'next/font/google'
+import './tailwind-base.css'
 import './globals.css'
 
-export const metadata: Metadata = {
-  metadataBase: new URL('https://nmdpowash.com'),
-  title: {
-    default: 'NMD Pressure Washing | Brevard & Orange County, FL',
-    template: '%s | NMD Pressure Washing',
-  },
-  description:
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700', '800'],
+  variable: '--font-dm-sans',
+  display: 'swap',
+})
+
+// Fallback defaults — exact current values from this file — used if the
+// site-content API is unreachable, so metadata is never blank even if the
+// backend/DB is temporarily down.
+const SITE_DEFAULTS: Record<string, string> = {
+  'seo.global.description':
     'Professional pressure washing services in Brevard County and Orange County, Florida. Residential, commercial, industrial, and specialty restoration. Get a free quote today.',
-  keywords: [
-    'pressure washing Brevard County',
-    'pressure washing Orange County Florida',
-    'house washing Melbourne FL',
-    'roof cleaning Brevard County',
-    'driveway cleaning Florida',
-    'commercial pressure washing Orlando',
-    'soft washing Florida',
-    'NMD pressure washing',
-  ],
-  authors: [{ name: 'NMD Pressure Washing' }],
-  creator: 'NMD Pressure Washing',
-  openGraph: {
-    type: 'website',
-    locale: 'en_US',
-    url: 'https://nmdpowash.com',
-    siteName: 'NMD Pressure Washing',
-    title: 'NMD Pressure Washing | Brevard & Orange County, FL',
-    description:
-      'Professional pressure washing in Brevard & Orange County, FL. Residential, commercial, industrial, and specialty restoration services.',
-    images: [
-      {
-        url: '/og-image.jpg',
-        width: 1200,
-        height: 630,
-        alt: 'NMD Pressure Washing — Brevard & Orange County Florida',
-      },
+  'seo.global.search_console_verification': '',
+}
+
+async function getGlobalSiteContent(): Promise<Record<string, string>> {
+  try {
+    const API = process.env.NEXT_PUBLIC_API_URL || ''
+    const res = await fetch(`${API}/api/site-content`, { cache: 'no-store' })
+    if (!res.ok) return SITE_DEFAULTS
+    const data = await res.json()
+    return { ...SITE_DEFAULTS, ...(data.content || {}) }
+  } catch {
+    return SITE_DEFAULTS
+  }
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const site = await getGlobalSiteContent()
+  const verificationCode = site['seo.global.search_console_verification']
+
+  return {
+    metadataBase: new URL('https://nmdpowash.com'),
+    title: {
+      default: 'NMD Pressure Washing | Brevard & Orange County, FL',
+      template: '%s | NMD Pressure Washing',
+    },
+    description: site['seo.global.description'],
+    keywords: [
+      'pressure washing Brevard County',
+      'pressure washing Orange County Florida',
+      'house washing Melbourne FL',
+      'roof cleaning Brevard County',
+      'driveway cleaning Florida',
+      'commercial pressure washing Orlando',
+      'soft washing Florida',
+      'NMD pressure washing',
     ],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'NMD Pressure Washing | Brevard & Orange County, FL',
-    description:
-      'Professional pressure washing in Brevard & Orange County, FL.',
-    images: ['/og-image.jpg'],
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
+    authors: [{ name: 'NMD Pressure Washing' }],
+    creator: 'NMD Pressure Washing',
+    // Next.js renders the correct <meta name="google-site-verification" .../>
+    // tag automatically from this field — only included if a code is set,
+    // so nothing renders until an admin actually pastes one in.
+    ...(verificationCode ? { verification: { google: verificationCode } } : {}),
+    openGraph: {
+      type: 'website',
+      locale: 'en_US',
+      url: 'https://nmdpowash.com',
+      siteName: 'NMD Pressure Washing',
+      title: 'NMD Pressure Washing | Brevard & Orange County, FL',
+      description:
+        'Professional pressure washing in Brevard & Orange County, FL. Residential, commercial, industrial, and specialty restoration services.',
+      images: [
+        {
+          url: '/og-image.jpg',
+          width: 1200,
+          height: 630,
+          alt: 'NMD Pressure Washing — Brevard & Orange County Florida',
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: 'NMD Pressure Washing | Brevard & Orange County, FL',
+      description:
+        'Professional pressure washing in Brevard & Orange County, FL.',
+      images: ['/og-image.jpg'],
+    },
+    robots: {
       index: true,
       follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
+      googleBot: {
+        index: true,
+        follow: true,
+        'max-video-preview': -1,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+      },
     },
-  },
-  alternates: {
-    canonical: 'https://nmdpowash.com',
-  },
+    alternates: {
+      canonical: 'https://nmdpowash.com',
+    },
+  }
 }
 
 export default function RootLayout({
@@ -111,7 +149,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body>{children}</body>
+      <body className={dmSans.className}>{children}</body>
     </html>
   )
 }

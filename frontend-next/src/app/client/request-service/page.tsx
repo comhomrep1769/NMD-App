@@ -1,6 +1,6 @@
 ﻿'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { Fragment, forwardRef, useImperativeHandle, useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { getNmdAuth } from '@/lib/authStorage'
 
@@ -10,15 +10,29 @@ declare global {
   }
 }
 
-const SERVICES = [
-  'House Washing','Roof Cleaning','Driveway Cleaning','Sidewalk Cleaning',
-  'Patio Cleaning','Pool Deck Cleaning','Deck Cleaning','Fence Cleaning',
-  'Paver Cleaning','Paver Sealing','Gutter Cleaning','Rust Stain Removal',
-  'Oil Stain Removal','Mold & Mildew Removal','Soft Washing','Concrete Cleaning',
-  'Storefront Cleaning','Exterior Building Washing','Parking Lot Cleaning',
-  'Dumpster Washing','Graffiti Removal','Fleet Washing','Commercial Roof Cleaning',
-  'Heavy Equipment Cleaning','Industrial Degreasing','Post-Construction Cleanup',
-  'Wood Restoration','Other',
+const CATEGORIES: { key: string; label: string; sub: string }[] = [
+  { key: 'res', label: 'Residential', sub: 'Homes & driveways' },
+  { key: 'com', label: 'Commercial', sub: 'Businesses & lots' },
+  { key: 'ind', label: 'Industrial', sub: 'Facilities & equipment' },
+  { key: 'spe', label: 'Specialty & Restoration', sub: 'Stains, sealing, HOA' },
+  { key: 'rec', label: 'Recurring Plan', sub: 'Save 20% every visit' },
+  { key: 'sea', label: 'Seasonal Package', sub: 'Pre-sale, post-storm' },
+]
+
+const CATEGORY_SERVICES: Record<string, string[]> = {
+  res: ['House Washing', 'Roof Cleaning', 'Driveway Cleaning', 'Sidewalk Cleaning', 'Patio Cleaning', 'Pool Deck Cleaning', 'Deck Cleaning', 'Fence Cleaning', 'Paver Cleaning', 'Gutter Cleaning', 'Soft Washing', 'Other'],
+  com: ['Storefront Cleaning', 'Exterior Building Washing', 'Parking Lot Cleaning', 'Dumpster Washing', 'Graffiti Removal', 'Fleet Washing', 'Commercial Roof Cleaning', 'Concrete Cleaning', 'Other'],
+  ind: ['Heavy Equipment Cleaning', 'Industrial Degreasing', 'Post-Construction Cleanup', 'Concrete Cleaning', 'Other'],
+  spe: ['Rust Stain Removal', 'Oil Stain Removal', 'Mold & Mildew Removal', 'Paver Sealing', 'Wood Restoration', 'Other'],
+  rec: ['House Washing', 'Roof Cleaning', 'Driveway Cleaning', 'Gutter Cleaning', 'Soft Washing', 'Paver Cleaning', 'Fence Cleaning', 'Concrete Cleaning', 'Other'],
+  sea: ['House Washing', 'Roof Cleaning', 'Driveway Cleaning', 'Sidewalk Cleaning', 'Gutter Cleaning', 'Soft Washing', 'Post-Construction Cleanup', 'Other'],
+}
+
+const STEP_META = [
+  { n: 0, label: 'Service' },
+  { n: 1, label: 'Contact' },
+  { n: 2, label: 'Photos' },
+  { n: 3, label: 'Signature' },
 ]
 
 const DISCLAIMER = `NMD Pressure Washing Services LLC — Service Agreement, Liability Waiver, and Booking Disclaimer
@@ -90,19 +104,71 @@ function compressImage(dataUrl: string, maxWidth = 1200, quality = 0.7): Promise
   })
 }
 
-function SignaturePad({ onSigned, onCleared }: { onSigned: (dataUrl: string) => void; onCleared: () => void }) {
+function CategoryIcon({ k }: { k: string }) {
+  if (k === 'res') {
+    return (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M3 12L12 3L21 12V21H15V16H9V21H3V12Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+      </svg>
+    )
+  }
+  if (k === 'com') {
+    return (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <rect x="3" y="7" width="18" height="14" rx="1" stroke="currentColor" strokeWidth="1.5" />
+        <path d="M8 7V5C8 3.9 8.9 3 10 3H14C15.1 3 16 3.9 16 5V7" stroke="currentColor" strokeWidth="1.5" />
+      </svg>
+    )
+  }
+  if (k === 'ind') {
+    return (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <rect x="2" y="6" width="20" height="16" rx="1" stroke="currentColor" strokeWidth="1.5" />
+        <path d="M7 6V4C7 3 7.9 2 9 2H15C16.1 2 17 3 17 4V6" stroke="currentColor" strokeWidth="1.5" />
+        <path d="M7 12H17M7 16H13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    )
+  }
+  if (k === 'spe') {
+    return (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M12 2L14.5 9H22L16 13.5L18.5 21L12 16.5L5.5 21L8 13.5L2 9H9.5L12 2Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+      </svg>
+    )
+  }
+  if (k === 'rec') {
+    return (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2Z" stroke="currentColor" strokeWidth="1.5" />
+        <path d="M12 6V12L16 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    )
+  }
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <path d="M12 3V5M12 19V21M3 12H5M19 12H21M5.6 5.6L7 7M17 17L18.4 18.4M18.4 5.6L17 7M7 17L5.6 18.4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  )
+}
+
+const SignaturePad = forwardRef(function SignaturePad(
+  { onSigned, onCleared }: { onSigned: (dataUrl: string) => void; onCleared: () => void },
+  ref
+) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const drawing = useRef(false)
   const hasDrawn = useRef(false)
+  const [signed, setSigned] = useState(false)
 
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')!
-    ctx.fillStyle = '#ffffff'
+    ctx.fillStyle = '#FAFFFE'
     ctx.fillRect(0, 0, canvas.width, canvas.height)
-    ctx.strokeStyle = '#0e1117'
-    ctx.lineWidth = 2
+    ctx.strokeStyle = '#1C1C1E'
+    ctx.lineWidth = 2.5
     ctx.lineCap = 'round'
     ctx.lineJoin = 'round'
   }, [])
@@ -123,7 +189,9 @@ function SignaturePad({ onSigned, onCleared }: { onSigned: (dataUrl: string) => 
     const ctx = canvas.getContext('2d')!
     const { x, y } = getPos(e, canvas)
     ctx.beginPath(); ctx.moveTo(x, y)
-    drawing.current = true; hasDrawn.current = true
+    drawing.current = true
+    hasDrawn.current = true
+    setSigned(true)
   }
 
   const draw = (e: React.MouseEvent | React.TouchEvent) => {
@@ -145,35 +213,56 @@ function SignaturePad({ onSigned, onCleared }: { onSigned: (dataUrl: string) => 
   const clear = () => {
     const canvas = canvasRef.current!
     const ctx = canvas.getContext('2d')!
-    ctx.fillStyle = '#ffffff'
+    ctx.fillStyle = '#FAFFFE'
     ctx.fillRect(0, 0, canvas.width, canvas.height)
     hasDrawn.current = false
+    setSigned(false)
     onCleared()
   }
 
+  useImperativeHandle(ref, () => ({ clear }))
+
   return (
-    <div>
-      <div style={{ position: 'relative', border: '2px solid #dde4ef', borderRadius: 10, overflow: 'hidden', background: '#fff', touchAction: 'none' }}>
-        <canvas ref={canvasRef} width={560} height={160}
-          style={{ display: 'block', width: '100%', height: 160, cursor: 'crosshair', touchAction: 'none' }}
-          onMouseDown={startDraw} onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={stopDraw}
-          onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={stopDraw} />
-        <div style={{ position: 'absolute', bottom: 8, left: 12, fontSize: '0.72rem', color: '#b0bfd0', pointerEvents: 'none', fontStyle: 'italic' }}>Sign above</div>
-      </div>
-      <button type="button" onClick={clear}
-        style={{ marginTop: 8, padding: '0.35rem 0.85rem', borderRadius: 6, border: '1px solid #dde4ef', background: 'white', color: '#5a6a88', fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
-        Clear Signature
-      </button>
+    <div style={{ position: 'relative', border: '1.5px solid #E5E7EB', borderRadius: 8, overflow: 'hidden', background: '#FAFFFE' }}>
+      <canvas ref={canvasRef} width={680} height={120}
+        style={{ display: 'block', width: '100%', height: 120, cursor: 'crosshair', touchAction: 'none' }}
+        onMouseDown={startDraw} onMouseMove={draw} onMouseUp={stopDraw} onMouseLeave={stopDraw}
+        onTouchStart={startDraw} onTouchMove={draw} onTouchEnd={stopDraw} />
+      {!signed && (
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+          <span style={{ fontSize: 13, color: '#D1D5DB', letterSpacing: '0.04em' }}>Sign here with mouse or touch</span>
+        </div>
+      )}
     </div>
   )
-}
+})
 
 export default function ServiceRequestPage() {
   const GOOGLE_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''
 
-  // ── Detect logged-in client and pre-fill ──────────────────────────────────
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [clientName, setClientName] = useState('')
+
+  const [step, setStep] = useState(0)
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [stepError, setStepError] = useState('')
+  const [attempted, setAttempted] = useState<Record<number, boolean>>({})
+
+  const [form, setForm] = useState({
+    selectedService: '',
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    serviceAddress: '',
+    preferredDate: '',
+    preferredTime: '',
+    propertyType: '',
+    surfaceDetails: '',
+    problemDescription: '',
+    estimatedSize: '',
+    specialConcerns: '',
+  })
 
   useEffect(() => {
     const auth = getNmdAuth()
@@ -194,35 +283,19 @@ export default function ServiceRequestPage() {
     }
   }, [])
 
-  const [form, setForm] = useState({
-    selectedService: '',
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    serviceAddress: '',
-    preferredDate: '',
-    preferredTime: '',
-    propertyType: '',
-    surfaceDetails: '',
-    problemDescription: '',
-    estimatedSize: '',
-    specialConcerns: '',
-  })
   const [smsConsent, setSmsConsent] = useState(false)
   const [photos, setPhotos] = useState<Array<{ id: string; name: string; note: string; dataUrl: string }>>([])
-  const [showDisclaimer, setShowDisclaimer] = useState(false)
+  const [agreed, setAgreed] = useState(false)
   const [disclaimerScrolled, setDisclaimerScrolled] = useState(false)
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [modalError, setModalError] = useState('')
+  const [submitError, setSubmitError] = useState('')
   const disclaimerRef = useRef<HTMLDivElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  const sigPadRef = useRef<{ clear: () => void }>(null)
 
-  // ── Google Places Autocomplete for Service Address ───────────────────────
-  const [placesStatus, setPlacesStatus] = useState('starting') // starting | script-loaded | widget-attached | failed
+  const [placesStatus, setPlacesStatus] = useState('starting')
   const addressDivRef = useRef<HTMLDivElement>(null)
   const placeElementRef = useRef<any>(null)
 
@@ -283,7 +356,8 @@ export default function ServiceRequestPage() {
         })
 
         setPlacesStatus('widget-attached')
-      } catch {
+      } catch (err) {
+        console.error('Places widget attach error:', err)
         setPlacesStatus('failed')
       }
     }
@@ -312,23 +386,48 @@ export default function ServiceRequestPage() {
     if (el.scrollTop + el.clientHeight >= el.scrollHeight - 20) setDisclaimerScrolled(true)
   }
 
-  const handleFormSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!form.selectedService || !form.firstName || !form.lastName || !form.email || !form.serviceAddress) {
-      setError('Please fill in all required fields.'); return
+  const goNext = () => {
+    setStepError('')
+    if (step === 0) {
+      if (!selectedCategory || !form.selectedService) {
+        setAttempted(prev => ({ ...prev, 0: true }))
+        setStepError('Please select a category and a specific service.')
+        return
+      }
     }
-    if (photos.length === 0) { setError('Please upload at least one photo of the area.'); return }
-    setError(''); setModalError(''); setSignatureDataUrl(null); setDisclaimerScrolled(false); setShowDisclaimer(true)
+    if (step === 1) {
+      if (!form.firstName || !form.lastName || !form.email || !form.serviceAddress) {
+        setAttempted(prev => ({ ...prev, 1: true }))
+        setStepError('Please fill in all required fields.')
+        return
+      }
+    }
+    if (step === 2) {
+      if (photos.length === 0) {
+        setAttempted(prev => ({ ...prev, 2: true }))
+        setStepError('Please upload at least one photo of the area.')
+        return
+      }
+    }
+    setStep(s => Math.min(s + 1, 3))
   }
 
-  const submitWithAgreement = async () => {
-    if (!signatureDataUrl) { setModalError('Please draw your signature to continue.'); return }
-    setLoading(true); setModalError('')
+  const goBack = () => { setStepError(''); setStep(s => Math.max(s - 1, 0)) }
+
+  const clearSignature = () => { sigPadRef.current?.clear(); setSignatureDataUrl(null) }
+
+  const canSubmit = agreed && disclaimerScrolled && !!signatureDataUrl
+
+  const handleFinalSubmit = async () => {
+    if (!canSubmit) return
+    setLoading(true); setSubmitError('')
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
       const firstPhoto = photos[0] || null
       let photoDataUrl: string | null = null
       if (firstPhoto) photoDataUrl = await compressImage(firstPhoto.dataUrl, 1200, 0.7)
+
+      const categoryLabel = CATEGORIES.find(c => c.key === selectedCategory)?.label || ''
 
       const res = await fetch(`${API_URL}/api/requests/public`, {
         method: 'POST',
@@ -339,6 +438,7 @@ export default function ServiceRequestPage() {
           serviceType: form.selectedService, preferredDate: form.preferredDate,
           preferredTime: form.preferredTime,
           notes: [
+            categoryLabel ? `Category: ${categoryLabel}` : '',
             form.propertyType ? `Property Type: ${form.propertyType}` : '',
             form.surfaceDetails ? `Surface Details: ${form.surfaceDetails}` : '',
             form.estimatedSize ? `Estimated Size: ${form.estimatedSize}` : '',
@@ -354,42 +454,38 @@ export default function ServiceRequestPage() {
         const data = await res.json().catch(() => ({ error: `Server error (${res.status})` }))
         throw new Error(data.error || `Submission failed (${res.status})`)
       }
-      setShowDisclaimer(false); setSuccess(true)
+      setSuccess(true)
     } catch (err) {
-      setModalError(err instanceof Error ? err.message : 'Submission failed. Please try again.')
+      setSubmitError(err instanceof Error ? err.message : 'Submission failed. Please try again.')
     }
     setLoading(false)
   }
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '0.65rem 0.9rem', borderRadius: 8,
-    border: '1.5px solid #dde4ef', fontSize: '0.875rem', outline: 'none',
-    fontFamily: 'DM Sans, sans-serif', color: '#0e1117',
-    background: '#f4f7fb', boxSizing: 'border-box',
-  }
-  const readonlyInputStyle: React.CSSProperties = {
-    ...inputStyle, background: '#eef2f7', color: '#5a6a88', cursor: 'default',
-  }
-  const labelStyle: React.CSSProperties = {
-    fontSize: '0.8rem', fontWeight: 500, color: '#3a4660', display: 'block', marginBottom: 4,
-  }
+  const fieldClass = 'w-full px-[14px] py-[11px] border border-[#E5E7EB] rounded-[8px] text-[14px] outline-none'
+  const readonlyStyle = { background: '#F3F4F6', color: '#6B7280', cursor: 'default' } as const
+  const errorFieldStyle = { borderColor: '#EF4444', background: '#FEF2F2' } as const
+  const labelClass = 'block text-[13px] font-semibold text-[#374151] mb-[6px]'
+  const backBtnClass = 'bg-transparent border border-[#E5E7EB] !text-[#374151] text-[14px] font-medium px-[22px] py-[11px] rounded-[8px]'
+  const continueBtnClass = 'bg-[#0F766E] !text-white text-[15px] font-semibold px-[28px] py-[12px] rounded-[8px] tracking-[-0.01em]'
 
   if (success) {
     return (
-      <div style={{ minHeight: '100vh', background: '#f4f7fb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'DM Sans, sans-serif', padding: '2rem' }}>
-        <div style={{ background: 'white', borderRadius: 16, border: '1px solid #c0dd97', padding: '3rem', maxWidth: 480, width: '100%', textAlign: 'center', boxShadow: '0 8px 40px rgba(14,17,23,0.07)' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
-          <h2 style={{ fontFamily: 'Syne, sans-serif', fontSize: '1.4rem', fontWeight: 700, color: '#0e1117', marginBottom: '0.75rem', letterSpacing: '-0.02em' }}>Request Submitted!</h2>
-          <p style={{ color: '#5a6a88', fontSize: '0.9rem', lineHeight: 1.6, marginBottom: '1.5rem' }}>
-            Thanks {form.firstName}! Your estimate request has been received along with your signed agreement and photos. Our team will review and reach out to confirm pricing and scheduling.
+      <div className="min-h-[100vh] flex items-center justify-center bg-[#F8FAF9] px-[24px]">
+        <div className="bg-white border border-[#E5E7EB] rounded-[14px] p-[64px_32px] max-w-[460px] w-full text-center">
+          <div className="w-[64px] h-[64px] bg-[#F0FDF9] rounded-full flex items-center justify-center mx-auto mb-[24px]">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+              <path d="M6 14L11 19L22 9" stroke="#0F766E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+          <h2 className="text-[24px] font-bold text-[#111827] mb-[12px] tracking-[-0.02em]">Request Submitted!</h2>
+          <p className="text-[16px] text-[#6B7280] leading-[1.6] mb-[32px] max-w-[400px] mx-auto">
+            We&apos;ve received your request along with your signed agreement and photos. We&apos;ll send a quote to your email within 2 hours.
           </p>
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-            {isLoggedIn && (
-              <Link href="/clientdashboard" style={{ display: 'inline-block', padding: '0.7rem 1.5rem', borderRadius: 10, background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 600, fontSize: '0.9rem', textDecoration: 'none' }}>
-                Go to My Portal
-              </Link>
-            )}
-            <Link href="/" style={{ display: 'inline-block', padding: '0.7rem 1.5rem', borderRadius: 10, background: 'white', border: '1.5px solid #dde4ef', color: '#3a4660', fontWeight: 600, fontSize: '0.9rem', textDecoration: 'none' }}>
+          <div className="flex gap-[12px] justify-center flex-wrap">
+            <Link href={isLoggedIn ? '/clientdashboard' : '/client/login'} className="inline-flex items-center bg-[#0F766E] !text-white text-[14px] font-semibold px-[22px] py-[12px] rounded-[8px]">
+              {isLoggedIn ? 'Go to My Portal' : 'View in Client Portal'}
+            </Link>
+            <Link href="/" className="inline-flex items-center border border-[#E5E7EB] !text-[#374151] text-[14px] font-medium px-[22px] py-[12px] rounded-[8px]">
               Back to Home
             </Link>
           </div>
@@ -399,191 +495,220 @@ export default function ServiceRequestPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f4f7fb', fontFamily: 'DM Sans, sans-serif' }}>
-
-      {/* Disclaimer Modal */}
-      {showDisclaimer && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(14,17,23,0.75)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div style={{ background: 'white', borderRadius: 16, width: '100%', maxWidth: 640, maxHeight: '92vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(14,17,23,0.3)' }}>
-            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #dde4ef' }}>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontSize: '1.1rem', fontWeight: 700, color: '#0e1117' }}>Service Agreement & Liability Waiver</div>
-              <div style={{ fontSize: '0.82rem', color: '#8494b0', marginTop: 4 }}>Read the full agreement, then draw your signature at the bottom to submit.</div>
-            </div>
-            <div ref={disclaimerRef} onScroll={handleDisclaimerScroll}
-              style={{ flex: 1, overflowY: 'auto', padding: '1.25rem 1.5rem', fontSize: '0.82rem', color: '#3a4660', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
-              {DISCLAIMER}
-            </div>
-            {!disclaimerScrolled && (
-              <div style={{ padding: '0.6rem 1.5rem', background: '#fff9e6', borderTop: '1px solid #f5e6a0', fontSize: '0.78rem', color: '#8a6a00', textAlign: 'center' }}>
-                ↓ Scroll to read the full agreement before signing
-              </div>
+    <div className="bg-[#F8FAF9]">
+      {/* NAVBAR */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-[#E5E7EB] h-[68px]">
+        <div className="rs-container max-w-[1440px] mx-auto px-[65px] h-full flex items-center">
+          <Link href="/" className="flex flex-col leading-none shrink-0">
+            <span className="text-[16px] font-bold tracking-[-0.025em] text-[#111827]">NMD Pressure Washing</span>
+            <span className="text-[9px] font-bold tracking-[0.14em] text-[#0F766E] uppercase mt-[2px]">SERVICES LLC</span>
+          </Link>
+          <div className="flex-1" />
+          <div className="flex items-center gap-[16px]">
+            {isLoggedIn ? (
+              <>
+                <span className="text-[13px] text-[#6B7280]">Hi, {clientName.split(' ')[0]}</span>
+                <Link href="/clientdashboard" className="text-[13px] font-semibold !text-[#0F766E] px-[10px] py-[6px] rounded-[6px]" style={{ border: '1px solid rgba(15,118,110,0.25)', background: 'rgba(15,118,110,0.05)' }}>
+                  My Portal
+                </Link>
+              </>
+            ) : (
+              <Link href="/client/login" className="text-[13px] font-semibold !text-[#0F766E]">Client Login</Link>
             )}
-            <div style={{ padding: '1.25rem 1.5rem', borderTop: '1px solid #dde4ef', display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {modalError && (
-                <div style={{ background: '#fff0f0', border: '1.5px solid #ffc0c0', borderRadius: 8, padding: '0.65rem 1rem', fontSize: '0.82rem', color: '#c0392b' }}>{modalError}</div>
-              )}
-              <div style={{ opacity: disclaimerScrolled ? 1 : 0.45, pointerEvents: disclaimerScrolled ? 'auto' : 'none', transition: 'opacity 0.3s' }}>
-                <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#0e1117', marginBottom: 8 }}>Draw your signature below to confirm you have read and agree to all terms:</div>
-                <div style={{ fontSize: '0.78rem', color: '#8494b0', marginBottom: 10 }}>
-                  Signing as: <strong style={{ color: '#0e1117' }}>{form.firstName} {form.lastName}</strong>
+            <Link href="/" className="text-[13px] text-[#6B7280]">&larr; Back to site</Link>
+          </div>
+        </div>
+      </nav>
+
+      <div className="rs-page mt-[68px] min-h-[calc(100vh-68px)] px-[40px] pt-[48px] pb-[80px]">
+        <div className="max-w-[760px] mx-auto">
+          <div className="mb-[40px]">
+            <p className="text-[11px] font-bold tracking-[0.12em] uppercase text-[#0F766E] mb-[8px]">Request Service</p>
+            <h1 className="text-[32px] font-bold tracking-[-0.025em] text-[#111827] mb-[8px] leading-[1.2]">Get a Free Quote</h1>
+            <p className="text-[15px] text-[#6B7280]">Complete the form below and we&apos;ll respond within 2 hours during business hours.</p>
+          </div>
+
+          {/* STEP INDICATOR */}
+          <div className="flex items-center mb-[40px]">
+            {STEP_META.map((s, i) => (
+              <Fragment key={s.n}>
+                <div className="flex flex-col items-center gap-[6px]" style={{ flex: '0 0 auto', color: step === s.n ? '#0F766E' : step > s.n ? '#059669' : '#9CA3AF' }}>
+                  <div
+                    className="w-[32px] h-[32px] rounded-full flex items-center justify-center text-[13px] font-bold"
+                    style={{
+                      background: step === s.n ? '#0F766E' : step > s.n ? '#059669' : '#F3F4F6',
+                      color: (step === s.n || step > s.n) ? '#fff' : '#9CA3AF',
+                      border: step === s.n ? '2px solid #0F766E' : step > s.n ? '2px solid #059669' : '2px solid #E5E7EB',
+                    }}
+                  >
+                    {s.n + 1}
+                  </div>
+                  <span className="text-[12px] font-semibold whitespace-nowrap">{s.label}</span>
                 </div>
-                <SignaturePad onSigned={(url) => setSignatureDataUrl(url)} onCleared={() => setSignatureDataUrl(null)} />
-                {signatureDataUrl && <div style={{ marginTop: 8, fontSize: '0.78rem', color: '#1a7a3c', fontWeight: 500 }}>✓ Signature captured</div>}
+                {i < STEP_META.length - 1 && (
+                  <div className="flex-1 h-[2px] mx-[8px] -mt-[20px]" style={{ background: step > s.n ? '#059669' : '#E5E7EB' }} />
+                )}
+              </Fragment>
+            ))}
+          </div>
+
+          {/* STEP 0: SERVICE */}
+          {step === 0 && (
+            <div className="bg-white border border-[#E5E7EB] rounded-[14px] p-[32px]">
+              <h2 className="text-[20px] font-bold text-[#111827] mb-[6px]">What type of service do you need?</h2>
+              <p className="text-[14px] text-[#6B7280] mb-[28px]">Select a category, then choose the specific service.</p>
+
+              <div
+                className="rs-cards grid grid-cols-3 gap-[12px] mb-[24px]"
+                style={attempted[0] && !selectedCategory ? { outline: '2px solid #EF4444', outlineOffset: '4px', borderRadius: 12 } : undefined}
+              >
+                {CATEGORIES.map(cat => (
+                  <button
+                    key={cat.key}
+                    type="button"
+                    onClick={() => { setSelectedCategory(cat.key); update('selectedService', '') }}
+                    className="flex flex-col items-center text-center rounded-[10px] p-[20px_12px] cursor-pointer outline-none"
+                    style={{
+                      border: selectedCategory === cat.key ? '2px solid #0F766E' : '2px solid #E5E7EB',
+                      background: selectedCategory === cat.key ? '#F0FDF9' : '#fff',
+                      color: selectedCategory === cat.key ? '#0F766E' : '#374151',
+                    }}
+                  >
+                    <span className="mb-[8px]"><CategoryIcon k={cat.key} /></span>
+                    <span className="text-[14px] font-semibold leading-[1.3]">{cat.label}</span>
+                    <span className="text-[11px] opacity-60 mt-[3px]">{cat.sub}</span>
+                  </button>
+                ))}
               </div>
-              {!disclaimerScrolled && <div style={{ fontSize: '0.78rem', color: '#8494b0', textAlign: 'center' }}>Please scroll through the full agreement above to enable signing.</div>}
-              <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-                <button type="button"
-                  onClick={() => { setShowDisclaimer(false); setSignatureDataUrl(null); setDisclaimerScrolled(false); setModalError('') }}
-                  style={{ flex: 1, padding: '0.7rem', borderRadius: 8, border: '1.5px solid #dde4ef', background: 'white', color: '#5a6a88', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
-                  Cancel
-                </button>
-                <button type="button" onClick={submitWithAgreement} disabled={!signatureDataUrl || loading}
-                  style={{ flex: 2, padding: '0.7rem', borderRadius: 8, border: 'none', background: signatureDataUrl && !loading ? 'linear-gradient(135deg, #1f6132, #124d83)' : '#dde4ef', color: signatureDataUrl && !loading ? 'white' : '#8494b0', fontWeight: 600, cursor: signatureDataUrl && !loading ? 'pointer' : 'not-allowed', fontFamily: 'DM Sans, sans-serif' }}>
-                  {loading ? 'Submitting...' : 'Sign & Submit Estimate Request'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* Top nav */}
-      <div style={{ background: 'white', borderBottom: '1px solid #dde4ef', padding: '1rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Link href="/" style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1.1rem', color: '#0e1117', textDecoration: 'none' }}>
-          NMD Pressure Washing
-        </Link>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {isLoggedIn ? (
-            <>
-              <span style={{ fontSize: '0.85rem', color: '#5a6a88' }}>Hi, {clientName.split(' ')[0]}</span>
-              <Link href="/clientdashboard" style={{ fontSize: '0.85rem', color: '#1f6132', fontWeight: 600, textDecoration: 'none', padding: '4px 12px', borderRadius: 6, border: '1px solid rgba(31,97,50,0.25)', background: 'rgba(31,97,50,0.05)' }}>
-                My Portal
-              </Link>
-            </>
-          ) : (
-            <Link href="/client/login" style={{ fontSize: '0.85rem', color: '#1f6132', fontWeight: 600, textDecoration: 'none' }}>
-              Client Login
-            </Link>
-          )}
-        </div>
-      </div>
-
-      <div style={{ maxWidth: 720, margin: '0 auto', padding: '2.5rem 1.5rem' }}>
-        <div style={{ marginBottom: '2rem' }}>
-          <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: '1.8rem', fontWeight: 700, color: '#0e1117', marginBottom: '0.5rem', letterSpacing: '-0.02em' }}>
-            Request a New Service
-          </h1>
-          <p style={{ color: '#5a6a88', fontSize: '0.9rem', lineHeight: 1.6 }}>
-            Fill out the form below and our team will review your request and reach out to confirm pricing and scheduling.
-          </p>
-        </div>
-
-        {error && (
-          <div style={{ background: '#fff0f0', border: '1.5px solid #ffc0c0', borderRadius: 8, padding: '0.75rem 1rem', marginBottom: '1.5rem', fontSize: '0.875rem', color: '#c0392b' }}>
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleFormSubmit}>
-          {/* Service selection */}
-          <div style={{ background: 'white', borderRadius: 12, border: '1px solid #dde4ef', padding: '1.5rem', marginBottom: '1.25rem' }}>
-            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '0.95rem', color: '#0e1117', marginBottom: '1rem' }}>Service Needed *</div>
-            <select value={form.selectedService} onChange={e => update('selectedService', e.target.value)} style={inputStyle} required>
-              <option value="">Select a service...</option>
-              {SERVICES.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-
-          {/* Client info — pre-filled if logged in */}
-          <div style={{ background: 'white', borderRadius: 12, border: '1px solid #dde4ef', padding: '1.5rem', marginBottom: '1.25rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '0.95rem', color: '#0e1117' }}>Your Information</div>
-              {isLoggedIn && (
-                <span style={{ fontSize: '0.75rem', color: '#1f6132', fontWeight: 600, background: 'rgba(31,97,50,0.08)', padding: '3px 8px', borderRadius: 6 }}>
-                  ✓ Auto-filled from your account
-                </span>
+              {selectedCategory && (
+                <div className="mb-[24px]">
+                  <label className={labelClass}>Specific Service</label>
+                  <select
+                    value={form.selectedService}
+                    onChange={e => update('selectedService', e.target.value)}
+                    className="w-full px-[14px] py-[11px] border border-[#E5E7EB] rounded-[8px] text-[14px] text-[#111827] bg-white outline-none"
+                    style={attempted[0] && !form.selectedService ? errorFieldStyle : undefined}
+                  >
+                    <option value="">Select a service...</option>
+                    {CATEGORY_SERVICES[selectedCategory].map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
               )}
+
+              <div className="mb-[24px]">
+                <label className={labelClass}>
+                  Describe what you need cleaned <span className="text-[#9CA3AF] font-normal">(optional)</span>
+                </label>
+                <textarea
+                  rows={3}
+                  value={form.problemDescription}
+                  onChange={e => update('problemDescription', e.target.value)}
+                  placeholder="e.g. 2-car driveway with oil stains, front walkway, and wooden deck..."
+                  className="w-full p-[12px] border border-[#E5E7EB] rounded-[8px] text-[14px] text-[#111827] resize-y outline-none leading-[1.5]"
+                />
+              </div>
+
+              {stepError && (
+                <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-[8px] px-[14px] py-[10px] mb-[16px] text-[13px] text-[#B91C1C]">{stepError}</div>
+              )}
+
+              <div className="flex justify-end">
+                <button type="button" onClick={goNext} className={continueBtnClass}>Continue &rarr;</button>
+              </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div>
-                <label style={labelStyle}>First Name *</label>
-                <input style={isLoggedIn ? readonlyInputStyle : inputStyle} value={form.firstName}
-                  onChange={e => update('firstName', e.target.value)}
-                  readOnly={isLoggedIn} placeholder="John" required />
+          )}
+
+          {/* STEP 1: CONTACT */}
+          {step === 1 && (
+            <div className="bg-white border border-[#E5E7EB] rounded-[14px] p-[32px]">
+              <div className="flex items-center justify-between mb-[6px]">
+                <h2 className="text-[20px] font-bold text-[#111827] m-0">Your contact information</h2>
+                {isLoggedIn && (
+                  <span className="text-[11px] font-semibold !text-[#0F766E] px-[8px] py-[3px] rounded-[6px]" style={{ background: 'rgba(15,118,110,0.1)' }}>
+                    &#10003; Auto-filled from your account
+                  </span>
+                )}
               </div>
-              <div>
-                <label style={labelStyle}>Last Name *</label>
-                <input style={isLoggedIn ? readonlyInputStyle : inputStyle} value={form.lastName}
-                  onChange={e => update('lastName', e.target.value)}
-                  readOnly={isLoggedIn} placeholder="Smith" required />
+              <p className="text-[14px] text-[#6B7280] mb-[28px]">We&apos;ll use this to prepare your quote and schedule the job.</p>
+
+              <div className="rs-form-grid grid grid-cols-2 gap-[18px] mb-[18px]">
+                <div>
+                  <label className={labelClass}>First Name</label>
+                  <input type="text" value={form.firstName} readOnly={isLoggedIn} onChange={e => update('firstName', e.target.value)}
+                    placeholder="Marcus" className={fieldClass}
+                    style={attempted[1] && !form.firstName ? errorFieldStyle : (isLoggedIn ? readonlyStyle : undefined)} />
+                </div>
+                <div>
+                  <label className={labelClass}>Last Name</label>
+                  <input type="text" value={form.lastName} readOnly={isLoggedIn} onChange={e => update('lastName', e.target.value)}
+                    placeholder="Johnson" className={fieldClass}
+                    style={attempted[1] && !form.lastName ? errorFieldStyle : (isLoggedIn ? readonlyStyle : undefined)} />
+                </div>
               </div>
-              <div>
-                <label style={labelStyle}>Email *</label>
-                <input style={isLoggedIn ? readonlyInputStyle : inputStyle} type="email" value={form.email}
-                  onChange={e => update('email', e.target.value)}
-                  readOnly={isLoggedIn} placeholder="you@email.com" required />
+
+              <div className="rs-form-grid grid grid-cols-2 gap-[18px] mb-[18px]">
+                <div>
+                  <label className={labelClass}>Email Address</label>
+                  <input type="email" value={form.email} readOnly={isLoggedIn} onChange={e => update('email', e.target.value)}
+                    placeholder="marcus@example.com" className={fieldClass}
+                    style={attempted[1] && !form.email ? errorFieldStyle : (isLoggedIn ? readonlyStyle : undefined)} />
+                </div>
+                <div>
+                  <label className={labelClass}>Phone Number</label>
+                  <input type="tel" value={form.phone} readOnly={isLoggedIn && !!form.phone} onChange={e => update('phone', e.target.value)}
+                    placeholder="(407) 555-0100" className={fieldClass} style={isLoggedIn && form.phone ? readonlyStyle : undefined} />
+                </div>
               </div>
-              <div>
-                <label style={labelStyle}>Phone</label>
-                <input style={isLoggedIn && form.phone ? readonlyInputStyle : inputStyle} value={form.phone}
-                  onChange={e => update('phone', e.target.value)}
-                  readOnly={isLoggedIn && !!form.phone} placeholder="(555) 000-0000" />
-              </div>
-              <div style={{ gridColumn: '1 / -1' }}>
-                <label style={labelStyle}>Service Address *</label>
-                <div ref={addressDivRef} style={{ width: '100%' }}>
+
+              <div className="mb-[18px]">
+                <label className={labelClass}>Service Address</label>
+                <div ref={addressDivRef} className="w-full" style={{ colorScheme: 'light' }}>
                   {placesStatus !== 'widget-attached' && (
                     <input
-                      style={inputStyle}
                       value={form.serviceAddress}
                       onChange={e => update('serviceAddress', e.target.value)}
-                      placeholder={placesStatus === 'failed' ? '123 Main St, Orlando, FL' : 'Loading address search...'}
-                      required
+                      placeholder={placesStatus === 'failed' ? '123 Oak Lane, Winter Park, FL 32789' : 'Loading address search...'}
+                      className={fieldClass}
+                      style={attempted[1] && !form.serviceAddress ? errorFieldStyle : undefined}
                     />
                   )}
                 </div>
               </div>
-            </div>
 
-            {/* SMS Consent */}
-            <div style={{ marginTop: '1rem', background: 'rgba(22, 163, 74, 0.05)', border: '1px solid rgba(22, 163, 74, 0.2)', borderRadius: 10, padding: '1rem' }}>
-              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}>
-                <input type="checkbox" checked={smsConsent} onChange={e => setSmsConsent(e.target.checked)}
-                  style={{ marginTop: 2, width: 18, height: 18, accentColor: '#16a34a', flexShrink: 0, cursor: 'pointer' }} />
-                <span style={{ fontSize: '0.82rem', color: '#3a5c42', lineHeight: 1.6 }}>
-                  I agree to receive SMS text message updates from NMD Pressure Washing Services LLC regarding my service appointment. Message &amp; data rates may apply. Reply STOP to opt out.
-                </span>
-              </label>
-            </div>
-          </div>
-
-          {/* Schedule */}
-          <div style={{ background: 'white', borderRadius: 12, border: '1px solid #dde4ef', padding: '1.5rem', marginBottom: '1.25rem' }}>
-            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '0.95rem', color: '#0e1117', marginBottom: '1rem' }}>Preferred Schedule</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div>
-                <label style={labelStyle}>Preferred Date</label>
-                <input style={inputStyle} type="date" value={form.preferredDate} onChange={e => update('preferredDate', e.target.value)} />
+              <div className="mb-[18px] rounded-[8px] p-[14px_16px]" style={{ background: 'rgba(15,118,110,0.05)', border: '1px solid rgba(15,118,110,0.2)' }}>
+                <label className="flex items-start gap-[10px] cursor-pointer">
+                  <input type="checkbox" checked={smsConsent} onChange={e => setSmsConsent(e.target.checked)}
+                    className="mt-[2px] w-[16px] h-[16px] shrink-0 cursor-pointer" style={{ accentColor: '#0F766E' }} />
+                  <span className="text-[13px] leading-[1.55]" style={{ color: '#1B4942' }}>
+                    I agree to receive SMS text message updates from NMD Pressure Washing Services LLC regarding my service appointment. Message &amp; data rates may apply. Reply STOP to opt out.
+                  </span>
+                </label>
               </div>
-              <div>
-                <label style={labelStyle}>Preferred Time</label>
-                <select style={inputStyle} value={form.preferredTime} onChange={e => update('preferredTime', e.target.value)}>
-                  <option value="">Any time</option>
-                  <option>Morning (8am - 12pm)</option>
-                  <option>Afternoon (12pm - 5pm)</option>
-                </select>
-              </div>
-            </div>
-          </div>
 
-          {/* Property details */}
-          <div style={{ background: 'white', borderRadius: 12, border: '1px solid #dde4ef', padding: '1.5rem', marginBottom: '1.25rem' }}>
-            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '0.95rem', color: '#0e1117', marginBottom: '1rem' }}>Property Details</div>
-            <div style={{ display: 'grid', gap: '1rem' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="rs-form-grid grid grid-cols-2 gap-[18px] mb-[18px]">
                 <div>
-                  <label style={labelStyle}>Property Type</label>
-                  <select style={inputStyle} value={form.propertyType} onChange={e => update('propertyType', e.target.value)}>
+                  <label className={labelClass}>Preferred Date</label>
+                  <input type="date" value={form.preferredDate} onChange={e => update('preferredDate', e.target.value)} className={fieldClass} />
+                </div>
+                <div>
+                  <label className={labelClass}>Preferred Time</label>
+                  <select value={form.preferredTime} onChange={e => update('preferredTime', e.target.value)}
+                    className="w-full px-[14px] py-[11px] border border-[#E5E7EB] rounded-[8px] text-[14px] text-[#111827] bg-white outline-none">
+                    <option value="">Flexible</option>
+                    <option>Morning (8 AM &ndash; 12 PM)</option>
+                    <option>Afternoon (12 PM &ndash; 4 PM)</option>
+                  </select>
+                </div>
+              </div>
+
+              <p className="text-[12px] font-bold tracking-[0.1em] uppercase text-[#9CA3AF] mb-[14px]">Property Details (optional)</p>
+
+              <div className="rs-form-grid grid grid-cols-2 gap-[18px] mb-[18px]">
+                <div>
+                  <label className={labelClass}>Property Type</label>
+                  <select value={form.propertyType} onChange={e => update('propertyType', e.target.value)}
+                    className="w-full px-[14px] py-[11px] border border-[#E5E7EB] rounded-[8px] text-[14px] text-[#111827] bg-white outline-none">
                     <option value="">Select...</option>
                     <option>Residential</option>
                     <option>Commercial</option>
@@ -591,63 +716,183 @@ export default function ServiceRequestPage() {
                   </select>
                 </div>
                 <div>
-                  <label style={labelStyle}>Estimated Size (sq ft)</label>
-                  <input style={inputStyle} value={form.estimatedSize} onChange={e => update('estimatedSize', e.target.value)} placeholder="e.g. 2000" />
+                  <label className={labelClass}>Estimated Size (sq ft)</label>
+                  <input value={form.estimatedSize} onChange={e => update('estimatedSize', e.target.value)} placeholder="e.g. 2000" className={fieldClass} />
                 </div>
               </div>
-              <div>
-                <label style={labelStyle}>Surface Details</label>
-                <input style={inputStyle} value={form.surfaceDetails} onChange={e => update('surfaceDetails', e.target.value)} placeholder="e.g. Concrete driveway, brick facade, wood deck..." />
+
+              <div className="mb-[18px]">
+                <label className={labelClass}>Surface Details</label>
+                <input value={form.surfaceDetails} onChange={e => update('surfaceDetails', e.target.value)}
+                  placeholder="e.g. Concrete driveway, brick facade, wood deck..." className={fieldClass} />
               </div>
-              <div>
-                <label style={labelStyle}>Problem Description</label>
-                <textarea value={form.problemDescription} onChange={e => update('problemDescription', e.target.value)}
-                  placeholder="Describe what needs to be cleaned or treated..." rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
+
+              <div className="mb-[28px]">
+                <label className={labelClass}>
+                  Additional Notes <span className="text-[#9CA3AF] font-normal">(optional)</span>
+                </label>
+                <textarea rows={3} value={form.specialConcerns} onChange={e => update('specialConcerns', e.target.value)}
+                  placeholder="Gate code, pet on property, access instructions..."
+                  className="w-full p-[12px] border border-[#E5E7EB] rounded-[8px] text-[14px] resize-y outline-none leading-[1.5]" />
               </div>
-              <div>
-                <label style={labelStyle}>Special Concerns</label>
-                <textarea value={form.specialConcerns} onChange={e => update('specialConcerns', e.target.value)}
-                  placeholder="Pets, plants, fragile surfaces, access restrictions..." rows={2} style={{ ...inputStyle, resize: 'vertical' }} />
+
+              {stepError && (
+                <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-[8px] px-[14px] py-[10px] mb-[16px] text-[13px] text-[#B91C1C]">{stepError}</div>
+              )}
+
+              <div className="flex justify-between">
+                <button type="button" onClick={goBack} className={backBtnClass}>&larr; Back</button>
+                <button type="button" onClick={goNext} className={continueBtnClass}>Continue &rarr;</button>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Photos */}
-          <div style={{ background: 'white', borderRadius: 12, border: '1px solid #dde4ef', padding: '1.5rem', marginBottom: '1.25rem' }}>
-            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: '0.95rem', color: '#0e1117', marginBottom: '0.5rem' }}>Photos *</div>
-            <p style={{ fontSize: '0.82rem', color: '#8494b0', marginBottom: '1rem' }}>Upload at least one photo of the area to be cleaned. This helps us provide an accurate estimate.</p>
-            <input ref={fileRef} type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={e => addPhotos(e.target.files)} />
-            <button type="button" onClick={() => fileRef.current?.click()}
-              style={{ padding: '0.65rem 1.25rem', borderRadius: 8, border: '1.5px dashed #b0c0d8', background: '#f4f7fb', color: '#3a4660', fontWeight: 500, fontSize: '0.875rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', marginBottom: '1rem' }}>
-              + Add Photos
-            </button>
-            {photos.length > 0 && (
-              <div style={{ display: 'grid', gap: '0.75rem' }}>
+          {/* STEP 2: PHOTOS */}
+          {step === 2 && (
+            <div className="bg-white border border-[#E5E7EB] rounded-[14px] p-[32px]">
+              <h2 className="text-[20px] font-bold text-[#111827] mb-[6px]">Upload photos of the area</h2>
+              <p className="text-[14px] text-[#6B7280] mb-[28px]">Photos help us prepare a more accurate quote. Please upload at least one photo of the surfaces you&apos;d like cleaned.</p>
+
+              <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={e => addPhotos(e.target.files)} />
+
+              <div className="rs-photo-grid grid grid-cols-3 gap-[16px] mb-[24px]">
+                <button type="button" onClick={() => fileRef.current?.click()}
+                  className="flex flex-col items-center justify-center gap-[8px] rounded-[10px] cursor-pointer min-h-[130px]"
+                  style={attempted[2] && photos.length === 0
+                    ? { border: '2px dashed #EF4444', background: '#FEF2F2' }
+                    : { border: '2px dashed #D1FAE5', background: '#F0FDF9' }}>
+                  <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                    <circle cx="14" cy="14" r="13" stroke="#0F766E" strokeWidth="1.5" />
+                    <path d="M14 9V19M9 14H19" stroke="#0F766E" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                  <span className="text-[12px] font-semibold !text-[#0F766E]">Add Photo</span>
+                  <span className="text-[11px] text-[#6B7280] text-center">JPG, PNG up to 10MB</span>
+                </button>
+
                 {photos.map(photo => (
-                  <div key={photo.id} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', background: '#f4f7fb', borderRadius: 8, padding: '0.75rem' }}>
-                    <img src={photo.dataUrl} alt={photo.name} style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '0.8rem', color: '#3a4660', fontWeight: 500, marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{photo.name}</div>
-                      <input style={{ ...inputStyle, fontSize: '0.8rem', padding: '0.4rem 0.7rem' }} placeholder="Add a note about this photo (optional)" value={photo.note} onChange={e => updateNote(photo.id, e.target.value)} />
-                    </div>
+                  <div key={photo.id} className="relative rounded-[10px] overflow-hidden min-h-[130px]" style={{ border: '2px dashed #E5E7EB', background: '#F8FAF9' }}>
+                    <img src={photo.dataUrl} alt={photo.name} className="absolute inset-0 w-full h-full object-cover" />
                     <button type="button" onClick={() => removePhoto(photo.id)}
-                      style={{ background: 'none', border: 'none', color: '#c0392b', cursor: 'pointer', fontSize: '1.1rem', flexShrink: 0, padding: '0 0.25rem' }}>×</button>
+                      className="absolute top-[6px] right-[6px] w-[22px] h-[22px] rounded-full flex items-center justify-center text-[14px] leading-none"
+                      style={{ background: 'rgba(17,24,39,0.65)', color: '#fff' }}>&times;</button>
                   </div>
                 ))}
               </div>
-            )}
-          </div>
 
-          {/* Disclaimer notice */}
-          <div style={{ background: '#fff9e6', border: '1px solid #f5e6a0', borderRadius: 10, padding: '0.85rem 1rem', marginBottom: '1.25rem', fontSize: '0.82rem', color: '#7a5c00', lineHeight: 1.5 }}>
-            <strong>Note:</strong> By submitting this form you will be asked to read our full Service Agreement & Liability Waiver and draw your physical signature. Estimates provided are not guaranteed final prices — the final invoice amount may differ based on actual site conditions.
-          </div>
+              {photos.length > 0 && (
+                <div className="flex flex-col gap-[10px] mb-[24px]">
+                  {photos.map(photo => (
+                    <div key={photo.id} className="flex items-center gap-[10px]">
+                      <span className="text-[12px] text-[#6B7280] shrink-0 max-w-[160px] truncate">{photo.name}</span>
+                      <input value={photo.note} onChange={e => updateNote(photo.id, e.target.value)} placeholder="Add a note about this photo (optional)"
+                        className="flex-1 px-[10px] py-[7px] border border-[#E5E7EB] rounded-[6px] text-[12px] outline-none" />
+                    </div>
+                  ))}
+                </div>
+              )}
 
-          <button type="submit" style={{ width: '100%', padding: '0.9rem', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 700, fontSize: '1rem', cursor: 'pointer', fontFamily: 'Syne, sans-serif', letterSpacing: '-0.01em' }}>
-            Review Agreement & Submit
-          </button>
-        </form>
+              <div className="rounded-[8px] p-[14px_16px] mb-[28px] flex gap-[10px] items-start" style={{ background: '#F8FAF9', border: '1px solid #E5E7EB' }}>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0 mt-[1px]">
+                  <circle cx="8" cy="8" r="7" stroke="#6B7280" strokeWidth="1.3" />
+                  <path d="M8 5V9M8 11V11.5" stroke="#6B7280" strokeWidth="1.3" strokeLinecap="round" />
+                </svg>
+                <p className="text-[13px] text-[#6B7280] leading-[1.5] m-0">At least one photo is required so we can prepare an accurate quote. The more angles you include, the faster we can respond.</p>
+              </div>
+
+              {stepError && (
+                <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-[8px] px-[14px] py-[10px] mb-[16px] text-[13px] text-[#B91C1C]">{stepError}</div>
+              )}
+
+              <div className="flex justify-between">
+                <button type="button" onClick={goBack} className={backBtnClass}>&larr; Back</button>
+                <button type="button" onClick={goNext} className={continueBtnClass}>Continue &rarr;</button>
+              </div>
+            </div>
+          )}
+
+          {/* STEP 3: SIGNATURE */}
+          {step === 3 && (
+            <div className="bg-white border border-[#E5E7EB] rounded-[14px] overflow-hidden">
+              <div className="flex items-center justify-between p-[24px_32px]" style={{ background: '#0F1A18' }}>
+                <div>
+                  <div className="text-[10px] font-bold tracking-[0.14em] uppercase mb-[4px]" style={{ color: '#34D399' }}>NMD Pressure Washing Services LLC</div>
+                  <div className="text-[18px] font-bold !text-white tracking-[-0.02em]">Service Agreement &amp; Authorization</div>
+                </div>
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                  <path d="M16 3L4 8.5V17C4 23.5 9.75 29.5 16 31.5C22.25 29.5 28 23.5 28 17V8.5L16 3Z" stroke="#34D399" strokeWidth="1.5" strokeLinejoin="round" />
+                  <path d="M11 17L14 20L21 13" stroke="#34D399" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+
+              <div className="p-[28px_32px]">
+                <div
+                  ref={disclaimerRef}
+                  onScroll={handleDisclaimerScroll}
+                  className="rounded-[8px] p-[16px_20px] mb-[24px] overflow-y-auto"
+                  style={{ background: '#F8FAF9', border: '1px solid #E5E7EB', height: 200, whiteSpace: 'pre-wrap', fontSize: 12, color: '#374151', lineHeight: 1.75 }}
+                >
+                  {DISCLAIMER}
+                </div>
+
+                {!disclaimerScrolled && (
+                  <div className="text-center text-[12px] mb-[20px]" style={{ color: '#8a6a00', background: '#fff9e6', border: '1px solid #f5e6a0', borderRadius: 8, padding: '8px 12px' }}>
+                    &darr; Scroll to read the full agreement before signing
+                  </div>
+                )}
+
+                <div className="flex items-start gap-[10px] mb-[28px]">
+                  <input type="checkbox" id="rs-agree" checked={agreed} onChange={e => setAgreed(e.target.checked)}
+                    className="mt-[2px] w-[16px] h-[16px] shrink-0 cursor-pointer" style={{ accentColor: '#0F766E' }} />
+                  <label htmlFor="rs-agree" className="text-[14px] text-[#374151] leading-[1.5] cursor-pointer">
+                    I have read and agree to the Service Agreement and Authorization above. I am authorized to request service at this property.
+                  </label>
+                </div>
+
+                <div className="mb-[20px]" style={{ opacity: disclaimerScrolled ? 1 : 0.45, pointerEvents: disclaimerScrolled ? 'auto' : 'none', transition: 'opacity 0.3s' }}>
+                  <div className="flex items-center justify-between mb-[8px]">
+                    <label className="text-[13px] font-semibold text-[#374151]">Your Signature</label>
+                    <button type="button" onClick={clearSignature} className="text-[12px] underline bg-transparent border-none cursor-pointer p-0" style={{ color: '#6B7280' }}>Clear</button>
+                  </div>
+                  <SignaturePad ref={sigPadRef} onSigned={url => setSignatureDataUrl(url)} onCleared={() => setSignatureDataUrl(null)} />
+                  <div className="flex items-center gap-[6px] mt-[8px]">
+                    <div className="flex-1 h-[1px]" style={{ background: '#E5E7EB' }} />
+                    <span className="text-[11px] whitespace-nowrap px-[8px]" style={{ color: '#9CA3AF' }}>Electronic signature &mdash; legally binding</span>
+                    <div className="flex-1 h-[1px]" style={{ background: '#E5E7EB' }} />
+                  </div>
+                </div>
+
+                {submitError && (
+                  <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-[8px] px-[14px] py-[10px] mb-[16px] text-[13px] text-[#B91C1C]">{submitError}</div>
+                )}
+
+                <div className="flex justify-between items-center mt-[8px]">
+                  <button type="button" onClick={goBack} className={backBtnClass}>&larr; Back</button>
+                  <button type="button" onClick={handleFinalSubmit} disabled={!canSubmit || loading}
+                    className="text-[15px] font-semibold px-[32px] py-[13px] rounded-[8px] border-none tracking-[-0.01em]"
+                    style={{
+                      background: canSubmit && !loading ? '#0F766E' : '#D1FAE5',
+                      color: canSubmit && !loading ? '#fff' : '#0F766E',
+                      cursor: canSubmit && !loading ? 'pointer' : 'not-allowed',
+                    }}>
+                    {loading ? 'Submitting...' : 'Submit Request'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* FOOTER */}
+      <footer className="bg-[#111827] px-[65px] py-[32px]">
+        <div className="rs-container max-w-[1440px] mx-auto flex items-center justify-between flex-wrap gap-[16px]">
+          <div className="flex flex-col">
+            <span className="text-[15px] font-bold !text-white tracking-[-0.02em]">NMD Pressure Washing</span>
+            <span className="text-[9px] font-bold tracking-[0.14em] text-[#0F766E] uppercase mt-[2px]">SERVICES LLC</span>
+          </div>
+          <span className="text-[12px] !text-white/22">&copy; {new Date().getFullYear()} NMD Pressure Washing Services LLC</span>
+        </div>
+      </footer>
     </div>
   )
 }

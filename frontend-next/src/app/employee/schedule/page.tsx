@@ -34,9 +34,9 @@ export default function EmployeeSchedule() {
   return (
     <PortalShell requiredRole="employee">
       <div style={{ marginBottom: "1.5rem" }}>
-        <div style={{ fontSize: "0.7rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#1f6132", marginBottom: 6 }}>Employee Portal</div>
-        <h1 style={{ fontFamily: "Syne, sans-serif", fontSize: "1.75rem", fontWeight: 800, color: "#0e1117", letterSpacing: "-0.03em", marginBottom: 6 }}>My Schedule</h1>
-        <p style={{ color: "#5a6a88", fontSize: "0.875rem" }}>Your assigned jobs and upcoming visits.</p>
+        <div style={{ fontSize: "11px", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: "#0F766E", marginBottom: 6 }}>Employee Portal</div>
+        <h1 style={{ fontFamily: "DM Sans, sans-serif", fontSize: "28px", fontWeight: 800, color: "#111827", letterSpacing: "-0.025em", marginBottom: 6 }}>My Schedule</h1>
+        <p style={{ color: "#6B7280", fontSize: "14px", margin: 0 }}>Your assigned jobs and upcoming visits.</p>
       </div>
       {loading && <LoadingCard />}
       {error && <ErrorCard message={error} />}
@@ -56,4 +56,3 @@ export default function EmployeeSchedule() {
     </PortalShell>
   )
 }
-

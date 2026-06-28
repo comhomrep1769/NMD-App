@@ -18,15 +18,15 @@ type Request = {
 
 const inputStyle: React.CSSProperties = {
   width: '100%', padding: '0.65rem 0.9rem', borderRadius: 8,
-  border: '1.5px solid #dde4ef', fontSize: '0.875rem', outline: 'none',
-  fontFamily: 'DM Sans, sans-serif', color: '#0e1117',
-  background: '#f4f7fb', boxSizing: 'border-box',
+  border: '1px solid #E5E7EB', fontSize: '0.875rem', outline: 'none',
+  fontFamily: 'DM Sans, sans-serif', color: '#111827',
+  background: 'white', boxSizing: 'border-box',
 }
 const labelStyle: React.CSSProperties = {
-  fontSize: '0.78rem', fontWeight: 500, color: '#3a4660', display: 'block', marginBottom: 4,
+  fontSize: '0.78rem', fontWeight: 500, color: '#374151', display: 'block', marginBottom: 4,
 }
 const modalOverlay: React.CSSProperties = {
-  position: 'fixed', inset: 0, background: 'rgba(14,17,23,0.6)',
+  position: 'fixed', inset: 0, background: 'rgba(17,24,39,0.65)',
   zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem'
 }
 
@@ -124,7 +124,7 @@ async function downloadAgreementPdf(r: {
   const contentW = pageW - margin * 2
   let y = 20
 
-  const addText = (text: string, fontSize: number, bold = false, color: [number,number,number] = [14,17,23]) => {
+  const addText = (text: string, fontSize: number, bold = false, color: [number,number,number] = [17,24,39]) => {
     doc.setFont('helvetica', bold ? 'bold' : 'normal')
     doc.setFontSize(fontSize)
     doc.setTextColor(...color)
@@ -138,13 +138,13 @@ async function downloadAgreementPdf(r: {
   }
 
   // ── Header ──────────────────────────────────────────────────────────────
-  doc.setDrawColor(31, 97, 50)
+  doc.setDrawColor(15, 118, 110)
   doc.setLineWidth(0.5)
   doc.rect(margin - 2, y - 4, contentW + 4, 18, 'S')
 
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(14)
-  doc.setTextColor(31, 97, 50)
+  doc.setTextColor(15, 118, 110)
   doc.text('NMD PRESSURE WASHING SERVICES LLC', pageW / 2, y + 4, { align: 'center' })
   y += 8
   doc.setFont('helvetica', 'normal')
@@ -154,11 +154,11 @@ async function downloadAgreementPdf(r: {
   y += 12
 
   // ── Client Info ──────────────────────────────────────────────────────────
-  doc.setDrawColor(220, 228, 239)
+  doc.setDrawColor(229, 231, 235)
   doc.setLineWidth(0.3)
   doc.rect(margin - 2, y - 2, contentW + 4, 36, 'S')
 
-  addText('CLIENT INFORMATION', 8, true, [58, 70, 96])
+  addText('CLIENT INFORMATION', 8, true, [55, 65, 81])
   y += 1
 
   const infoRows = [
@@ -174,10 +174,10 @@ async function downloadAgreementPdf(r: {
   for (const [label, value] of infoRows) {
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(9)
-    doc.setTextColor(58, 70, 96)
+    doc.setTextColor(55, 65, 81)
     doc.text(label, margin + 2, y)
     doc.setFont('helvetica', 'normal')
-    doc.setTextColor(14, 17, 23)
+    doc.setTextColor(17, 24, 39)
     doc.text(value, margin + 42, y)
     y += 5
   }
@@ -188,10 +188,10 @@ async function downloadAgreementPdf(r: {
   checkPage(10)
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(10)
-  doc.setTextColor(31, 97, 50)
+  doc.setTextColor(15, 118, 110)
   doc.text('FULL AGREEMENT TEXT', margin, y)
   y += 1
-  doc.setDrawColor(31, 97, 50)
+  doc.setDrawColor(15, 118, 110)
   doc.setLineWidth(0.4)
   doc.line(margin, y, margin + contentW, y)
   y += 5
@@ -206,7 +206,7 @@ async function downloadAgreementPdf(r: {
     if (/^\d+\./.test(trimmed) || trimmed === trimmed.toUpperCase()) {
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(8.5)
-      doc.setTextColor(14, 17, 23)
+      doc.setTextColor(17, 24, 39)
     } else {
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(8)
@@ -225,13 +225,13 @@ async function downloadAgreementPdf(r: {
   // ── Signature ────────────────────────────────────────────────────────────
   checkPage(60)
   y += 4
-  doc.setDrawColor(220, 228, 239)
+  doc.setDrawColor(229, 231, 235)
   doc.setLineWidth(0.3)
   doc.rect(margin - 2, y - 4, contentW + 4, 52, 'S')
 
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(9)
-  doc.setTextColor(58, 70, 96)
+  doc.setTextColor(55, 65, 81)
   doc.text('CLIENT SIGNATURE', margin + 2, y + 2)
   y += 8
 
@@ -249,7 +249,7 @@ async function downloadAgreementPdf(r: {
   } else if (r.waiverSignature) {
     doc.setFont('helvetica', 'bolditalic')
     doc.setFontSize(16)
-    doc.setTextColor(14, 17, 23)
+    doc.setTextColor(17, 24, 39)
     doc.text(r.waiverSignature, margin + 2, y + 10)
     y += 20
   } else {
@@ -419,7 +419,7 @@ export default function RequestsPage() {
         >
           <div onClick={e => e.stopPropagation()} style={{ maxWidth: 800, width: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-              <div style={{ color: 'white', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem' }}>
+              <div style={{ color: 'white', fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: '1rem' }}>
                 {viewPhoto.firstName} {viewPhoto.lastName} — {viewPhoto.serviceType}
               </div>
               <button onClick={() => setViewPhoto(null)} style={{ background: 'none', border: 'none', color: 'white', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
@@ -431,14 +431,14 @@ export default function RequestsPage() {
                 style={{ width: '100%', borderRadius: 12, maxHeight: '70vh', objectFit: 'contain', background: '#111' }}
               />
             ) : (
-              <div style={{ color: '#aaa', textAlign: 'center', padding: '2rem' }}>Loading photo…</div>
+              <div style={{ color: '#9CA3AF', textAlign: 'center', padding: '2rem' }}>Loading photo…</div>
             )}
             {viewPhoto.photoNote && (
               <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 8, padding: '0.75rem 1rem', color: 'white', fontSize: '0.85rem' }}>
                 <strong>Client note:</strong> {viewPhoto.photoNote}
               </div>
             )}
-            <div style={{ color: '#aaa', fontSize: '0.8rem', textAlign: 'center' }}>Click anywhere outside to close</div>
+            <div style={{ color: '#9CA3AF', fontSize: '0.8rem', textAlign: 'center' }}>Click anywhere outside to close</div>
           </div>
         </div>
       )}
@@ -447,19 +447,19 @@ export default function RequestsPage() {
       {viewSignature && (
         <div style={{ ...modalOverlay, zIndex: 200 }} onClick={() => setViewSignature(null)}>
           <div onClick={e => e.stopPropagation()} style={{
-            background: 'white', borderRadius: 16, width: '100%', maxWidth: 520,
-            boxShadow: '0 20px 60px rgba(14,17,23,0.25)', overflow: 'hidden',
+            background: 'white', borderRadius: 14, width: '100%', maxWidth: 520,
+            boxShadow: '0 20px 60px rgba(17,24,39,0.2)', overflow: 'hidden',
           }}>
             {/* Header */}
-            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #dde4ef', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'linear-gradient(135deg, #1f6132, #124d83)' }}>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#0F766E' }}>
               <div>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem', color: 'white' }}>Signed Agreement</div>
+                <div style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: '1rem', color: 'white' }}>Signed Agreement</div>
                 <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', marginTop: 2 }}>Service Agreement & Liability Waiver</div>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button
                   onClick={() => downloadAgreementPdf(viewSignature)}
-                  style={{ padding: '4px 12px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' }}
+                  style={{ padding: '4px 12px', borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.18)', color: 'white', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer' }}
                 >
                   Download PDF
                 </button>
@@ -468,48 +468,48 @@ export default function RequestsPage() {
             </div>
 
             {/* Client info */}
-            <div style={{ padding: '1rem 1.5rem', background: '#f8fbff', borderBottom: '1px solid #dde4ef', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem 1.5rem' }}>
+            <div style={{ padding: '1rem 1.5rem', background: '#F8FAF9', borderBottom: '1px solid #E5E7EB', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem 1.5rem' }}>
               <div>
-                <div style={{ fontSize: '0.72rem', color: '#8494b0', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Client</div>
-                <div style={{ fontWeight: 600, color: '#0e1117', fontSize: '0.9rem' }}>{viewSignature.firstName} {viewSignature.lastName}</div>
+                <div style={{ fontSize: '0.72rem', color: '#9CA3AF', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Client</div>
+                <div style={{ fontWeight: 600, color: '#111827', fontSize: '0.9rem' }}>{viewSignature.firstName} {viewSignature.lastName}</div>
               </div>
               <div>
-                <div style={{ fontSize: '0.72rem', color: '#8494b0', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Service</div>
-                <div style={{ fontWeight: 500, color: '#3a4660', fontSize: '0.85rem' }}>{viewSignature.serviceType}</div>
+                <div style={{ fontSize: '0.72rem', color: '#9CA3AF', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Service</div>
+                <div style={{ fontWeight: 500, color: '#374151', fontSize: '0.85rem' }}>{viewSignature.serviceType}</div>
               </div>
               <div>
-                <div style={{ fontSize: '0.72rem', color: '#8494b0', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Email</div>
-                <div style={{ color: '#3a4660', fontSize: '0.85rem' }}>{viewSignature.email || '—'}</div>
+                <div style={{ fontSize: '0.72rem', color: '#9CA3AF', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Email</div>
+                <div style={{ color: '#374151', fontSize: '0.85rem' }}>{viewSignature.email || '—'}</div>
               </div>
               <div>
-                <div style={{ fontSize: '0.72rem', color: '#8494b0', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Signed At</div>
-                <div style={{ color: '#3a4660', fontSize: '0.85rem' }}>
+                <div style={{ fontSize: '0.72rem', color: '#9CA3AF', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Signed At</div>
+                <div style={{ color: '#374151', fontSize: '0.85rem' }}>
                   {viewSignature.waiverSignedAt
                     ? new Date(viewSignature.waiverSignedAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })
                     : fmtDate(viewSignature.createdAt)}
                 </div>
               </div>
               <div>
-                <div style={{ fontSize: '0.72rem', color: '#8494b0', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Address</div>
-                <div style={{ color: '#3a4660', fontSize: '0.85rem' }}>{viewSignature.address || '—'}</div>
+                <div style={{ fontSize: '0.72rem', color: '#9CA3AF', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Address</div>
+                <div style={{ color: '#374151', fontSize: '0.85rem' }}>{viewSignature.address || '—'}</div>
               </div>
               <div>
-                <div style={{ fontSize: '0.72rem', color: '#8494b0', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Agreement Status</div>
-                <div style={{ color: '#1a7a3c', fontWeight: 600, fontSize: '0.85rem' }}>✓ Accepted</div>
+                <div style={{ fontSize: '0.72rem', color: '#9CA3AF', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Agreement Status</div>
+                <div style={{ color: '#059669', fontWeight: 600, fontSize: '0.85rem' }}>✓ Accepted</div>
               </div>
             </div>
 
             {/* Signature */}
             <div style={{ padding: '1.25rem 1.5rem' }}>
-              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#3a4660', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#374151', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Client Signature
               </div>
               {!viewSignature.waiverSignature ? (
-                <div style={{ border: '1.5px solid #dde4ef', borderRadius: 10, padding: '1rem 1.25rem', background: '#fafbfc', color: '#8494b0', fontSize: '0.85rem', fontStyle: 'italic' }}>
+                <div style={{ border: '1px solid #E5E7EB', borderRadius: 10, padding: '1rem 1.25rem', background: '#F9FAFB', color: '#9CA3AF', fontSize: '0.85rem', fontStyle: 'italic' }}>
                   Loading signature…
                 </div>
               ) : isSignatureImage(viewSignature.waiverSignature) ? (
-                <div style={{ border: '1.5px solid #dde4ef', borderRadius: 10, padding: '0.75rem', background: '#fafbfc' }}>
+                <div style={{ border: '1px solid #E5E7EB', borderRadius: 10, padding: '0.75rem', background: '#F9FAFB' }}>
                   <img
                     src={viewSignature.waiverSignature}
                     alt="Client signature"
@@ -517,14 +517,14 @@ export default function RequestsPage() {
                   />
                 </div>
               ) : (
-                <div style={{ border: '1.5px solid #dde4ef', borderRadius: 10, padding: '1rem 1.25rem', background: '#fafbfc' }}>
-                  <div style={{ fontFamily: 'Georgia, serif', fontSize: '1.4rem', color: '#0e1117', fontStyle: 'italic' }}>
+                <div style={{ border: '1px solid #E5E7EB', borderRadius: 10, padding: '1rem 1.25rem', background: '#F9FAFB' }}>
+                  <div style={{ fontFamily: 'Georgia, serif', fontSize: '1.4rem', color: '#111827', fontStyle: 'italic' }}>
                     {viewSignature.waiverSignature}
                   </div>
-                  <div style={{ fontSize: '0.72rem', color: '#b0bfd0', marginTop: 4 }}>Text signature (pre-canvas)</div>
+                  <div style={{ fontSize: '0.72rem', color: '#9CA3AF', marginTop: 4 }}>Text signature (pre-canvas)</div>
                 </div>
               )}
-              <div style={{ marginTop: 10, padding: '0.65rem 0.85rem', background: '#eaf7ef', borderRadius: 8, border: '1px solid #c2edcf', fontSize: '0.78rem', color: '#1a4d28' }}>
+              <div style={{ marginTop: 10, padding: '0.65rem 0.85rem', background: '#F0FDF9', borderRadius: 8, border: '1px solid #99F6E4', fontSize: '0.78rem', color: '#047857' }}>
                 This signature was collected as part of the NMD Pressure Washing Service Agreement & Liability Waiver, which includes acknowledgment that estimates and quotes are not guaranteed final prices.
               </div>
             </div>
@@ -535,36 +535,36 @@ export default function RequestsPage() {
       {/* Create Quote Modal */}
       {quoteRequest && (
         <div style={modalOverlay}>
-          <div style={{ background: 'white', borderRadius: 16, width: '100%', maxWidth: 540, boxShadow: '0 20px 60px rgba(14,17,23,0.2)', overflow: 'hidden', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #dde4ef', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#0e1117' }}>Create Quote</div>
-              <button onClick={() => setQuoteRequest(null)} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#8494b0' }}>×</button>
+          <div style={{ background: 'white', borderRadius: 14, width: '100%', maxWidth: 540, boxShadow: '0 20px 60px rgba(17,24,39,0.2)', overflow: 'hidden', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+              <div style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#111827' }}>Create Quote</div>
+              <button onClick={() => setQuoteRequest(null)} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#9CA3AF' }}>×</button>
             </div>
 
             <div style={{ overflowY: 'auto', flex: 1 }}>
-              <div style={{ padding: '1rem 1.5rem', background: '#f8fbff', borderBottom: '1px solid #dde4ef' }}>
-                <div style={{ fontSize: '0.8rem', color: '#5a6a88', marginBottom: 4 }}>Creating quote for</div>
-                <div style={{ fontWeight: 700, color: '#0e1117', fontFamily: 'Syne, sans-serif' }}>{quoteRequest.firstName} {quoteRequest.lastName}</div>
-                <div style={{ fontSize: '0.82rem', color: '#5a6a88', marginTop: 2 }}>{quoteRequest.serviceType} · {quoteRequest.address}</div>
+              <div style={{ padding: '1rem 1.5rem', background: '#F8FAF9', borderBottom: '1px solid #E5E7EB' }}>
+                <div style={{ fontSize: '0.8rem', color: '#6B7280', marginBottom: 4 }}>Creating quote for</div>
+                <div style={{ fontWeight: 700, color: '#111827', fontFamily: 'DM Sans, sans-serif' }}>{quoteRequest.firstName} {quoteRequest.lastName}</div>
+                <div style={{ fontSize: '0.82rem', color: '#6B7280', marginTop: 2 }}>{quoteRequest.serviceType} · {quoteRequest.address}</div>
                 {quoteRequest.preferredDate && (
-                  <div style={{ fontSize: '0.78rem', color: '#8494b0', marginTop: 2 }}>Preferred: {fmtDate(quoteRequest.preferredDate)}{quoteRequest.preferredTime ? ` · ${quoteRequest.preferredTime}` : ''}</div>
+                  <div style={{ fontSize: '0.78rem', color: '#9CA3AF', marginTop: 2 }}>Preferred: {fmtDate(quoteRequest.preferredDate)}{quoteRequest.preferredTime ? ` · ${quoteRequest.preferredTime}` : ''}</div>
                 )}
                 {quoteRequest.notes && (
-                  <div style={{ fontSize: '0.78rem', color: '#5a6a88', marginTop: 6, background: 'white', borderRadius: 6, padding: '0.5rem 0.75rem', border: '1px solid #dde4ef' }}>
+                  <div style={{ fontSize: '0.78rem', color: '#6B7280', marginTop: 6, background: 'white', borderRadius: 6, padding: '0.5rem 0.75rem', border: '1px solid #E5E7EB' }}>
                     <strong>Notes:</strong> {quoteRequest.notes}
                   </div>
                 )}
               </div>
 
               {quoteRequest.hasPhoto && (
-                <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #dde4ef' }}>
-                  <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#3a4660', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Client Photo</div>
+                <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid #E5E7EB' }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#374151', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Client Photo</div>
                   {quoteRequest.photoDataUrl ? (
                     <div style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
                       <img
                         src={quoteRequest.photoDataUrl}
                         alt="Client photo"
-                        style={{ width: '100%', maxHeight: 240, objectFit: 'cover', borderRadius: 10, border: '1px solid #dde4ef', cursor: 'zoom-in' }}
+                        style={{ width: '100%', maxHeight: 240, objectFit: 'cover', borderRadius: 10, border: '1px solid #E5E7EB', cursor: 'zoom-in' }}
                         onClick={() => setViewPhoto(quoteRequest)}
                       />
                       <div
@@ -575,16 +575,16 @@ export default function RequestsPage() {
                       </div>
                     </div>
                   ) : (
-                    <div style={{ color: '#8494b0', fontSize: '0.85rem', fontStyle: 'italic' }}>Loading photo…</div>
+                    <div style={{ color: '#9CA3AF', fontSize: '0.85rem', fontStyle: 'italic' }}>Loading photo…</div>
                   )}
                   {quoteRequest.photoNote && (
-                    <div style={{ fontSize: '0.78rem', color: '#5a6a88', marginTop: 6, fontStyle: 'italic' }}>"{quoteRequest.photoNote}"</div>
+                    <div style={{ fontSize: '0.78rem', color: '#6B7280', marginTop: 6, fontStyle: 'italic' }}>"{quoteRequest.photoNote}"</div>
                   )}
                 </div>
               )}
 
               <form onSubmit={handleCreateQuote} style={{ padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {quoteError && <div style={{ background: '#fff0f0', border: '1.5px solid #ffc0c0', borderRadius: 8, padding: '0.65rem 1rem', fontSize: '0.82rem', color: '#c0392b' }}>{quoteError}</div>}
+                {quoteError && <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '0.65rem 1rem', fontSize: '0.82rem', color: '#B91C1C' }}>{quoteError}</div>}
                 <div>
                   <label style={labelStyle}>Quote Total ($) *</label>
                   <input
@@ -601,8 +601,8 @@ export default function RequestsPage() {
                   </select>
                 </div>
                 <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-                  <button type="button" onClick={() => setQuoteRequest(null)} style={{ flex: 1, padding: '0.7rem', borderRadius: 8, border: '1.5px solid #dde4ef', background: 'white', color: '#5a6a88', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Cancel</button>
-                  <button type="submit" disabled={quoteSaving} style={{ flex: 2, padding: '0.7rem', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 600, cursor: quoteSaving ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: quoteSaving ? 0.7 : 1 }}>
+                  <button type="button" onClick={() => setQuoteRequest(null)} style={{ flex: 1, padding: '0.7rem', borderRadius: 8, border: '1px solid #E5E7EB', background: 'white', color: '#6B7280', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Cancel</button>
+                  <button type="submit" disabled={quoteSaving} style={{ flex: 2, padding: '0.7rem', borderRadius: 8, border: 'none', background: '#0F766E', color: 'white', fontWeight: 600, cursor: quoteSaving ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: quoteSaving ? 0.7 : 1 }}>
                     {quoteSaving ? 'Creating...' : 'Create Quote'}
                   </button>
                 </div>
@@ -619,7 +619,7 @@ export default function RequestsPage() {
       />
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 0, marginBottom: '1.5rem', borderBottom: '2px solid #dde4ef' }}>
+      <div style={{ display: 'flex', gap: 0, marginBottom: '1.5rem', borderBottom: '2px solid #E5E7EB' }}>
         {([
           { key: 'requests', label: `Requests (${requests.length})` },
           { key: 'signature-log', label: `Signature Log (${signedRequests.length})` },
@@ -630,8 +630,8 @@ export default function RequestsPage() {
             style={{
               padding: '0.65rem 1.25rem', border: 'none', background: 'none', cursor: 'pointer',
               fontFamily: 'DM Sans, sans-serif', fontWeight: activeTab === tab.key ? 700 : 500,
-              fontSize: '0.875rem', color: activeTab === tab.key ? '#1f6132' : '#8494b0',
-              borderBottom: `2px solid ${activeTab === tab.key ? '#1f6132' : 'transparent'}`,
+              fontSize: '0.875rem', color: activeTab === tab.key ? '#0F766E' : '#9CA3AF',
+              borderBottom: `2px solid ${activeTab === tab.key ? '#0F766E' : 'transparent'}`,
               marginBottom: -2, transition: 'color 0.15s',
             }}
           >
@@ -658,30 +658,30 @@ export default function RequestsPage() {
                     if (full) setViewPhoto(full)
                   }}
                   title="View photo"
-                  style={{ width: 36, height: 36, borderRadius: 6, border: '1.5px solid #dde4ef', background: '#f4f7fb', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, fontSize: '1rem', padding: 0 }}
+                  style={{ width: 36, height: 36, borderRadius: 6, border: '1px solid #E5E7EB', background: '#F9FAFB', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, fontSize: '1rem', padding: 0 }}
                 >📷</button>
               )}
               <div>
                 <div style={{ fontWeight: 600 }}>{r.firstName} {r.lastName}</div>
                 {r.waiverAccepted && (
-                  <div style={{ fontSize: '0.7rem', color: '#1a7a3c', fontWeight: 500 }}>✓ Waiver signed</div>
+                  <div style={{ fontSize: '0.7rem', color: '#059669', fontWeight: 500 }}>✓ Waiver signed</div>
                 )}
               </div>
             </div>,
-            <span key="svc" style={{ color: '#5a6a88' }}>{r.serviceType || '—'}</span>,
+            <span key="svc" style={{ color: '#6B7280' }}>{r.serviceType || '—'}</span>,
             <div key="contact">
               <div style={{ fontSize: '0.82rem' }}>{r.email || '—'}</div>
-              <div style={{ fontSize: '0.78rem', color: '#8494b0' }}>{r.phone || '—'}</div>
+              <div style={{ fontSize: '0.78rem', color: '#9CA3AF' }}>{r.phone || '—'}</div>
             </div>,
-            <span key="date" style={{ color: '#5a6a88', whiteSpace: 'nowrap' }}>
+            <span key="date" style={{ color: '#6B7280', whiteSpace: 'nowrap' }}>
               {r.preferredDate ? fmtDate(r.preferredDate) : '—'}
               {r.preferredTime ? ` · ${r.preferredTime}` : ''}
             </span>,
             <div key="status" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <StatusBadge status={r.status} />
-              {statusLoading === r.id && <span style={{ fontSize: '0.75rem', color: '#8494b0' }}>...</span>}
+              {statusLoading === r.id && <span style={{ fontSize: '0.75rem', color: '#9CA3AF' }}>...</span>}
             </div>,
-            <span key="created" style={{ color: '#8494b0', whiteSpace: 'nowrap' }}>{fmtDate(r.createdAt)}</span>,
+            <span key="created" style={{ color: '#9CA3AF', whiteSpace: 'nowrap' }}>{fmtDate(r.createdAt)}</span>,
             <div key="actions" style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
               {r.hasSignature && (
                 <button
@@ -690,7 +690,7 @@ export default function RequestsPage() {
                     const full = await fetchRequestDetail(r.id)
                     if (full) setViewSignature(full)
                   }}
-                  style={{ padding: '0.3rem 0.65rem', borderRadius: 6, border: '1px solid #dde4ef', background: 'white', color: '#3a4660', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}
+                  style={{ padding: '0.3rem 0.65rem', borderRadius: 6, border: '1px solid #E5E7EB', background: 'white', color: '#374151', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}
                 >
                   Signature
                 </button>
@@ -698,7 +698,7 @@ export default function RequestsPage() {
               {(r.status === 'pending' || r.status === 'new') && (
                 <button
                   onClick={() => openQuoteModal(r)}
-                  style={{ padding: '0.3rem 0.65rem', borderRadius: 6, border: 'none', background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}
+                  style={{ padding: '0.3rem 0.65rem', borderRadius: 6, border: 'none', background: '#0F766E', color: 'white', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}
                 >
                   Create Quote
                 </button>
@@ -707,13 +707,13 @@ export default function RequestsPage() {
                 <button
                   onClick={() => handleStatusChange(r, 'declined')}
                   disabled={statusLoading === r.id}
-                  style={{ padding: '0.3rem 0.65rem', borderRadius: 6, border: 'none', background: '#fef2f2', color: '#e74c3c', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}
+                  style={{ padding: '0.3rem 0.65rem', borderRadius: 6, border: 'none', background: '#FEF2F2', color: '#DC2626', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}
                 >
                   Decline
                 </button>
               )}
               {r.status === 'reviewed' && (
-                <span style={{ fontSize: '0.75rem', color: '#1f6132', fontWeight: 600 }}>Quoted</span>
+                <span style={{ fontSize: '0.75rem', color: '#0F766E', fontWeight: 600 }}>Quoted</span>
               )}
             </div>
           ])}
@@ -724,34 +724,34 @@ export default function RequestsPage() {
       {!loading && !error && activeTab === 'signature-log' && (
         <div>
           {signedRequests.length === 0 ? (
-            <div style={{ background: 'white', borderRadius: 12, border: '1px solid #dde4ef', padding: '3rem', textAlign: 'center', color: '#8494b0', fontSize: '0.9rem' }}>
+            <div style={{ background: 'white', borderRadius: 10, border: '1px solid #E5E7EB', padding: '3rem', textAlign: 'center', color: '#9CA3AF', fontSize: '0.9rem' }}>
               No signed agreements yet. Signatures appear here when clients sign the waiver during estimate submission.
             </div>
           ) : (
             <div style={{ display: 'grid', gap: '1rem' }}>
               {signedRequests.map((r, i) => (
-                <div key={r.id} style={{ background: 'white', borderRadius: 12, border: '1px solid #dde4ef', overflow: 'hidden' }}>
+                <div key={r.id} style={{ background: 'white', borderRadius: 10, border: '1px solid #E5E7EB', overflow: 'hidden' }}>
                   {/* Row header */}
                   <div style={{ padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, #1f6132, #124d83)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.78rem', fontWeight: 700, flexShrink: 0 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#0F766E', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '0.78rem', fontWeight: 700, flexShrink: 0 }}>
                         {i + 1}
                       </div>
                       <div>
-                        <div style={{ fontWeight: 700, color: '#0e1117', fontSize: '0.9rem' }}>{r.firstName} {r.lastName}</div>
-                        <div style={{ fontSize: '0.78rem', color: '#5a6a88' }}>{r.serviceType} · {r.address}</div>
+                        <div style={{ fontWeight: 700, color: '#111827', fontSize: '0.9rem' }}>{r.firstName} {r.lastName}</div>
+                        <div style={{ fontSize: '0.78rem', color: '#6B7280' }}>{r.serviceType} · {r.address}</div>
                       </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                       <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '0.72rem', color: '#8494b0' }}>Signed</div>
-                        <div style={{ fontSize: '0.82rem', color: '#3a4660', fontWeight: 500 }}>
+                        <div style={{ fontSize: '0.72rem', color: '#9CA3AF' }}>Signed</div>
+                        <div style={{ fontSize: '0.82rem', color: '#374151', fontWeight: 500 }}>
                           {r.waiverSignedAt
                             ? new Date(r.waiverSignedAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })
                             : fmtDate(r.createdAt)}
                         </div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#eaf7ef', borderRadius: 20, padding: '0.25rem 0.75rem', fontSize: '0.75rem', color: '#1a7a3c', fontWeight: 600 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#F0FDF9', borderRadius: 20, padding: '0.25rem 0.75rem', fontSize: '0.75rem', color: '#059669', fontWeight: 600 }}>
                         ✓ Waiver Accepted
                       </div>
                       <button
@@ -760,7 +760,7 @@ export default function RequestsPage() {
                           const full = await fetchRequestDetail(r.id)
                           downloadAgreementPdf(full || r)
                         }}
-                        style={{ padding: '0.35rem 0.85rem', borderRadius: 6, border: 'none', background: 'linear-gradient(135deg, #1f6132, #124d83)', color: 'white', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}
+                        style={{ padding: '0.35rem 0.85rem', borderRadius: 6, border: 'none', background: '#0F766E', color: 'white', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}
                       >
                         Download PDF
                       </button>
@@ -770,7 +770,7 @@ export default function RequestsPage() {
                           const full = await fetchRequestDetail(r.id)
                           if (full) setViewSignature(full)
                         }}
-                        style={{ padding: '0.35rem 0.85rem', borderRadius: 6, border: '1px solid #dde4ef', background: 'white', color: '#3a4660', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}
+                        style={{ padding: '0.35rem 0.85rem', borderRadius: 6, border: '1px solid #E5E7EB', background: 'white', color: '#374151', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}
                       >
                         View Signature
                       </button>
@@ -778,15 +778,15 @@ export default function RequestsPage() {
                   </div>
 
                   {/* Inline signature preview */}
-                  <div style={{ padding: '0 1.25rem 1rem', borderTop: '1px solid #f0f3f8' }}>
+                  <div style={{ padding: '0 1.25rem 1rem', borderTop: '1px solid #F3F4F6' }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1.5rem', paddingTop: '0.85rem', flexWrap: 'wrap' }}>
                       <div style={{ flex: 1, minWidth: 200 }}>
-                        <div style={{ fontSize: '0.72rem', color: '#8494b0', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Signature</div>
+                        <div style={{ fontSize: '0.72rem', color: '#9CA3AF', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Signature</div>
                         {!r.waiverSignature ? (
-                          <div style={{ fontSize: '0.78rem', color: '#8494b0', fontStyle: 'italic', padding: '0.5rem 0' }}>Loading signature…</div>
+                          <div style={{ fontSize: '0.78rem', color: '#9CA3AF', fontStyle: 'italic', padding: '0.5rem 0' }}>Loading signature…</div>
                         ) : isSignatureImage(r.waiverSignature) ? (
                           <div
-                            style={{ border: '1px solid #dde4ef', borderRadius: 8, padding: '0.5rem', background: '#fafbfc', cursor: 'zoom-in', maxWidth: 280 }}
+                            style={{ border: '1px solid #E5E7EB', borderRadius: 8, padding: '0.5rem', background: '#F9FAFB', cursor: 'zoom-in', maxWidth: 280 }}
                             onClick={() => setViewSignature(r)}
                           >
                             <img
@@ -796,18 +796,18 @@ export default function RequestsPage() {
                             />
                           </div>
                         ) : (
-                          <div style={{ fontFamily: 'Georgia, serif', fontSize: '1.2rem', color: '#0e1117', fontStyle: 'italic', padding: '0.5rem 0' }}>
+                          <div style={{ fontFamily: 'Georgia, serif', fontSize: '1.2rem', color: '#111827', fontStyle: 'italic', padding: '0.5rem 0' }}>
                             {r.waiverSignature}
                           </div>
                         )}
                       </div>
                       <div style={{ minWidth: 160 }}>
-                        <div style={{ fontSize: '0.72rem', color: '#8494b0', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Contact</div>
-                        <div style={{ fontSize: '0.82rem', color: '#3a4660' }}>{r.email || '—'}</div>
-                        <div style={{ fontSize: '0.78rem', color: '#8494b0' }}>{r.phone || '—'}</div>
+                        <div style={{ fontSize: '0.72rem', color: '#9CA3AF', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Contact</div>
+                        <div style={{ fontSize: '0.82rem', color: '#374151' }}>{r.email || '—'}</div>
+                        <div style={{ fontSize: '0.78rem', color: '#9CA3AF' }}>{r.phone || '—'}</div>
                       </div>
                       <div style={{ minWidth: 100 }}>
-                        <div style={{ fontSize: '0.72rem', color: '#8494b0', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Request Status</div>
+                        <div style={{ fontSize: '0.72rem', color: '#9CA3AF', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Request Status</div>
                         <StatusBadge status={r.status} />
                       </div>
                     </div>

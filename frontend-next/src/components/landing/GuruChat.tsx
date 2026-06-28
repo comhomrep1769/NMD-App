@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useRef, useEffect } from 'react'
 
@@ -89,7 +89,7 @@ function getSmartReply(text: string): string {
 
   // Rust / orange stains
   if (t.includes('rust') || t.includes('orange stain') || t.includes('fertilizer stain') || t.includes('irrigation stain')) {
-    return `Rust and orange staining from irrigation or fertilizer is a specialty service we treat with F9 BARC — the industry\'s top rust remover.\n\nPricing:\n• Single spot treatment: $50 – $100\n• Walkway/entry area: $125 – $300\n• Heavy irrigation staining: $300 – $800+\n• Minimum charge: $125\n\nWe power wash first, then apply F9 BARC which reverses 80–100% of orange staining. Submit an estimate below and include photos if you can!`
+    return `Rust and orange staining from irrigation or fertilizer is a specialty service we treat with F9 BARC – the industry's top rust remover.\n\nPricing:\n• Single spot treatment: $50 – $100\n• Walkway/entry area: $125 – $300\n• Heavy irrigation staining: $300 – $800+\n• Minimum charge: $125\n\nWe power wash first, then apply F9 BARC which reverses 80–100% of orange staining. Submit an estimate below and include photos if you can!`
   }
 
   // Estimate requests
@@ -113,7 +113,7 @@ function getSmartReply(text: string): string {
       if (count) {
         const low = Math.round(count * 26.25)
         const high = Math.round(count * 32.79)
-        return `For ${count} shutters, the estimated range is $${low} – $${high} ($26.25–$32.79 per shutter).\n\nThis is a soft-clean service — no pressure washing.\n\nClick "Start a Guru Estimate" below and we\'ll send you a firm quote within 24 hours.`
+        return `For ${count} shutters, the estimated range is $${low} – $${high} ($26.25–$32.79 per shutter).\n\nThis is a soft-clean service – no pressure washing.\n\nClick "Start a Guru Estimate" below and we'll send you a firm quote within 24 hours.`
       }
       return `Shutter cleaning is priced at $26.25 – $32.79 per shutter.\n\nHow many shutters do you have? I can give you a total estimate.`
     }
@@ -137,33 +137,33 @@ function getSmartReply(text: string): string {
       const high = Math.round(sqft * matchedRate.high)
       const usedDefault = !mentionedSqft
 
-      let reply = `Here\'s an estimate for ${matchedSurface} cleaning:\n\n`
+      let reply = `Here's an estimate for ${matchedSurface} cleaning:\n\n`
       reply += `• Area: ~${sqft.toLocaleString()} sqft${usedDefault ? ' (estimated)' : ''}\n`
       reply += `• Rate: $${matchedRate.low.toFixed(2)} – $${matchedRate.high.toFixed(2)}/sqft\n`
       reply += `• Estimate: $${low.toLocaleString()} – $${high.toLocaleString()}\n\n`
       if (usedDefault) reply += `If you know your exact square footage, I can tighten that range.\n\n`
-      reply += `Click "Start a Guru Estimate" below and we\'ll send a firm quote within 24 hours.`
+      reply += `Click "Start a Guru Estimate" below and we'll send a firm quote within 24 hours.`
       return reply
     }
 
     // No surface detected
-    return `I can give you a price estimate! Just tell me:\n\n1. Surface type — house, driveway, roof, deck, fence, patio, etc.\n2. Approximate size — square footage if you know it (optional)\n\nWhat surface are you looking to have cleaned?`
+    return `I can give you a price estimate! Just tell me:\n\n1. Surface type – house, driveway, roof, deck, fence, patio, etc.\n2. Approximate size – square footage if you know it (optional)\n\nWhat surface are you looking to have cleaned?`
   }
 
   // Chemical / soft wash
   if (t.includes('chemical') || t.includes('bleach') || t.includes('soft wash') || t.includes('pressure') || t.includes('psi')) {
-    return `We use professional-grade chemicals for every job:\n\n• House/siding: Sodium hypochlorite 1–2% + surfactant at soft wash pressure (100–500 PSI)\n• Roof: SH 4–6% — soft wash only, never high pressure on shingles\n• Rust removal: F9 BARC (industry standard)\n• Wood restoration: Sodium percarbonate + oxalic acid brightener\n• Grease/oil: Purple Power or Dragon Juice degreaser\n\nWhat surface are you dealing with?`
+    return `We use professional-grade chemicals for every job:\n\n• House/siding: Sodium hypochlorite 1–2% + surfactant at soft wash pressure (100–500 PSI)\n• Roof: SH 4–6% – soft wash only, never high pressure on shingles\n• Rust removal: F9 BARC (industry standard)\n• Wood restoration: Sodium percarbonate + oxalic acid brightener\n• Grease/oil: Purple Power or Dragon Juice degreaser\n\nWhat surface are you dealing with?`
   }
 
   // Mold / algae / treatment
   if (t.includes('mold') || t.includes('mildew') || t.includes('algae') || t.includes('moss') || t.includes('stain') || t.includes('oxidation')) {
     if (t.includes('roof') || t.includes('shingle')) {
-      return `For roof algae and moss we use soft wash only — sodium hypochlorite 4–6% with surfactant. High pressure is never used on shingles as it strips granules and voids warranties.\n\nRoof cleaning estimate: $300 – $900+ depending on size, pitch, and moss level.\n\nWant to start an estimate?`
+      return `For roof algae and moss we use soft wash only – sodium hypochlorite 4–6% with surfactant. High pressure is never used on shingles as it strips granules and voids warranties.\n\nRoof cleaning estimate: $300 – $900+ depending on size, pitch, and moss level.\n\nWant to start an estimate?`
     }
     if (t.includes('siding') || t.includes('house') || t.includes('wall')) {
-      return `For algae and mold on siding we use soft wash — sodium hypochlorite 1–2% + Elemonator surfactant at 100–500 PSI. Safe for all siding types.\n\nHouse washing estimate: $200 – $500+ depending on size.\n\nWant to start an estimate?`
+      return `For algae and mold on siding we use soft wash – sodium hypochlorite 1–2% + Elemonator surfactant at 100–500 PSI. Safe for all siding types.\n\nHouse washing estimate: $200 – $500+ depending on size.\n\nWant to start an estimate?`
     }
-    return `For mold, algae, and organic growth we use a soft wash treatment with sodium hypochlorite and surfactant. Results last 12–18 months.\n\nTell me the surface type and I\'ll give you a price estimate.`
+    return `For mold, algae, and organic growth we use a soft wash treatment with sodium hypochlorite and surfactant. Results last 12–18 months.\n\nTell me the surface type and I'll give you a price estimate.`
   }
 
   // Recurring plans
@@ -173,21 +173,21 @@ function getSmartReply(text: string): string {
 
   // Service area
   if (t.includes('area') || t.includes('serve') || t.includes('location') || t.includes('orlando') || t.includes('brevard')) {
-    return `We serve Orange County (Orlando, Winter Park, Kissimmee, Ocoee) and Brevard County (Melbourne, Cocoa, Palm Bay, Titusville), FL.\n\nNot sure if we cover your area? Submit an estimate and we\'ll confirm!`
+    return `We serve Orange County (Orlando, Winter Park, Kissimmee, Ocoee) and Brevard County (Melbourne, Cocoa, Palm Bay, Titusville), FL.\n\nNot sure if we cover your area? Submit an estimate and we'll confirm!`
   }
 
   // House washing info
   if (t.includes('house wash') || t.includes('what\'s included') || t.includes('whats included')) {
-    return `House washing includes exterior soft washing of all siding — removing algae, mold, mildew, and dirt buildup. We use low-pressure chemicals safe for all siding types including vinyl, stucco, Hardie board, and brick.\n\nTypical estimate: $200 – $500+\n\nWant a specific estimate for your home?`
+    return `House washing includes exterior soft washing of all siding – removing algae, mold, mildew, and dirt buildup. We use low-pressure chemicals safe for all siding types including vinyl, stucco, Hardie board, and brick.\n\nTypical estimate: $200 – $500+\n\nWant a specific estimate for your home?`
   }
 
   // Greeting
   if (t.length < 15 || t.includes('hello') || t.includes('hi') || t.includes('hey')) {
-    return `Hi! I can help you with:\n\n• Price estimates — tell me the surface and size\n• Treatment questions — what method for your problem\n• Service info — what\'s included, how it works\n\nWhat can I help you with?`
+    return `Hi! I can help you with:\n\n• Price estimates – tell me the surface and size\n• Treatment questions – what method for your problem\n• Service info – what's included, how it works\n\nWhat can I help you with?`
   }
 
   // Default
-  return `I can help with price estimates, treatment questions, and service info. Try asking:\n\n• "How much to wash a 1-story house?"\n• "What\'s the cost for a 500 sqft driveway?"\n• "I have rust stains on my driveway"\n• "What is soft washing?"`
+  return `I can help with price estimates, treatment questions, and service info. Try asking:\n\n• "How much to wash a 1-story house?"\n• "What's the cost for a 500 sqft driveway?"\n• "I have rust stains on my driveway"\n• "What is soft washing?"`
 }
 
 export default function GuruChat() {
@@ -218,7 +218,7 @@ export default function GuruChat() {
     setInput('')
     setLoading(true)
 
-    // Use smart frontend reply — no auth needed, always works
+    // Use smart frontend reply – no auth needed, always works
     const reply = getSmartReply(text)
     setMessages(prev => [...prev, { role: 'guru', text: reply }])
     setLoading(false)
@@ -246,7 +246,7 @@ export default function GuruChat() {
           : ''
         setMessages(prev => [...prev,
           { role: 'user', text: `Submitted estimate for ${estimateForm.serviceType} at ${estimateForm.address}.` },
-          { role: 'guru', text: `Thanks ${estimateForm.clientName}! Your estimate was submitted for NMD review.${rangeText} This is not a final quote — NMD will confirm official pricing and be in touch soon!` },
+          { role: 'guru', text: `Thanks ${estimateForm.clientName}! Your estimate was submitted for NMD review.${rangeText} This is not a final quote – NMD will confirm official pricing and be in touch soon!` },
         ])
       } else {
         setMessages(prev => [...prev,
@@ -352,7 +352,7 @@ export default function GuruChat() {
           {/* Estimate submitted banner */}
           {estimateSubmitted && !estimateMode && (
             <div style={{ padding: '0.6rem 1rem', background: '#eaf7ef', borderBottom: '1px solid #c2edcf', fontSize: '0.8rem', color: '#1a4d28', fontWeight: 500 }}>
-              Estimate submitted — NMD will be in touch soon.
+              Estimate submitted – NMD will be in touch soon.
             </div>
           )}
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react'
 import PortalShell from '@/components/portal/PortalShell'
-import { LoadingCard, ErrorCard } from '@/components/portal/PortalUI'
+import { LoadingCard, ErrorCard, SectionHeader } from '@/components/portal/PortalUI'
 import { getNmdToken } from '@/lib/authStorage'
 
 type Job = {
@@ -237,7 +237,7 @@ export default function AdminRoutesPage() {
     valid.forEach(job => {
       const idx = selectedIds.indexOf(job.id)
       const inRoute = idx >= 0
-      const color = inRoute ? '#1f6132' : '#8494b0'
+      const color = inRoute ? '#0F766E' : '#9CA3AF'
       const label = inRoute ? String(idx + 1) : '•'
       const icon = L.divIcon({
         className: '',
@@ -246,7 +246,7 @@ export default function AdminRoutesPage() {
       })
       const m = L.marker([job.lat, job.lng], { icon })
         .addTo(mapInstance.current)
-        .bindPopup(`<div style="font-family:DM Sans,sans-serif;min-width:180px;padding:4px 0"><b>${job.title}</b><br><span style="color:#5a6a88;font-size:12px">${job.client_name}</span><br><span style="color:#3a4660;font-size:12px">${job.address}</span></div>`)
+        .bindPopup(`<div style="font-family:DM Sans,sans-serif;min-width:180px;padding:4px 0"><b>${job.title}</b><br><span style="color:#6B7280;font-size:12px">${job.client_name}</span><br><span style="color:#374151;font-size:12px">${job.address}</span></div>`)
       markersRef.current.push(m)
     })
     if (valid.length > 0) {
@@ -289,7 +289,7 @@ export default function AdminRoutesPage() {
     if (searchMarkerRef.current) searchMarkerRef.current.remove()
     const icon = L.divIcon({
       className: '',
-      html: `<div style="width:32px;height:32px;border-radius:50%;background:#e67e22;color:white;display:flex;align-items:center;justify-content:center;font-size:16px;border:3px solid white;box-shadow:0 2px 10px rgba(0,0,0,0.3);">📍</div>`,
+      html: `<div style="width:32px;height:32px;border-radius:50%;background:#F59E0B;color:white;display:flex;align-items:center;justify-content:center;font-size:16px;border:3px solid white;box-shadow:0 2px 10px rgba(0,0,0,0.3);">📍</div>`,
       iconSize: [32, 32], iconAnchor: [16, 16]
     })
     searchMarkerRef.current = L.marker([lat, lng], { icon })
@@ -340,20 +340,24 @@ export default function AdminRoutesPage() {
   const fmt = (dt?: string | null) => dt ? new Date(dt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '—'
 
   const routeJobs = routeJobIds.map(id => jobs.find(j => j.id === id)).filter(Boolean) as Job[]
-  const unassignedJobs = jobs.filter(j => !routeJobIds.includes(j.id))
+  const jobIdsAssignedToOtherEmployees = new Set(
+    routes
+      .filter(r => r.employee_id !== selectedEmployee?.id)
+      .flatMap(r => r.stops.map(s => s.jobId))
+  )
+  const unassignedJobs = jobs.filter(j => !routeJobIds.includes(j.id) && !jobIdsAssignedToOtherEmployees.has(j.id))
 
   return (
     <PortalShell requiredRole={['admin', 'superadmin']}>
-      <div style={{ marginBottom: '1.5rem' }}>
-        <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#1f6132', marginBottom: 6 }}>Admin Portal</div>
-        <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: '1.75rem', fontWeight: 800, color: '#0e1117', letterSpacing: '-0.03em', marginBottom: 6 }}>Route Planner</h1>
-        <p style={{ color: '#5a6a88', fontSize: '0.875rem' }}>Build and assign employee routes. Select an employee, add jobs, drag to reorder, then save.</p>
-      </div>
+      <SectionHeader
+        title="Route Planner"
+        sub="Build and assign employee routes. Select an employee, add jobs, drag to reorder, then save."
+      />
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: '1.5rem', flexWrap: 'wrap' }}>
         <input type="date" value={date} onChange={e => setDate(e.target.value)}
-          style={{ padding: '0.6rem 0.9rem', borderRadius: 8, border: '1.5px solid #dde4ef', fontSize: '0.875rem', fontFamily: 'DM Sans, sans-serif', color: '#0e1117', background: 'white' }} />
-        <span style={{ fontSize: '0.85rem', color: '#8494b0' }}>{jobs.length} job{jobs.length !== 1 ? 's' : ''} available · {employees.length} employee{employees.length !== 1 ? 's' : ''}</span>
+          style={{ padding: '0.6rem 0.9rem', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: '0.875rem', fontFamily: 'DM Sans, sans-serif', color: '#111827', background: 'white' }} />
+        <span style={{ fontSize: '0.85rem', color: '#9CA3AF' }}>{jobs.length} job{jobs.length !== 1 ? 's' : ''} available · {employees.length} employee{employees.length !== 1 ? 's' : ''}</span>
       </div>
 
       {loading && <LoadingCard />}
@@ -364,15 +368,15 @@ export default function AdminRoutesPage() {
 
           {/* Employee list */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8494b0', marginBottom: 2 }}>Employees</div>
+            <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 2 }}>Employees</div>
             {employees.map(emp => {
               const hasRoute = routes.some(r => r.employee_id === emp.id)
               const isSel = selectedEmployee?.id === emp.id
               return (
                 <button key={emp.id} onClick={() => selectEmployee(emp)}
-                  style={{ padding: '0.85rem 1rem', borderRadius: 10, border: `1.5px solid ${isSel ? '#1f6132' : '#dde4ef'}`, background: isSel ? 'rgba(31,97,50,0.06)' : 'white', textAlign: 'left', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', transition: 'all 0.15s' }}>
-                  <div style={{ fontWeight: 600, fontSize: '0.875rem', color: '#0e1117', marginBottom: 3 }}>{emp.name}</div>
-                  <div style={{ fontSize: '0.75rem', color: isSel ? '#1f6132' : '#8494b0' }}>{hasRoute ? '✓ Route assigned' : 'No route yet'}</div>
+                  style={{ padding: '0.85rem 1rem', borderRadius: 10, border: `1px solid ${isSel ? '#0F766E' : '#E5E7EB'}`, background: isSel ? 'rgba(15,118,110,0.08)' : 'white', textAlign: 'left', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', transition: 'all 0.15s' }}>
+                  <div style={{ fontWeight: 600, fontSize: '0.875rem', color: '#111827', marginBottom: 3 }}>{emp.name}</div>
+                  <div style={{ fontSize: '0.75rem', color: isSel ? '#0F766E' : '#9CA3AF' }}>{hasRoute ? '✓ Route assigned' : 'No route yet'}</div>
                 </button>
               )
             })}
@@ -382,23 +386,23 @@ export default function AdminRoutesPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
             {/* Map */}
-            <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid #dde4ef' }}>
-              <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #dde4ef', minHeight: 50 }}>
+            <div style={{ background: 'white', borderRadius: 10, border: '1px solid #E5E7EB' }}>
+              <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid #E5E7EB', minHeight: 50 }}>
                 <div ref={searchDivRef} style={{ width: '100%' }}>
                   {placesStatus !== 'widget-attached' && (
                     <input
                       readOnly
                       placeholder={placesStatus === 'failed' ? 'Search unavailable' : 'Loading search...'}
-                      style={{ width: '100%', padding: '0.55rem 0.9rem', borderRadius: 8, border: '1.5px solid #dde4ef', fontSize: '0.875rem', fontFamily: 'DM Sans, sans-serif', color: '#8494b0', background: '#f0f0f0', boxSizing: 'border-box', outline: 'none' }}
+                      style={{ width: '100%', padding: '0.55rem 0.9rem', borderRadius: 8, border: '1px solid #E5E7EB', fontSize: '0.875rem', fontFamily: 'DM Sans, sans-serif', color: '#9CA3AF', background: '#F9FAFB', boxSizing: 'border-box', outline: 'none' }}
                     />
                   )}
                 </div>
               </div>
 
               <div style={{ position: 'relative', height: 420, width: '100%' }}>
-                <div ref={mapDivRef} style={{ height: 420, width: '100%', borderRadius: '0 0 12px 12px' }} />
+                <div ref={mapDivRef} style={{ height: 420, width: '100%', borderRadius: '0 0 9px 9px' }} />
                 {mapStatus !== 'map-initialized' && (
-                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8494b0', fontSize: '0.85rem', background: 'white', borderRadius: '0 0 12px 12px' }}>
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9CA3AF', fontSize: '0.85rem', background: 'white', borderRadius: '0 0 9px 9px' }}>
                     {mapStatus === 'failed' ? 'Map failed to load' : 'Loading map...'}
                   </div>
                 )}
@@ -406,72 +410,72 @@ export default function AdminRoutesPage() {
             </div>
 
             {!selectedEmployee && (
-              <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid #dde4ef', padding: '2.5rem', textAlign: 'center' }}>
+              <div style={{ background: 'white', borderRadius: 10, border: '1px solid #E5E7EB', padding: '2.5rem', textAlign: 'center' }}>
                 <div style={{ fontSize: '2rem', marginBottom: 12 }}>👈</div>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, color: '#0e1117', marginBottom: 6 }}>Select an employee</div>
-                <div style={{ fontSize: '0.875rem', color: '#8494b0' }}>Choose an employee on the left to build their route.</div>
+                <div style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 700, color: '#111827', marginBottom: 6 }}>Select an employee</div>
+                <div style={{ fontSize: '0.875rem', color: '#9CA3AF' }}>Choose an employee on the left to build their route.</div>
               </div>
             )}
 
             {selectedEmployee && (
               <>
-                <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid #dde4ef', padding: '1.25rem' }}>
+                <div style={{ background: 'white', borderRadius: 10, border: '1px solid #E5E7EB', padding: '1.25rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: 8 }}>
                     <div>
-                      <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#0e1117' }}>{selectedEmployee.name}'s Route</div>
-                      <div style={{ fontSize: '0.78rem', color: '#8494b0', marginTop: 2 }}>{routeJobs.length} stop{routeJobs.length !== 1 ? 's' : ''} · drag to reorder</div>
+                      <div style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#111827' }}>{selectedEmployee.name}'s Route</div>
+                      <div style={{ fontSize: '0.78rem', color: '#9CA3AF', marginTop: 2 }}>{routeJobs.length} stop{routeJobs.length !== 1 ? 's' : ''} · drag to reorder</div>
                     </div>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      {savedMsg && <span style={{ fontSize: '0.8rem', color: '#1f6132', fontWeight: 600 }}>✓ {savedMsg}</span>}
+                      {savedMsg && <span style={{ fontSize: '0.8rem', color: '#0F766E', fontWeight: 600 }}>✓ {savedMsg}</span>}
                       <button onClick={saveRoute} disabled={saving || routeJobIds.length === 0}
-                        style={{ padding: '0.6rem 1.25rem', borderRadius: 8, border: 'none', background: routeJobIds.length > 0 && !saving ? 'linear-gradient(135deg,#1f6132,#124d83)' : '#dde4ef', color: routeJobIds.length > 0 && !saving ? 'white' : '#8494b0', fontWeight: 700, fontSize: '0.85rem', cursor: routeJobIds.length > 0 && !saving ? 'pointer' : 'not-allowed', fontFamily: 'DM Sans, sans-serif' }}>
+                        style={{ padding: '0.6rem 1.25rem', borderRadius: 8, border: 'none', background: routeJobIds.length > 0 && !saving ? '#0F766E' : '#E5E7EB', color: routeJobIds.length > 0 && !saving ? 'white' : '#9CA3AF', fontWeight: 700, fontSize: '0.85rem', cursor: routeJobIds.length > 0 && !saving ? 'pointer' : 'not-allowed', fontFamily: 'DM Sans, sans-serif' }}>
                         {saving ? 'Saving...' : 'Save Route'}
                       </button>
                     </div>
                   </div>
 
                   {routeJobs.length === 0 ? (
-                    <div style={{ fontSize: '0.85rem', color: '#8494b0', textAlign: 'center', padding: '2rem', background: '#f4f7fb', borderRadius: 8, border: '1px dashed #dde4ef' }}>
+                    <div style={{ fontSize: '0.85rem', color: '#9CA3AF', textAlign: 'center', padding: '2rem', background: '#F9FAFB', borderRadius: 8, border: '1px dashed #E5E7EB' }}>
                       Add jobs from the list below
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {routeJobs.map((job, i) => (
                         <div key={job.id} draggable onDragStart={() => handleDragStart(i)} onDragOver={e => handleDragOver(e, i)} onDragEnd={() => setDragIndex(null)}
-                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0.75rem 1rem', background: '#f4f7fb', borderRadius: 8, border: '1px solid #dde4ef', cursor: 'grab', userSelect: 'none', opacity: dragIndex === i ? 0.5 : 1 }}>
-                          <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'linear-gradient(135deg,#1f6132,#124d83)', color: 'white', fontWeight: 800, fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{i+1}</div>
+                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0.75rem 1rem', background: '#F9FAFB', borderRadius: 8, border: '1px solid #E5E7EB', cursor: 'grab', userSelect: 'none', opacity: dragIndex === i ? 0.5 : 1 }}>
+                          <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#0F766E', color: 'white', fontWeight: 800, fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{i+1}</div>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#0e1117', marginBottom: 2 }}>{job.title}</div>
-                            <div style={{ fontSize: '0.75rem', color: '#5a6a88' }}>{job.client_name} · {fmt(job.start_time)}</div>
-                            <div style={{ fontSize: '0.72rem', color: '#8494b0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.address}</div>
+                            <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#111827', marginBottom: 2 }}>{job.title}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#6B7280' }}>{job.client_name} · {fmt(job.start_time)}</div>
+                            <div style={{ fontSize: '0.72rem', color: '#9CA3AF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.address}</div>
                           </div>
-                          <span style={{ color: '#b8c4d8', marginRight: 4, fontSize: '1rem' }}>⠿</span>
-                          <button onClick={() => removeJob(job.id)} style={{ background: 'none', border: 'none', color: '#c0392b', cursor: 'pointer', fontSize: '1.1rem', padding: '0 4px', flexShrink: 0 }}>×</button>
+                          <span style={{ color: '#D1D5DB', marginRight: 4, fontSize: '1rem' }}>⠿</span>
+                          <button onClick={() => removeJob(job.id)} style={{ background: 'none', border: 'none', color: '#DC2626', cursor: 'pointer', fontSize: '1.1rem', padding: '0 4px', flexShrink: 0 }}>×</button>
                         </div>
                       ))}
                     </div>
                   )}
                 </div>
 
-                <div style={{ background: 'white', borderRadius: 14, border: '1.5px solid #dde4ef', padding: '1.25rem' }}>
-                  <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: '0.95rem', color: '#0e1117', marginBottom: '1rem' }}>
+                <div style={{ background: 'white', borderRadius: 10, border: '1px solid #E5E7EB', padding: '1.25rem' }}>
+                  <div style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: '0.95rem', color: '#111827', marginBottom: '1rem' }}>
                     Available Jobs ({unassignedJobs.length})
                   </div>
                   {unassignedJobs.length === 0 ? (
-                    <div style={{ fontSize: '0.85rem', color: '#8494b0', textAlign: 'center', padding: '1.5rem', background: '#f4f7fb', borderRadius: 8 }}>
+                    <div style={{ fontSize: '0.85rem', color: '#9CA3AF', textAlign: 'center', padding: '1.5rem', background: '#F9FAFB', borderRadius: 8 }}>
                       All jobs have been added to this route.
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {unassignedJobs.map(job => (
-                        <div key={job.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0.75rem 1rem', background: '#f4f7fb', borderRadius: 8, border: '1px solid #dde4ef' }}>
+                        <div key={job.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0.75rem 1rem', background: '#F9FAFB', borderRadius: 8, border: '1px solid #E5E7EB' }}>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#0e1117', marginBottom: 2 }}>{job.title}</div>
-                            <div style={{ fontSize: '0.75rem', color: '#5a6a88' }}>{job.client_name} · {fmt(job.start_time)}</div>
-                            <div style={{ fontSize: '0.72rem', color: '#8494b0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.address}</div>
+                            <div style={{ fontWeight: 600, fontSize: '0.85rem', color: '#111827', marginBottom: 2 }}>{job.title}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#6B7280' }}>{job.client_name} · {fmt(job.start_time)}</div>
+                            <div style={{ fontSize: '0.72rem', color: '#9CA3AF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.address}</div>
                           </div>
                           <button onClick={() => addJob(job.id)}
-                            style={{ padding: '0.45rem 0.85rem', borderRadius: 7, border: '1.5px solid rgba(31,97,50,0.3)', background: 'rgba(31,97,50,0.06)', color: '#1f6132', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', whiteSpace: 'nowrap' }}>
+                            style={{ padding: '0.45rem 0.85rem', borderRadius: 7, border: '1px solid rgba(15,118,110,0.3)', background: 'rgba(15,118,110,0.08)', color: '#0F766E', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', whiteSpace: 'nowrap' }}>
                             + Add
                           </button>
                         </div>

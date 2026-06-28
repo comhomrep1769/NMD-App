@@ -8,7 +8,7 @@ router.get("/me", requireAuth, requireRole("employee"), async (req, res) => {
   try {
     const userId = req.user!.id;
 
-    const [jobStats, revenueStats, hoursStats, payrollStats, payRateStats] =
+    const [jobStats, revenueStats, hoursStats, payrollStats, payRateStats, todaysJobsResult] =
       await Promise.all([
         pool.query(
           `
@@ -90,6 +90,19 @@ router.get("/me", requireAuth, requireRole("employee"), async (req, res) => {
           LIMIT 1
           `,
           [userId]
+        ),
+
+        // ── Today's assigned jobs (for the dashboard's "Today's Schedule" list) ──
+        pool.query(
+          `
+          SELECT j.id, j.title, j.client_name, j.address, j.start_time, j.end_time, j.status
+          FROM jobs j
+          INNER JOIN job_assignments ja ON ja.job_id = j.id
+          WHERE ja.user_id = $1
+            AND DATE_TRUNC('day', j.start_time) = DATE_TRUNC('day', NOW())
+          ORDER BY j.start_time ASC
+          `,
+          [userId]
         )
       ]);
 
@@ -126,7 +139,17 @@ router.get("/me", requireAuth, requireRole("employee"), async (req, res) => {
         lifetimeWages: lifetimeHours * payRate,
 
         totalPayrollPaid: Number(payrollStats.rows[0].total_pay),
-        payRunsCompleted: payrollStats.rows[0].pay_runs
+        payRunsCompleted: payrollStats.rows[0].pay_runs,
+
+        todaysJobs: todaysJobsResult.rows.map((row) => ({
+          id: row.id,
+          title: row.title,
+          clientName: row.client_name,
+          address: row.address,
+          startTime: row.start_time,
+          endTime: row.end_time,
+          status: row.status
+        }))
       }
     });
   } catch (error) {

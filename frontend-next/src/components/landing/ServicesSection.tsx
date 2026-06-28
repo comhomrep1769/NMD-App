@@ -59,51 +59,82 @@ const SERVICES: Record<Category, string[]> = {
   ],
 }
 
+const CATEGORY_DESCRIPTIONS: Record<Category, string> = {
+  Residential: 'Specialized cleaning for homes, driveways, roofs, decks, and all outdoor living spaces — protecting your biggest investment.',
+  Commercial: 'Maintain professional curb appeal for your business exterior, parking areas, storefronts, and commercial facilities.',
+  Industrial: 'Heavy-duty cleaning solutions for industrial facilities, equipment, large surfaces, and high-grease environments.',
+  Specialty: 'Expert restoration and treatment for challenging stains, weathered surfaces, and specialized cleaning requirements.',
+  Seasonal: 'Targeted seasonal cleaning packages to protect and maintain your property through every Central Florida season.',
+}
+
+function CheckIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-teal-600">
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
+  )
+}
+
 export default function ServicesSection() {
   const [active, setActive] = useState<Category>('Residential')
   const services = SERVICES[active]
 
   return (
-    <section className="nmd-section-full" id="services">
-      <div className="nmd-section-inner">
-        <div className="nmd-section-header">
-          <p className="nmd-section-eyebrow">What we do</p>
-          <h2 className="nmd-section-title">
-            Every surface. Every property type.
-          </h2>
-          <p className="nmd-section-sub">
-            From single-family homes to industrial facilities — if it needs cleaning,
-            we have a process for it. Serving Brevard &amp; Orange County, FL.
-          </p>
+    <section className="bg-white py-20" id="services">
+      <div className="mx-auto max-w-[1440px] px-4 sm:px-[65px]">
+        <div className="mb-10 flex flex-wrap items-start justify-between gap-6">
+          <div>
+            <p className="mb-3 text-[11px] font-bold uppercase tracking-wider text-teal-700">Services</p>
+            <h2 className="mb-4 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+              Every Surface, Every Property Type
+            </h2>
+            <p className="max-w-[560px] text-base leading-relaxed text-gray-500">
+              From residential driveways to industrial equipment &mdash; certified
+              technicians covering every surface across Central Florida.
+            </p>
+          </div>
+          <a
+            href="/client/request-service"
+            className="flex-shrink-0 rounded-lg border border-teal-700 px-5 py-2.5 text-sm font-semibold text-teal-700 hover:bg-teal-50"
+          >
+            View All Services
+          </a>
         </div>
 
-        <div className="nmd-services-tabs">
+        <div className="mb-8 flex flex-wrap gap-x-8 border-b border-gray-200">
           {CATEGORIES.map((cat) => (
             <button
               key={cat}
-              className={`nmd-tab${active === cat ? ' active' : ''}`}
               onClick={() => setActive(cat)}
+              className={
+                active === cat
+                  ? 'border-b-2 border-teal-700 pb-3 text-sm font-semibold text-teal-700'
+                  : 'border-b-2 border-transparent pb-3 text-sm font-medium text-gray-500 hover:text-gray-700'
+              }
             >
               {cat === 'Specialty' ? 'Specialty & Restoration' : cat}
             </button>
           ))}
         </div>
 
-        <div className="nmd-services-grid">
+        <p className="mb-7 max-w-2xl text-[15px] leading-relaxed text-gray-500">{CATEGORY_DESCRIPTIONS[active]}</p>
+
+        <div className="grid-services grid grid-cols-3 gap-x-10 gap-y-1">
           {services.map((s) => (
-            <div key={s} className="nmd-service-chip">
-              <span className="nmd-service-chip-dot" />
-              {s}
+            <div key={s} className="flex items-center gap-2.5 border-b border-gray-100 py-2.5">
+              <CheckIcon />
+              <span className="text-sm text-gray-700">{s}</span>
             </div>
           ))}
-        </div>
-
-        <div style={{ marginTop: '2.5rem', textAlign: 'center' }}>
-          <a href="/client/request-service" className="btn-primary btn-lg">
-            Request a Service →
-          </a>
         </div>
       </div>
     </section>
   )
 }
+
+
+
+
+
+
+
