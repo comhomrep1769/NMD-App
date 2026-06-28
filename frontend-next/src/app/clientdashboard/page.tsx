@@ -10,6 +10,10 @@ function fmtShortDate(dt: string) {
   return new Date(dt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
+function fmtTime(dt: string) {
+  return new Date(dt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+}
+
 function capitalize(s: string) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : s
 }
@@ -40,13 +44,13 @@ export default function ClientDashboardPage() {
 
   const today = new Date()
   const nextJob = (data?.jobs || [])
-    .filter(j => new Date(j.scheduledDate) >= today && j.status !== 'cancelled' && j.status !== 'completed')
-    .sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime())[0] || null
+    .filter(j => new Date(j.startTime) >= today && j.status !== 'cancelled' && j.status !== 'completed')
+    .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())[0] || null
 
   const activeRecurring = (data?.recurringServices || []).find(r => r.status === 'active') || null
 
   const recentJobs = [...(data?.jobs || [])]
-    .sort((a, b) => new Date(b.scheduledDate).getTime() - new Date(a.scheduledDate).getTime())
+    .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
     .slice(0, 5)
 
   return (
@@ -80,8 +84,8 @@ export default function ClientDashboardPage() {
             />
             <MetricCard
               label="Next Service"
-              value={nextJob ? fmtShortDate(nextJob.scheduledDate) : '—'}
-              sub={nextJob ? `${nextJob.startTime} · ${nextJob.title}` : 'Nothing scheduled'}
+              value={nextJob ? fmtShortDate(nextJob.startTime) : '—'}
+              sub={nextJob ? `${fmtTime(nextJob.startTime)} · ${nextJob.title}` : 'Nothing scheduled'}
               accent="#0F766E"
             />
             <MetricCard
@@ -126,7 +130,7 @@ export default function ClientDashboardPage() {
                   <div key={job.id} style={{ background: '#fff', border: '1px solid #E5E7EB', borderRadius: 10, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 16 }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: '14px', fontWeight: 600, color: '#111827' }}>{job.title}</div>
-                      <div style={{ fontSize: '12px', color: '#6B7280', marginTop: 2 }}>{fmtShortDate(job.scheduledDate)} · {job.serviceType}</div>
+                      <div style={{ fontSize: '12px', color: '#6B7280', marginTop: 2 }}>{fmtShortDate(job.startTime)}</div>
                     </div>
                     <span style={{ fontSize: '11px', background: st.bg, color: st.color, borderRadius: 100, padding: '4px 10px', fontWeight: 600, flexShrink: 0 }}>
                       {capitalize(job.status.replace('_', ' '))}
