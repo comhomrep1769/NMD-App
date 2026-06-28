@@ -490,7 +490,7 @@ export default function PortalShell({
         </div>
       )}
 
-      <div style={{ flex: 1, marginLeft: isMobile ? 0 : 216, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, marginLeft: isMobile ? 0 : 216, minHeight: '100vh', display: 'flex', flexDirection: 'column', minWidth: 0, overflowX: 'hidden' }}>
 
         <div style={{ background: 'white', borderBottom: '1px solid #E5E7EB', padding: isMobile ? '0 16px' : '0 28px', height: 58, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 30, flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -506,7 +506,7 @@ export default function PortalShell({
           </div>
         </div>
 
-        <div style={{ flex: 1, padding: isMobile ? '16px' : '24px 28px' }}>
+        <div style={{ flex: 1, padding: isMobile ? '16px' : '24px 28px', minWidth: 0 }}>
           {children}
         </div>
       </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 // ─── Status Badge ───
 const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
@@ -44,7 +44,7 @@ export function MetricCard({
   return (
     <div style={{
       background: 'white', border: '1px solid #E5E7EB',
-      borderRadius: 10, padding: '16px 18px',
+      borderRadius: 10, padding: '16px 18px', minWidth: 0,
       borderLeft: accent ? `3px solid ${accent}` : undefined,
     }}>
       <div style={{ fontSize: '10px', fontWeight: 700, color: '#9CA3AF', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
@@ -57,7 +57,7 @@ export function MetricCard({
 // ─── Section Header ───
 export function SectionHeader({ title, sub, action }: { title: string; sub?: string; action?: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: 12 }}>
       <div>
         <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#0F766E', marginBottom: 6 }}>NMD Portal</div>
         <h1 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '28px', fontWeight: 800, color: '#111827', letterSpacing: '-0.025em', marginBottom: sub ? 6 : 0 }}>{title}</h1>
@@ -69,6 +69,8 @@ export function SectionHeader({ title, sub, action }: { title: string; sub?: str
 }
 
 // ─── Table ───
+// Below 640px, renders as stacked label/value cards instead of a cramped
+// horizontally-scrolling table — a more native-feeling mobile pattern.
 export function DataTable({
   headers, rows, emptyMessage = 'No records found.'
 }: {
@@ -76,6 +78,40 @@ export function DataTable({
   rows: React.ReactNode[][]
   emptyMessage?: string
 }) {
+  const [isNarrow, setIsNarrow] = useState(false)
+
+  useEffect(() => {
+    const check = () => setIsNarrow(window.innerWidth < 640)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+
+  if (rows.length === 0) {
+    return (
+      <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 10, padding: '3rem', textAlign: 'center', color: '#9CA3AF', fontSize: '14px' }}>
+        {emptyMessage}
+      </div>
+    )
+  }
+
+  if (isNarrow) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {rows.map((row, i) => (
+          <div key={i} style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 10, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {row.map((cell, j) => (
+              <div key={j} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0, paddingTop: 2 }}>{headers[j]}</span>
+                <span style={{ fontSize: '13px', color: '#111827', textAlign: 'right', minWidth: 0 }}>{cell}</span>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    )
+  }
+
   return (
     <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 10, overflow: 'hidden' }}>
       <div style={{ overflowX: 'auto' }}>
@@ -90,13 +126,7 @@ export function DataTable({
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 ? (
-              <tr>
-                <td colSpan={headers.length} style={{ padding: '3rem', textAlign: 'center', color: '#9CA3AF', fontSize: '14px' }}>
-                  {emptyMessage}
-                </td>
-              </tr>
-            ) : rows.map((row, i) => (
+            {rows.map((row, i) => (
               <tr key={i} style={{ borderBottom: i < rows.length - 1 ? '1px solid #F3F4F6' : 'none' }}>
                 {row.map((cell, j) => (
                   <td key={j} style={{ padding: '11px 16px', fontSize: '13px', color: '#111827', verticalAlign: 'middle' }}>
@@ -145,6 +175,7 @@ export function SearchInput({ value, onChange, placeholder }: { value: string; o
         border: '1px solid #E5E7EB', fontSize: '14px',
         outline: 'none', fontFamily: 'DM Sans, sans-serif',
         color: '#111827', background: 'white', width: 240,
+        maxWidth: '100%', boxSizing: 'border-box',
       }}
     />
   )
