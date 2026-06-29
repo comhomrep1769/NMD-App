@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.JWT_SECRET || "dev_secret_change_me";
 
-export type UserRole = "admin" | "employee" | "client";
+export type UserRole = "superadmin" | "admin" | "employee" | "client" | "sales";
 
 export type AuthUser = {
   id: string;

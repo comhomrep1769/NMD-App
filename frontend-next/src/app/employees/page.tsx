@@ -176,13 +176,13 @@ export default function EmployeesPage() {
         <div style={modalOverlay}>
           <div style={modalBox}>
             <div style={modalHeader}>
-              <div style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#111827' }}>Add New Employee</div>
+              <div style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#111827' }}>Add New Team Member</div>
               <button onClick={() => { setShowCreate(false); setFormError('') }} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#9CA3AF' }}>×</button>
             </div>
             <form onSubmit={handleCreate} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {formError && <div style={{ background: '#FEF2F2', borderRadius: 8, padding: '0.65rem 1rem', fontSize: '0.82rem', color: '#B91C1C' }}>{formError}</div>}
               <div style={{ background: '#EFF6FF', borderRadius: 8, padding: '0.75rem 1rem', fontSize: '0.82rem', color: '#1D4ED8', lineHeight: 1.5 }}>
-                🔐 A secure temporary password will be automatically generated and emailed to the employee. They will be required to set their own password on first login.
+                🔐 A secure temporary password will be automatically generated and emailed, with a login link for their specific role. They will be required to set their own password on first login.
               </div>
               <div>
                 <label style={labelStyle}>Full Name *</label>
@@ -198,6 +198,8 @@ export default function EmployeesPage() {
                   <select style={inputStyle} value={form.role} onChange={e => update('role', e.target.value)}>
                     <option value="employee">Employee</option>
                     <option value="admin">Admin</option>
+                    <option value="superadmin">Superadmin</option>
+                    <option value="sales">Sales</option>
                   </select>
                 </div>
                 <div>
@@ -221,7 +223,7 @@ export default function EmployeesPage() {
         <div style={modalOverlay}>
           <div style={modalBox}>
             <div style={modalHeader}>
-              <div style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#111827' }}>Edit Employee</div>
+              <div style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#111827' }}>Edit Team Member</div>
               <button onClick={() => setEditEmployee(null)} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#9CA3AF' }}>×</button>
             </div>
             <form onSubmit={handleEdit} style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -240,6 +242,8 @@ export default function EmployeesPage() {
                   <select style={inputStyle} value={editForm.role} onChange={e => updateEdit('role', e.target.value)}>
                     <option value="employee">Employee</option>
                     <option value="admin">Admin</option>
+                    <option value="superadmin">Superadmin</option>
+                    <option value="sales">Sales</option>
                   </select>
                 </div>
                 <div>
@@ -294,7 +298,7 @@ export default function EmployeesPage() {
         <div style={modalOverlay}>
           <div style={{ ...modalBox, maxWidth: 420 }}>
             <div style={modalHeader}>
-              <div style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#111827' }}>Delete Employee</div>
+              <div style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#111827' }}>Delete Team Member</div>
               <button onClick={() => setDeleteEmployee(null)} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#9CA3AF' }}>×</button>
             </div>
             <div style={{ padding: '1.5rem' }}>
@@ -316,12 +320,12 @@ export default function EmployeesPage() {
         <div>
           <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#0F766E', marginBottom: 6 }}>NMD Portal</div>
           <h1 style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '28px', fontWeight: 800, color: '#111827', letterSpacing: '-0.025em', marginBottom: 6 }}>Employees</h1>
-          <p style={{ color: '#6B7280', fontSize: '14px', margin: 0 }}>{employees.length} team members</p>
+          <p style={{ color: '#6B7280', fontSize: '14px', margin: 0 }}>{employees.length} staff accounts (Employee, Admin, Superadmin, Sales)</p>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <SearchInput value={search} onChange={setSearch} placeholder="Search employees..." />
           <button onClick={() => setShowCreate(true)} style={{ padding: '0.6rem 1.25rem', borderRadius: 8, background: '#0F766E', color: 'white', fontWeight: 600, fontSize: '0.85rem', border: 'none', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', whiteSpace: 'nowrap' }}>
-            + Add Employee
+            + Add Team Member
           </button>
         </div>
       </div>

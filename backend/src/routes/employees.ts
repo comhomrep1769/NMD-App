@@ -7,6 +7,9 @@ import { logActivity } from "../services/activityLog.js";
 
 const router = Router();
 
+const STAFF_ROLES = ["admin", "superadmin", "employee", "sales"] as const;
+type StaffRole = typeof STAFF_ROLES[number];
+
 function generateTempPassword(): string {
   const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
   let result = ''
@@ -14,6 +17,23 @@ function generateTempPassword(): string {
     result += chars.charAt(Math.floor(Math.random() * chars.length))
   }
   return result
+}
+
+// ── The correct login page differs per role — used in welcome/reset emails
+// so new accounts land on the right page instead of always /employee/login. ──
+function portalUrlForRole(role: string): string {
+  const base = process.env.FRONTEND_URL || "https://nmdpowash.com";
+  const map: Record<string, string> = {
+    admin: `${base}/admin`,
+    superadmin: `${base}/superadmin`,
+    employee: `${base}/employee/login`,
+    sales: `${base}/sales/login`,
+  };
+  return map[role] || `${base}/employee/login`;
+}
+
+function capitalize(s: string) {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 }
 
 function mapEmployee(row: any) {
@@ -28,11 +48,11 @@ function mapEmployee(row: any) {
   };
 }
 
-router.get("/", requireAuth, requireRole("admin"), async (_req, res) => {
+router.get("/", requireAuth, requireRole("admin", "superadmin"), async (_req, res) => {
   try {
     const result = await pool.query(
       `SELECT id, email, display_name, role, created_at, pay_rate, must_change_password
-      FROM users WHERE role IN ('admin', 'employee') ORDER BY created_at DESC`
+      FROM users WHERE role IN ('admin', 'superadmin', 'employee', 'sales') ORDER BY created_at DESC`
     );
     return res.json({ employees: result.rows.map(mapEmployee) });
   } catch (error) {
@@ -41,19 +61,19 @@ router.get("/", requireAuth, requireRole("admin"), async (_req, res) => {
   }
 });
 
-router.post("/", requireAuth, requireRole("admin"), async (req, res) => {
+router.post("/", requireAuth, requireRole("admin", "superadmin"), async (req, res) => {
   try {
     const { email, displayName, role, payRate } = req.body as {
       email?: string; displayName?: string;
-      role?: "admin" | "employee"; payRate?: number;
+      role?: StaffRole; payRate?: number;
     };
 
     if (!email || !displayName) {
       return res.status(400).json({ error: "Email and display name are required" });
     }
 
-    if (!role || !["admin", "employee"].includes(role)) {
-      return res.status(400).json({ error: "Role must be admin or employee" });
+    if (!role || !STAFF_ROLES.includes(role)) {
+      return res.status(400).json({ error: "Role must be admin, superadmin, employee, or sales" });
     }
 
     const existing = await pool.query(
@@ -77,7 +97,7 @@ router.post("/", requireAuth, requireRole("admin"), async (req, res) => {
     );
 
     const employee = mapEmployee(result.rows[0]);
-    const portalUrl = `${process.env.FRONTEND_URL || "https://nmdpowash.com"}/employee/login`;
+    const portalUrl = portalUrlForRole(employee.role);
 
     await logActivity({
       actorType: "admin",
@@ -93,8 +113,8 @@ router.post("/", requireAuth, requireRole("admin"), async (req, res) => {
       html: buildNmdEmailTemplate({
         title: "Welcome to the Team",
         heading: "Welcome to the Team!",
-        message: `Hi ${employee.displayName},\n\nWe are excited to have you on board at NMD Pressure Washing Services LLC. We are committed to providing top-notch service, supporting our team, and growing together.\n\nYOUR ACCOUNT DETAILS\n\nEmail: ${employee.email}\nTemporary Password: ${tempPassword}\nRole: ${employee.role}\n\nPlease log in using the button below and you will be prompted to set your own password immediately.\n\nGET STARTED\n\nComplete the following to get set up:\n- Log in and set your permanent password\n- Complete new hire paperwork (I-9, W-4, Direct deposit)\n- Review and sign company policies\n- Receive equipment and uniform if applicable\n- Meet your team and review your first week schedule\n\nADD THE APP TO YOUR PHONE\n\niPhone (Safari): Open the link in Safari, tap the Share icon, select Add to Home Screen, tap Add.\n\nAndroid (Chrome): Open the link in Chrome, tap the menu (3 dots), select Add to Home Screen or Install App, tap Add/Install.\n\nSAFETY COMES FIRST\n\nYour safety and the safety of others is our top priority. Always follow safety guidelines, wear required PPE, and report any hazards immediately.\n\nThank you for choosing to be a part of NMD Pressure Washing Services LLC. We look forward to achieving great things together!\n\nBest regards,\nNMD Pressure Washing Services LLC\n321-888-6586\nnmdpowash@gmail.com`,
-        buttonText: "Log In to Employee Portal",
+        message: `Hi ${employee.displayName},\n\nWe are excited to have you on board at NMD Pressure Washing Services LLC. We are committed to providing top-notch service, supporting our team, and growing together.\n\nYOUR ACCOUNT DETAILS\n\nEmail: ${employee.email}\nTemporary Password: ${tempPassword}\nRole: ${capitalize(employee.role)}\n\nPlease log in using the button below and you will be prompted to set your own password immediately.\n\nGET STARTED\n\nComplete the following to get set up:\n- Log in and set your permanent password\n- Complete new hire paperwork (I-9, W-4, Direct deposit)\n- Review and sign company policies\n- Receive equipment and uniform if applicable\n- Meet your team and review your first week schedule\n\nADD THE APP TO YOUR PHONE\n\niPhone (Safari): Open the link in Safari, tap the Share icon, select Add to Home Screen, tap Add.\n\nAndroid (Chrome): Open the link in Chrome, tap the menu (3 dots), select Add to Home Screen or Install App, tap Add/Install.\n\nSAFETY COMES FIRST\n\nYour safety and the safety of others is our top priority. Always follow safety guidelines, wear required PPE, and report any hazards immediately.\n\nThank you for choosing to be a part of NMD Pressure Washing Services LLC. We look forward to achieving great things together!\n\nBest regards,\nNMD Pressure Washing Services LLC\n321-888-6586\nnmdpowash@gmail.com`,
+        buttonText: "Log In to Your Portal",
         buttonUrl: portalUrl,
         footerNote: "Clean Results. Reliable Service. Every Time."
       }),
@@ -150,16 +170,16 @@ router.post("/change-password", requireAuth, async (req, res) => {
   }
 });
 
-router.patch("/:employeeId", requireAuth, requireRole("admin"), async (req, res) => {
+router.patch("/:employeeId", requireAuth, requireRole("admin", "superadmin"), async (req, res) => {
   try {
     const { employeeId } = req.params;
     const { email, displayName, role, payRate } = req.body as {
       email?: string; displayName?: string;
-      role?: "admin" | "employee"; payRate?: number;
+      role?: StaffRole; payRate?: number;
     };
 
-    if (role && !["admin", "employee"].includes(role)) {
-      return res.status(400).json({ error: "Role must be admin or employee" });
+    if (role && !STAFF_ROLES.includes(role)) {
+      return res.status(400).json({ error: "Role must be admin, superadmin, employee, or sales" });
     }
 
     const result = await pool.query(
@@ -169,7 +189,7 @@ router.patch("/:employeeId", requireAuth, requireRole("admin"), async (req, res)
         display_name = COALESCE($3, display_name),
         role = COALESCE($4, role),
         pay_rate = COALESCE($5, pay_rate)
-      WHERE id = $1 AND role IN ('admin', 'employee')
+      WHERE id = $1 AND role IN ('admin', 'superadmin', 'employee', 'sales')
       RETURNING id, email, display_name, role, created_at, pay_rate, must_change_password`,
       [employeeId, email ? email.trim().toLowerCase() : null,
        displayName ? displayName.trim() : null, role ?? null, payRate ?? null]
@@ -187,12 +207,12 @@ router.patch("/:employeeId", requireAuth, requireRole("admin"), async (req, res)
 });
 
 // ── Admin resets an employee's password ─────────────────────────────────────
-router.post("/:employeeId/reset-password", requireAuth, requireRole("admin"), async (req, res) => {
+router.post("/:employeeId/reset-password", requireAuth, requireRole("admin", "superadmin"), async (req, res) => {
   try {
     const { employeeId } = req.params;
 
     const userResult = await pool.query(
-      `SELECT id, email, display_name FROM users WHERE id = $1 AND role IN ('admin','employee') LIMIT 1`,
+      `SELECT id, email, display_name, role FROM users WHERE id = $1 AND role IN ('admin','superadmin','employee','sales') LIMIT 1`,
       [employeeId]
     );
 
@@ -217,7 +237,7 @@ router.post("/:employeeId/reset-password", requireAuth, requireRole("admin"), as
       metadata: { employeeId },
     });
 
-    const portalUrl = `${process.env.FRONTEND_URL || "https://nmdpowash.com"}/employee/login`;
+    const portalUrl = portalUrlForRole(employee.role);
 
     await sendEmail({
       to: employee.email,
@@ -240,12 +260,12 @@ router.post("/:employeeId/reset-password", requireAuth, requireRole("admin"), as
   }
 });
 
-router.delete("/:employeeId", requireAuth, requireRole("admin"), async (req, res) => {
+router.delete("/:employeeId", requireAuth, requireRole("admin", "superadmin"), async (req, res) => {
   try {
     const { employeeId } = req.params;
 
     const result = await pool.query(
-      `DELETE FROM users WHERE id = $1 AND role IN ('admin', 'employee') RETURNING id`,
+      `DELETE FROM users WHERE id = $1 AND role IN ('admin', 'superadmin', 'employee', 'sales') RETURNING id`,
       [employeeId]
     );
 

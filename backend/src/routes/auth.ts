@@ -14,7 +14,7 @@ const pool = new Pool({
       : undefined
 });
 
-type UserRole = "superadmin" | "admin" | "employee" | "client";
+type UserRole = "superadmin" | "admin" | "employee" | "client" | "sales";
 
 type DbUser = {
   id: string;
@@ -77,6 +77,7 @@ function normalizeRole(value: unknown): UserRole {
   if (value === "superadmin") return "superadmin";
   if (value === "admin") return "admin";
   if (value === "employee") return "employee";
+  if (value === "sales") return "sales";
   return "client";
 }
 
@@ -84,7 +85,8 @@ function getAllowedRolesForPortal(portalRole: string): UserRole[] {
   if (portalRole === "admin" || portalRole === "superadmin") return ["admin", "superadmin"];
   if (portalRole === "employee") return ["employee"];
   if (portalRole === "client") return ["client"];
-  return ["superadmin", "admin", "employee", "client"];
+  if (portalRole === "sales") return ["sales"];
+  return ["superadmin", "admin", "employee", "client", "sales"];
 }
 
 async function ensureUsersTable() {
@@ -108,7 +110,7 @@ async function ensureUsersTable() {
   await pool.query(`ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;`);
   await pool.query(`
     ALTER TABLE users ADD CONSTRAINT users_role_check
-    CHECK (role IN ('superadmin', 'admin', 'employee', 'client'));
+    CHECK (role IN ('superadmin', 'admin', 'employee', 'client', 'sales'));
   `);
   await pool.query(`ALTER TABLE users DROP CONSTRAINT IF EXISTS users_client_pay_rate_check;`);
   await pool.query(`
@@ -263,6 +265,7 @@ router.post("/login", async (req, res) => {
         const portalName =
           portalRole === "client" ? "client portal" :
           portalRole === "employee" ? "employee portal" :
+          portalRole === "sales" ? "sales portal" :
           "admin portal";
         return res.status(403).json({
           message: `This account does not have access to the ${portalName}. Please use the correct login page.`
