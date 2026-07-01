@@ -18,6 +18,7 @@ type ContentItem = {
 
 const PAGE_LABELS: Record<string, string> = {
   home: 'Homepage',
+  login: 'Login & Auth Pages',
   global: 'Site-wide',
 }
 
