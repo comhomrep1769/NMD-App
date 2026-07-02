@@ -3,12 +3,15 @@ import { pool } from "../db.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 import { buildNmdEmailTemplate, sendEmail } from "../services/email.js";
 import { createClientAccountAndToken } from "./auth.js";
+import { logActivity } from "../services/activityLog.js";
 const router = Router();
 router.get("/", requireAuth, requireRole("admin"), async (_req, res) => {
     try {
         const result = await pool.query(`SELECT id, first_name, last_name, phone, email, address, service_type,
-        preferred_date, preferred_time, notes, photo_data_url, photo_note,
-        waiver_accepted, waiver_signature, waiver_signed_at, status, created_at
+        preferred_date, preferred_time, notes, photo_note, status, created_at,
+        waiver_accepted, waiver_signed_at,
+        (photo_data_url IS NOT NULL) AS has_photo,
+        (waiver_signature IS NOT NULL) AS has_signature
       FROM service_requests ORDER BY created_at DESC`);
         return res.json({
             requests: result.rows.map((row) => ({
@@ -16,14 +19,42 @@ router.get("/", requireAuth, requireRole("admin"), async (_req, res) => {
                 phone: row.phone, email: row.email, address: row.address,
                 serviceType: row.service_type, preferredDate: row.preferred_date,
                 preferredTime: row.preferred_time, notes: row.notes,
-                photoDataUrl: row.photo_data_url, photoNote: row.photo_note,
-                waiverAccepted: row.waiver_accepted, waiverSignature: row.waiver_signature,
-                waiverSignedAt: row.waiver_signed_at, status: row.status, createdAt: row.created_at
+                photoNote: row.photo_note, hasPhoto: row.has_photo, hasSignature: row.has_signature,
+                waiverAccepted: row.waiver_accepted, waiverSignedAt: row.waiver_signed_at,
+                status: row.status, createdAt: row.created_at
             }))
         });
     }
     catch (error) {
         console.error("service requests list error", error);
+        return res.status(500).json({ error: "Server error" });
+    }
+});
+// ── Full detail (includes the heavy base64 photo/signature) — fetched on demand only ──
+router.get("/:requestId", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+        const { requestId } = req.params;
+        const result = await pool.query(`SELECT id, first_name, last_name, phone, email, address, service_type,
+        preferred_date, preferred_time, notes, photo_data_url, photo_note,
+        waiver_accepted, waiver_signature, waiver_signed_at, status, created_at
+      FROM service_requests WHERE id = $1 LIMIT 1`, [requestId]);
+        if (result.rows.length === 0)
+            return res.status(404).json({ error: "Service request not found" });
+        const row = result.rows[0];
+        return res.json({
+            request: {
+                id: row.id, firstName: row.first_name, lastName: row.last_name,
+                phone: row.phone, email: row.email, address: row.address,
+                serviceType: row.service_type, preferredDate: row.preferred_date,
+                preferredTime: row.preferred_time, notes: row.notes,
+                photoDataUrl: row.photo_data_url, photoNote: row.photo_note,
+                waiverAccepted: row.waiver_accepted, waiverSignature: row.waiver_signature,
+                waiverSignedAt: row.waiver_signed_at, status: row.status, createdAt: row.created_at
+            }
+        });
+    }
+    catch (error) {
+        console.error("service request detail error", error);
         return res.status(500).json({ error: "Server error" });
     }
 });
@@ -65,6 +96,14 @@ router.post("/public", async (req, res) => {
             waiverSignedAt: row.waiver_signed_at, status: row.status, createdAt: row.created_at
         };
         console.log("[requests/public] saved to DB, email:", email);
+        // ── Activity log: new service request submitted ──
+        await logActivity({
+            actorType: "client",
+            actorName: `${firstName} ${lastName || ""}`.trim(),
+            action: "service_request_submitted",
+            description: `${firstName} ${lastName || ""} submitted a new service request: ${serviceType} at ${address}`,
+            metadata: { requestId: row.id, serviceType, address, email: email || null },
+        });
         // ── Sync phone + SMS consent to clients table if client exists ──
         if (email && client_phone) {
             try {
@@ -74,11 +113,11 @@ router.post("/public", async (req, res) => {
                 console.log("[requests/public] synced phone/sms_consent to clients table for:", email);
             }
             catch (syncErr) {
-                // Non-fatal — client row may not exist yet (created below during onboarding)
                 console.warn("[requests/public] sms sync skipped (client may not exist yet):", syncErr);
             }
         }
         const PORTAL_URL = process.env.FRONTEND_URL || "https://nmdpowash.com";
+        let accountWasCreated = false;
         if (email) {
             try {
                 console.log("[requests/public] creating client account for:", email);
@@ -89,6 +128,15 @@ router.post("/public", async (req, res) => {
                     phone: phone || null
                 });
                 console.log("[requests/public] account ready, isNew:", isNew);
+                accountWasCreated = isNew;
+                if (isNew) {
+                    await logActivity({
+                        actorType: "system",
+                        action: "client_account_auto_created",
+                        description: `New client account auto-created for ${displayName} (${email}) from a service request`,
+                        metadata: { email, displayName },
+                    });
+                }
                 // ── After account is created/confirmed, sync SMS consent again now that the row exists ──
                 if (client_phone) {
                     try {
@@ -148,7 +196,7 @@ router.post("/public", async (req, res) => {
             text: `New service request from ${firstName} ${lastName || ""}: ${serviceType} at ${address}`
         });
         console.log("[requests/public] admin notification sent");
-        return res.status(201).json({ request });
+        return res.status(201).json({ request, accountCreated: accountWasCreated });
     }
     catch (error) {
         console.error("[requests/public] error:", error);
@@ -169,6 +217,13 @@ router.patch("/:requestId/status", requireAuth, requireRole("admin"), async (req
         if (result.rows.length === 0)
             return res.status(404).json({ error: "Service request not found" });
         const row = result.rows[0];
+        await logActivity({
+            actorType: "admin",
+            actorId: req.user.id,
+            action: "service_request_status_changed",
+            description: `Service request for ${row.first_name} ${row.last_name || ""} (${row.service_type}) marked as ${status}`,
+            metadata: { requestId: row.id, status },
+        });
         return res.json({
             request: {
                 id: row.id, firstName: row.first_name, lastName: row.last_name,
@@ -206,6 +261,13 @@ router.post("/:requestId/convert-to-client", requireAuth, requireRole("admin"), 
             await client.query(`UPDATE service_requests SET status = 'reviewed' WHERE id = $1`, [requestId]);
             await client.query("COMMIT");
             const row = clientResult.rows[0];
+            await logActivity({
+                actorType: "admin",
+                actorId: req.user.id,
+                action: "request_converted_to_client",
+                description: `Converted service request from ${row.first_name} ${row.last_name || ""} into a client record`,
+                metadata: { requestId, clientId: row.id },
+            });
             return res.status(201).json({
                 client: {
                     id: row.id, firstName: row.first_name, lastName: row.last_name,

@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import salesRoutes from "./routes/sales.js";
 import authRoutes from "./routes/auth.js";
 import guruRoutes from "./routes/guru.js";
 import guruTrainingRoutes from "./routes/guruTraining.js";
@@ -28,6 +29,9 @@ import bonusRoutes from "./routes/bonus.js";
 import requestsRoutes from "./routes/requests.js";
 import smsRoutes from "./routes/sms.js";
 import routePlannerRoutes from "./routes/routePlanner.js";
+import applicantsRoutes from "./routes/applicants.js";
+import activityRoutes from "./routes/activity.js";
+import siteContentRoutes from "./routes/site-content.js";
 const app = express();
 const PORT = Number(process.env.PORT || 10000);
 const allowedOrigins = [
@@ -51,6 +55,11 @@ app.use(cors({
     },
     credentials: true
 }));
+// ── CRITICAL: Stripe webhook needs the raw request body to verify its
+// signature. It MUST be registered with express.raw() BEFORE the global
+// express.json() middleware below, or signature verification will always
+// fail and webhook events will be silently dropped. ──
+app.use("/api/payments/stripe-webhook", express.raw({ type: "application/json" }));
 app.use(express.json({ limit: "25mb" }));
 app.use(express.urlencoded({ extended: true, limit: "25mb" }));
 app.get("/", (_req, res) => {
@@ -86,6 +95,10 @@ app.use("/api/bonus", bonusRoutes);
 app.use("/api/requests", requestsRoutes);
 app.use("/api/sms", smsRoutes);
 app.use("/api/routes", routePlannerRoutes);
+app.use("/api/applicants", applicantsRoutes);
+app.use("/api/sales", salesRoutes);
+app.use("/api/activity", activityRoutes);
+app.use("/api/site-content", siteContentRoutes);
 app.use((req, res) => {
     res.status(404).json({ message: `Route not found: ${req.method} ${req.originalUrl}` });
 });

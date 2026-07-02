@@ -3,8 +3,25 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { Pool } from "pg";
 import crypto from "crypto";
+import rateLimit from "express-rate-limit";
 
 const router = express.Router();
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { message: "Too many login attempts. Please try again in 15 minutes." },
+  standardHeaders: true,
+  legacyHeaders: false,
+})
+
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  message: { message: "Too many account creation attempts. Please try again later." },
+  standardHeaders: true,
+  legacyHeaders: false,
+})
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -236,7 +253,7 @@ export async function createClientAccountAndToken(input: {
   return { userId, token, isNew };
 }
 
-router.post("/login", async (req, res) => {
+router.post("/login", loginLimiter, async (req, res) => {
   try {
     await ensureUsersTable();
     const email = String(req.body?.email || "").trim().toLowerCase();
@@ -299,7 +316,7 @@ router.get("/me", async (req, res) => {
   }
 });
 
-router.post("/register-client", async (req, res) => {
+router.post("/register-client", registerLimiter, async (req, res) => {
   try {
     await ensureUsersTable();
     const email = String(req.body?.email || "").trim().toLowerCase();
