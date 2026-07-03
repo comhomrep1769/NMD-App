@@ -40,7 +40,7 @@ export default async function Hero() {
 
   return (
     <section className="relative overflow-hidden pt-[68px]">
-      <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url("${content['hero.image_url']}")` }} />
+      <div className="absolute inset-0 bg-cover bg-top sm:bg-center" style={{ backgroundImage: `url("${content['hero.image_url']}")` }} />
       <div className="absolute inset-0" style={{ background: 'linear-gradient(105deg, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.68) 55%, rgba(0,0,0,0.4) 100%)' }} />
 
       <div className="relative z-10 mx-auto grid w-full max-w-[1440px] gap-12 px-6 py-20 sm:px-[65px] lg:grid-cols-[1fr_380px] lg:items-center">
@@ -146,3 +146,4 @@ export default async function Hero() {
     </section>
   )
 }
+
