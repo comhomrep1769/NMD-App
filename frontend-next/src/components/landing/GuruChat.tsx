@@ -196,11 +196,20 @@ export default function GuruChat() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [unread, setUnread] = useState(true)
+  const [guruAvatar, setGuruAvatar] = useState('/guru-avatar.jpg')
   const [estimateMode, setEstimateMode] = useState(false)
   const [estimateForm, setEstimateForm] = useState<EstimateForm>(EMPTY_FORM)
   const [savingEstimate, setSavingEstimate] = useState(false)
   const [estimateSubmitted, setEstimateSubmitted] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const API = process.env.NEXT_PUBLIC_API_URL || ''
+    fetch(`${API}/api/site-content`)
+      .then(r => r.json())
+      .then(d => { if (d.content?.['guru.avatar_url']) setGuruAvatar(d.content['guru.avatar_url']) })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (open) {
@@ -295,7 +304,7 @@ export default function GuruChat() {
       >
         {open ? '✕' : (
           <img
-            src="/guru-avatar.jpg"
+            src={guruAvatar}
             alt="Guru"
             style={{ width: 56, height: 56, objectFit: 'cover', objectPosition: 'center 10%' }}
           />
@@ -328,7 +337,7 @@ export default function GuruChat() {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <img
-                src="/guru-avatar.jpg"
+                src={guruAvatar}
                 alt="Guru"
                 style={{
                   width: 38, height: 38, borderRadius: '50%',
@@ -502,3 +511,4 @@ export default function GuruChat() {
     </>
   )
 }
+

@@ -16,6 +16,7 @@ const SITE_DEFAULTS: Record<string, string> = {
   'scripts.head': '',
   'scripts.body_start': '',
   'scripts.body_end': '',
+  'site.favicon_url': '/favicon.ico',
 }
 
 async function getGlobalSiteContent(): Promise<Record<string, string>> {
@@ -65,10 +66,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const headScripts = parseHeadScripts(site['scripts.head'] || '')
   const bodyStart = site['scripts.body_start']?.trim() || ''
   const bodyEnd = site['scripts.body_end']?.trim() || ''
+  const faviconUrl = site['site.favicon_url']?.trim() || '/favicon.ico'
 
   return (
     <html lang="en">
       <head>
+        <link rel="icon" href={faviconUrl} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <script
@@ -104,3 +107,4 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     </html>
   )
 }
+
