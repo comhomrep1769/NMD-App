@@ -64,7 +64,7 @@ export default function BeforeAfterSection() {
           <p className="max-w-[480px] text-base leading-relaxed text-gray-500">Real jobs. Real results. Toggle between before and after on any card.</p>
         </div>
 
-        <div className="grid-gallery grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6">
+        <div className="grid-gallery grid grid-cols-2 gap-6">
           {ITEMS.map((item, i) => {
             const showAfter = afterState[i]
             const imgUrl = siteImages[item.imageKey] || item.defaultImg
@@ -76,7 +76,7 @@ export default function BeforeAfterSection() {
                 onMouseEnter={() => setHoveredIdx(i)}
                 onMouseLeave={() => setHoveredIdx(null)}
               >
-                <div className="relative h-[200px] overflow-hidden sm:h-[280px]">
+                <div className="relative h-[280px] overflow-hidden">
                   <img
                     src={imgUrl}
                     alt={`${showAfter ? 'After' : 'Before'} — ${item.title}`}
@@ -107,4 +107,5 @@ export default function BeforeAfterSection() {
     </section>
   )
 }
+
 
