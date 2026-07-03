@@ -9,7 +9,7 @@ const router = express.Router();
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 5,
   message: { message: "Too many login attempts. Please try again in 15 minutes." },
   standardHeaders: true,
   legacyHeaders: false,
@@ -466,3 +466,4 @@ router.post("/seed-test-users", async (req, res) => {
 });
 
 export default router;
+

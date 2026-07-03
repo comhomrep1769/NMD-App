@@ -33,8 +33,8 @@ import applicantsRoutes from "./routes/applicants.js";
 import activityRoutes from "./routes/activity.js";
 import siteContentRoutes from "./routes/site-content.js";
 
-
 const app = express();
+app.set("trust proxy", 1);
 
 const PORT = Number(process.env.PORT || 10000);
 
@@ -53,9 +53,9 @@ app.use(
       if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
         callback(null, true); return;
       }
-      callback(null, true);
+      callback(new Error("Not allowed by CORS"));
     },
-    credentials: true
+    credentials: true,
   })
 );
 
@@ -110,8 +110,6 @@ app.use("/api/applicants", applicantsRoutes);
 app.use("/api/sales", salesRoutes);
 app.use("/api/activity", activityRoutes);
 app.use("/api/site-content", siteContentRoutes);
-
-
 
 app.use((req, res) => {
   res.status(404).json({ message: `Route not found: ${req.method} ${req.originalUrl}` });

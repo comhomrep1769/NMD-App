@@ -33,6 +33,7 @@ import applicantsRoutes from "./routes/applicants.js";
 import activityRoutes from "./routes/activity.js";
 import siteContentRoutes from "./routes/site-content.js";
 const app = express();
+app.set("trust proxy", 1);
 const PORT = Number(process.env.PORT || 10000);
 const allowedOrigins = [
     process.env.FRONTEND_URL,
@@ -51,9 +52,9 @@ app.use(cors({
             callback(null, true);
             return;
         }
-        callback(null, true);
+        callback(new Error("Not allowed by CORS"));
     },
-    credentials: true
+    credentials: true,
 }));
 // ── CRITICAL: Stripe webhook needs the raw request body to verify its
 // signature. It MUST be registered with express.raw() BEFORE the global
