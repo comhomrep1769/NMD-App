@@ -283,10 +283,10 @@ export default function GuruChat() {
         style={{
           position: 'fixed', bottom: '1.75rem', right: '1.75rem', zIndex: 1000,
           width: 56, height: 56, borderRadius: '50%', border: 'none',
-          background: 'linear-gradient(135deg, #1f6132, #124d83)',
+          background: open ? 'linear-gradient(135deg, #1f6132, #124d83)' : 'white',
           color: 'white', fontSize: '1rem',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 4px 24px rgba(23,99,168,0.35)', cursor: 'pointer',
+          boxShadow: '0 0 0 3px #0F766E, 0 4px 24px rgba(15,118,110,0.3)', cursor: 'pointer',
           transition: 'transform 0.2s, box-shadow 0.2s',
           padding: 0, overflow: 'hidden',
         }}
