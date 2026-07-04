@@ -10,7 +10,7 @@ export default function CtaBand() {
 
   useEffect(() => {
     const API = process.env.NEXT_PUBLIC_API_URL || ''
-    fetch(${API}/api/site-content)
+    fetch(`${API}/api/site-content`)
       .then(r => r.json())
       .then(d => { if (d.content?.['site.phone']) setPhone(d.content['site.phone']) })
       .catch(() => {})

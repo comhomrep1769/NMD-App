@@ -64,7 +64,7 @@ export default function RecurringSection() {
               {plan.featured && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#0C5A54] px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white">Popular</div>
               )}
-              <div className={	ext-[13px] font-bold }>{plan.freq}</div>
+              <div className={`text-[13px] font-bold ${plan.featured ? 'text-white' : 'text-gray-900'}`}>{plan.freq}</div>
               <div className={plan.featured ? 'inline-flex w-fit items-center rounded-md bg-white/[0.18] px-2 py-[3px] text-[11px] font-bold text-white' : 'inline-flex w-fit items-center rounded-md bg-[#F0FDF9] px-2 py-[3px] text-[11px] font-bold text-[#0F766E]'}>
                 20% off
               </div>
