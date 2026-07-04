@@ -4,6 +4,7 @@ const AREA_LINKS = ['Orange County FL', 'Orlando FL', 'Winter Park FL', 'Kissimm
 const CONTACT_DEFAULTS: Record<string, string> = {
   'site.phone': '(407) 555-0182',
   'site.email': 'hello@nmdpowash.com',
+  'site.copyright_year': '2026',
 }
 
 async function getSiteContact(): Promise<Record<string, string>> {
@@ -22,7 +23,8 @@ export default async function Footer() {
   const site = await getSiteContact()
   const phone = site['site.phone']
   const email = site['site.email']
-  const year = new Date().getFullYear()
+  const copyrightYear = site['site.copyright_year'] || String(new Date().getFullYear())
+  // year from site content
 
   return (
     <footer className="bg-gray-900 pt-16">
@@ -86,7 +88,7 @@ export default async function Footer() {
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-4 py-5">
-          <span className="text-xs !text-white/22">&copy; {year} NMD Pressure Washing Services LLC. All rights reserved.</span>
+          <span className="text-xs !text-white/22">&copy; {copyrightYear} NMD Pressure Washing Services LLC. All rights reserved.</span>
           <div className="flex gap-5">
             <a href="#" className="text-xs !text-white/22">Privacy Policy</a>
             <a href="#" className="text-xs !text-white/22">Terms of Service</a>
@@ -97,3 +99,4 @@ export default async function Footer() {
     </footer>
   )
 }
+
