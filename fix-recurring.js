@@ -1,0 +1,5 @@
+﻿const fs = require('fs')
+let c = fs.readFileSync('frontend-next/src/components/landing/RecurringSection.tsx', 'utf8')
+c = c.replace('<div className={\text-[13px] font-bold }>', '<div className={	ext-[13px] font-bold \}>')
+fs.writeFileSync('frontend-next/src/components/landing/RecurringSection.tsx', c, 'utf8')
+console.log('RecurringSection fixed')
