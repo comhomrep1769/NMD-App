@@ -105,7 +105,7 @@ export default function ServicesSection() {
             </p>
           </div>
           
-            href="/client/request-service"
+            <a href="/client/request-service"
             className="flex-shrink-0 rounded-lg border border-teal-700 px-5 py-2.5 text-sm font-semibold text-teal-700 hover:bg-teal-50"
           >
             View All Services
