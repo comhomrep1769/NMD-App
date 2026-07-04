@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
 import salesRoutes from "./routes/sales.js";
 import authRoutes from "./routes/auth.js";
 import guruRoutes from "./routes/guru.js";
@@ -34,6 +35,7 @@ import activityRoutes from "./routes/activity.js";
 import siteContentRoutes from "./routes/site-content.js";
 const app = express();
 app.set("trust proxy", 1);
+app.use(helmet({ contentSecurityPolicy: false }));
 const PORT = Number(process.env.PORT || 10000);
 const allowedOrigins = [
     process.env.FRONTEND_URL,
