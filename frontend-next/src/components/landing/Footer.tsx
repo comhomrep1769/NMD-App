@@ -1,7 +1,29 @@
 ﻿const SERVICES_LINKS = ['Residential', 'Commercial', 'Industrial', 'Specialty & Restoration', 'Recurring Plans']
 const AREA_LINKS = ['Orange County FL', 'Orlando FL', 'Winter Park FL', 'Kissimmee FL', 'Brevard County FL', 'Melbourne FL', 'Palm Bay FL']
 
-export default function Footer() {
+const CONTACT_DEFAULTS: Record<string, string> = {
+  'site.phone': '(407) 555-0182',
+  'site.email': 'hello@nmdpowash.com',
+}
+
+async function getSiteContact(): Promise<Record<string, string>> {
+  try {
+    const API = process.env.NEXT_PUBLIC_API_URL || ''
+    const res = await fetch(`${API}/api/site-content`, { cache: 'no-store' })
+    if (!res.ok) return CONTACT_DEFAULTS
+    const data = await res.json()
+    return { ...CONTACT_DEFAULTS, ...(data.content || {}) }
+  } catch {
+    return CONTACT_DEFAULTS
+  }
+}
+
+export default async function Footer() {
+  const site = await getSiteContact()
+  const phone = site['site.phone']
+  const email = site['site.email']
+  const year = new Date().getFullYear()
+
   return (
     <footer className="bg-gray-900 pt-16">
       <div className="mx-auto max-w-[1440px] px-4 sm:px-[65px]">
@@ -15,16 +37,14 @@ export default function Footer() {
               Professional pressure washing for homes, businesses, and industrial properties
               across Central Florida. Licensed, insured, and committed to results.
             </p>
-            <p className="text-[13px] !text-white/30">(407) 555-0182 &middot; hello@nmdpressure.com</p>
+            <p className="text-[13px] !text-white/30">{phone} &middot; {email}</p>
           </div>
 
           <div>
             <div className="mb-5 text-[10px] font-bold uppercase tracking-[0.12em] !text-white/28">Services</div>
             <div className="flex flex-col gap-2.5">
               {SERVICES_LINKS.map((label) => (
-                <a key={label} href="#services" className="text-sm !text-white/50">
-                  {label}
-                </a>
+                <a key={label} href="#services" className="text-sm !text-white/50">{label}</a>
               ))}
             </div>
           </div>
@@ -33,9 +53,7 @@ export default function Footer() {
             <div className="mb-5 text-[10px] font-bold uppercase tracking-[0.12em] !text-white/28">Service Areas</div>
             <div className="flex flex-col gap-2.5">
               {AREA_LINKS.map((label) => (
-                <a key={label} href="#service-areas" className="text-sm !text-white/50">
-                  {label}
-                </a>
+                <a key={label} href="#service-areas" className="text-sm !text-white/50">{label}</a>
               ))}
             </div>
           </div>
@@ -68,7 +86,7 @@ export default function Footer() {
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-4 py-5">
-          <span className="text-xs !text-white/22">&copy; 2025 NMD Pressure Washing Services LLC. All rights reserved.</span>
+          <span className="text-xs !text-white/22">&copy; {year} NMD Pressure Washing Services LLC. All rights reserved.</span>
           <div className="flex gap-5">
             <a href="#" className="text-xs !text-white/22">Privacy Policy</a>
             <a href="#" className="text-xs !text-white/22">Terms of Service</a>

@@ -17,6 +17,9 @@ const SITE_DEFAULTS: Record<string, string> = {
   'scripts.body_start': '',
   'scripts.body_end': '',
   'site.favicon_url': '/favicon.ico',
+  'site.phone': '(407) 555-0182',
+  'site.email': 'hello@nmdpowash.com',
+  'site.address': 'Orlando, FL',
 }
 
 async function getGlobalSiteContent(): Promise<Record<string, string>> {
@@ -83,7 +86,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               name: 'NMD Pressure Washing',
               description: 'Professional pressure washing services in Brevard County and Orange County, Florida.',
               url: 'https://nmdpowash.com',
-              telephone: '',
+              telephone: site['site.phone'] || '',
               areaServed: [
                 { '@type': 'AdministrativeArea', name: 'Brevard County', containedInPlace: { '@type': 'State', name: 'Florida' } },
                 { '@type': 'AdministrativeArea', name: 'Orange County', containedInPlace: { '@type': 'State', name: 'Florida' } },
@@ -92,6 +95,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               priceRange: '$$',
               openingHours: 'Mo-Sa 07:00-19:00',
               sameAs: ['https://lnk.bio/NMDPowash'],
+              email: site['site.email'] || '',
+              address: {
+                '@type': 'PostalAddress',
+                streetAddress: site['site.address'] || '',
+                addressLocality: 'Orlando',
+                addressRegion: 'FL',
+                addressCountry: 'US',
+              },
             }),
           }}
         />
@@ -107,4 +118,5 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     </html>
   )
 }
+
 
