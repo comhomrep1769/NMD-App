@@ -75,9 +75,20 @@ function CheckIcon() {
   )
 }
 
+const PREVIEW_COUNT = 9
+
 export default function ServicesSection() {
   const [active, setActive] = useState<Category>('Residential')
+  const [expanded, setExpanded] = useState(false)
+
   const services = SERVICES[active]
+  const visibleServices = expanded ? services : services.slice(0, PREVIEW_COUNT)
+  const hasMore = services.length > PREVIEW_COUNT
+
+  const handleCategoryChange = (cat: Category) => {
+    setActive(cat)
+    setExpanded(false)
+  }
 
   return (
     <section className="bg-white py-20" id="services">
@@ -93,7 +104,7 @@ export default function ServicesSection() {
               technicians covering every surface across Central Florida.
             </p>
           </div>
-          <a
+          
             href="/client/request-service"
             className="flex-shrink-0 rounded-lg border border-teal-700 px-5 py-2.5 text-sm font-semibold text-teal-700 hover:bg-teal-50"
           >
@@ -105,7 +116,7 @@ export default function ServicesSection() {
           {CATEGORIES.map((cat) => (
             <button
               key={cat}
-              onClick={() => setActive(cat)}
+              onClick={() => handleCategoryChange(cat)}
               className={
                 active === cat
                   ? 'border-b-2 border-teal-700 pb-3 text-sm font-semibold text-teal-700'
@@ -119,22 +130,28 @@ export default function ServicesSection() {
 
         <p className="mb-7 max-w-2xl text-[15px] leading-relaxed text-gray-500">{CATEGORY_DESCRIPTIONS[active]}</p>
 
-        <div className="grid-services grid grid-cols-3 gap-x-10 gap-y-1">
-          {services.map((s) => (
+        <div className="grid-services grid grid-cols-2 gap-x-6 gap-y-1 sm:grid-cols-3 sm:gap-x-10">
+          {visibleServices.map((s) => (
             <div key={s} className="flex items-center gap-2.5 border-b border-gray-100 py-2.5">
               <CheckIcon />
               <span className="text-sm text-gray-700">{s}</span>
             </div>
           ))}
         </div>
+
+        {hasMore && (
+          <div className="mt-6 text-center">
+            <button
+              onClick={() => setExpanded(e => !e)}
+              className="inline-flex items-center gap-2 rounded-lg border border-teal-200 bg-teal-50 px-5 py-2.5 text-sm font-semibold text-teal-700 hover:bg-teal-100"
+            >
+              {expanded
+                ? 'Show less ↑'
+                : `Show all ${services.length} services ↓`}
+            </button>
+          </div>
+        )}
       </div>
     </section>
   )
 }
-
-
-
-
-
-
-
