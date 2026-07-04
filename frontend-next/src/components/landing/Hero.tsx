@@ -40,7 +40,7 @@ export default async function Hero() {
 
   return (
     <section className="relative overflow-hidden pt-[68px]">
-      <style>{
+      <style>{`
         @keyframes nmdHeroBgZoom { from { transform: scale(1.06); } to { transform: scale(1); } }
         @keyframes nmdFadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes nmdFadeRight { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: translateX(0); } }
@@ -51,7 +51,7 @@ export default async function Hero() {
         .nmd-fade-up-4 { animation: nmdFadeUp 0.7s ease both; animation-delay: 450ms; }
         .nmd-fade-up-5 { animation: nmdFadeUp 0.7s ease both; animation-delay: 600ms; }
         .nmd-fade-right { animation: nmdFadeRight 0.8s ease both; animation-delay: 350ms; }
-      }</style>
+      `}</style>
       <div className="nmd-hero-bg absolute inset-0 bg-cover bg-top sm:bg-center" style={{ backgroundImage: `url("${content['hero.image_url']}")` }} />
       <div className="absolute inset-0" style={{ background: 'linear-gradient(105deg, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.68) 55%, rgba(0,0,0,0.4) 100%)' }} />
 
