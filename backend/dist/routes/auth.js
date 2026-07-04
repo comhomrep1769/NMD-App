@@ -325,34 +325,4 @@ router.post("/change-password", async (req, res) => {
         return res.status(500).json({ error: err instanceof Error ? err.message : "Failed to update password." });
     }
 });
-router.post("/seed-test-users", async (req, res) => {
-    try {
-        await ensureUsersTable();
-        const requiredSeedKey = process.env.TEST_SEED_KEY || "";
-        const providedSeedKey = String(req.headers["x-test-seed-key"] || "") || String(req.body?.seedKey || "");
-        if (requiredSeedKey && providedSeedKey !== requiredSeedKey) {
-            return res.status(403).json({ message: "Invalid or missing TEST_SEED_KEY." });
-        }
-        const testUsers = [
-            { role: "superadmin", label: "Super Admin", email: "testsuperadmin@nmd.local", password: "TestSuperAdmin123!", displayName: "Test Super Admin", payRate: 40, phone: "321-888-6586" },
-            { role: "admin", label: "Admin", email: "testadmin@nmd.local", password: "TestAdmin123!", displayName: "Test Admin", payRate: 35, phone: "321-888-6586" },
-            { role: "employee", label: "Employee", email: "testemployee@nmd.local", password: "Test1234!", displayName: "Test Employee", payRate: 30, phone: "321-888-6586" },
-            { role: "client", label: "Client", email: "testclient@nmd.local", password: "TestClient123!", displayName: "Test Client", payRate: null, phone: "321-888-6586" }
-        ];
-        const savedUsers = [];
-        for (const testUser of testUsers) {
-            await upsertTestUser({
-                email: testUser.email, password: testUser.password,
-                displayName: testUser.displayName, role: normalizeRole(testUser.role),
-                payRate: testUser.payRate, phone: testUser.phone
-            });
-            savedUsers.push({ role: testUser.label, email: testUser.email, password: testUser.password });
-        }
-        return res.json({ message: "Test users created or refreshed successfully.", users: savedUsers });
-    }
-    catch (err) {
-        console.error("Seed test users error:", err);
-        return res.status(500).json({ message: err instanceof Error ? err.message : "Failed to seed test users." });
-    }
-});
 export default router;
