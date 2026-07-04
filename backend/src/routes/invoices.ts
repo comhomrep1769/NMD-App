@@ -170,7 +170,43 @@ router.patch("/:invoiceId", requireAuth, requireRole("admin"), async (req, res) 
       ]
     );
 
-    return res.json({ invoice: mapInvoice(result.rows[0]) });
+    const invoice = mapInvoice(result.rows[0]);
+
+    // Notify client with payment link when invoice is updated
+    if (invoice.paymentLinkUrl && invoice.status === 'unpaid') {
+      try {
+        const clientEmailResult = await pool.query(
+          `SELECT email FROM clients WHERE id = $1 OR LOWER(CONCAT(first_name,' ',last_name)) = LOWER($2) LIMIT 1`,
+          [invoice.clientId || 'none', invoice.clientName]
+        );
+        const clientEmail = clientEmailResult.rows[0]?.email;
+        if (clientEmail) {
+          await sendEmail({
+            to: clientEmail,
+            subject: `Invoice #${invoice.invoiceNumber} – Payment Due | NMD Pressure Washing`,
+            html: buildNmdEmailTemplate({
+              title: `Invoice #${invoice.invoiceNumber}`,
+              heading: `Invoice Ready for Payment`,
+              message: `Hi ${invoice.clientName},
+
+Your invoice for ${invoice.jobName} has been updated.
+
+Total Due: ${invoice.total.toFixed(2)}
+
+Click the button below to pay securely online.`,
+              buttonText: 'Pay Invoice Now →',
+              buttonUrl: invoice.paymentLinkUrl,
+              footerNote: 'Clean Results. Reliable Service. Every Time.'
+            }),
+            text: `Invoice #${invoice.invoiceNumber} for ${invoice.jobName}. Total: ${invoice.total.toFixed(2)}. Pay here: ${invoice.paymentLinkUrl}`
+          });
+        }
+      } catch (emailErr) {
+        console.error('Invoice update email error:', emailErr);
+      }
+    }
+
+    return res.json({ invoice });
   } catch (error) {
     console.error("invoice update error", error);
     return res.status(500).json({ error: "Server error" });

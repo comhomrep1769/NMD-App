@@ -2,6 +2,7 @@
 import { pool } from "../db.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 import { sendPushToUser } from "../services/push.js";
+import { buildNmdEmailTemplate, sendEmail } from "../services/email.js";
 
 const router = Router();
 
@@ -369,6 +370,44 @@ router.patch("/:jobId", requireAuth, requireRole("admin"), async (req, res) => {
             body: `${title || updatedJob.title || "A scheduled job"} was updated.`,
             url: "/"
           });
+        }
+      }
+
+      // Send payment email when job is marked completed
+      if (status === 'completed') {
+        try {
+          const invResult = await pool.query(
+            `SELECT invoice_number, client_name, client_id, job_name, total, payment_link_url
+               FROM invoices
+               WHERE job_id = $1 AND status = 'unpaid' AND payment_link_url IS NOT NULL
+               LIMIT 1`,
+            [jobId]
+          );
+          if (invResult.rows.length > 0) {
+            const inv = invResult.rows[0];
+            const clientEmailResult = await pool.query(
+              `SELECT email FROM clients WHERE id = $1 OR LOWER(CONCAT(first_name,' ',last_name)) = LOWER($2) LIMIT 1`,
+              [inv.client_id || 'none', inv.client_name]
+            );
+            const clientEmail = clientEmailResult.rows[0]?.email;
+            if (clientEmail) {
+              await sendEmail({
+                to: clientEmail,
+                subject: `Your service is complete - Invoice #${inv.invoice_number} | NMD Pressure Washing`,
+                html: buildNmdEmailTemplate({
+                  title: 'Service Complete',
+                  heading: 'Your Service is Complete!',
+                  message: `Hi ${inv.client_name},\n\nGreat news - your ${inv.job_name} service has been completed.\n\nInvoice #${inv.invoice_number}\nTotal Due: ${Number(inv.total).toFixed(2)}\n\nClick below to pay securely online.`,
+                  buttonText: 'Pay Invoice Now',
+                  buttonUrl: inv.payment_link_url,
+                  footerNote: 'Clean Results. Reliable Service. Every Time.'
+                }),
+                text: `Your NMD ${inv.job_name} service is complete. Invoice #${inv.invoice_number}. Total: ${Number(inv.total).toFixed(2)}. Pay here: ${inv.payment_link_url}`
+              });
+            }
+          }
+        } catch (emailErr) {
+          console.error('Job completion email error:', emailErr);
         }
       }
 
