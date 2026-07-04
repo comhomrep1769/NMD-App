@@ -40,24 +40,36 @@ export default async function Hero() {
 
   return (
     <section className="relative overflow-hidden pt-[68px]">
-      <div className="absolute inset-0 bg-cover bg-top sm:bg-center" style={{ backgroundImage: `url("${content['hero.image_url']}")` }} />
+      <style>{
+        @keyframes nmdHeroBgZoom { from { transform: scale(1.06); } to { transform: scale(1); } }
+        @keyframes nmdFadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes nmdFadeRight { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: translateX(0); } }
+        .nmd-hero-bg { animation: nmdHeroBgZoom 16s ease-out forwards; }
+        .nmd-fade-up-1 { animation: nmdFadeUp 0.7s ease both; animation-delay: 0ms; }
+        .nmd-fade-up-2 { animation: nmdFadeUp 0.7s ease both; animation-delay: 150ms; }
+        .nmd-fade-up-3 { animation: nmdFadeUp 0.7s ease both; animation-delay: 300ms; }
+        .nmd-fade-up-4 { animation: nmdFadeUp 0.7s ease both; animation-delay: 450ms; }
+        .nmd-fade-up-5 { animation: nmdFadeUp 0.7s ease both; animation-delay: 600ms; }
+        .nmd-fade-right { animation: nmdFadeRight 0.8s ease both; animation-delay: 350ms; }
+      }</style>
+      <div className="nmd-hero-bg absolute inset-0 bg-cover bg-top sm:bg-center" style={{ backgroundImage: `url("${content['hero.image_url']}")` }} />
       <div className="absolute inset-0" style={{ background: 'linear-gradient(105deg, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.68) 55%, rgba(0,0,0,0.4) 100%)' }} />
 
       <div className="relative z-10 mx-auto grid w-full max-w-[1440px] gap-12 px-6 py-20 sm:px-[65px] lg:grid-cols-[1fr_380px] lg:items-center">
         <div>
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-400/35 bg-emerald-400/10 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-emerald-300">
+          <div className="nmd-fade-up-1 mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-400/35 bg-emerald-400/10 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-emerald-300">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
             {content['hero.badge_text']}
           </div>
 
-          <h1 className="mb-5 text-4xl font-extrabold leading-[1.1] tracking-tight !text-white sm:text-5xl lg:text-6xl">
+          <h1 className="nmd-fade-up-2 mb-5 text-4xl font-extrabold leading-[1.1] tracking-tight !text-white sm:text-5xl lg:text-6xl">
             {content['hero.headline_main']}<br />
             <span className="text-emerald-400">{content['hero.headline_highlight']}</span>
           </h1>
 
-          <p className="mb-8 max-w-[480px] text-base leading-relaxed !text-white/70">{content['hero.subtext']}</p>
+          <p className="nmd-fade-up-3 mb-8 max-w-[480px] text-base leading-relaxed !text-white/70">{content['hero.subtext']}</p>
 
-          <div className="mb-10 flex flex-wrap gap-3">
+          <div className="nmd-fade-up-4 mb-10 flex flex-wrap gap-3">
             <a href="/client/request-service" className="inline-flex items-center gap-2 rounded-lg bg-teal-700 px-7 py-3.5 text-base font-semibold !text-white shadow-sm hover:bg-teal-800">
               {content['hero.cta_primary_text']} &rarr;
             </a>
@@ -66,7 +78,7 @@ export default async function Hero() {
             </a>
           </div>
 
-          <div className="flex gap-10">
+          <div className="nmd-fade-up-5 flex gap-10">
             <div>
               <div className="text-3xl font-extrabold tracking-tight !text-white">{content['hero.stat1_value']}</div>
               <div className="mt-1 text-sm !text-white/50">{content['hero.stat1_label']}</div>
@@ -82,7 +94,7 @@ export default async function Hero() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/15 bg-white/10 p-7 backdrop-blur-xl">
+        <div className="nmd-fade-right rounded-2xl border border-white/15 bg-white/10 p-7 backdrop-blur-xl">
           <div className="mb-4 text-[10px] font-bold uppercase tracking-wider !text-white/40">Service Areas</div>
           <h2 className="mb-2 text-xl font-bold !text-white">We come to you.</h2>
           <p className="mb-5 text-sm leading-relaxed !text-white/60">
