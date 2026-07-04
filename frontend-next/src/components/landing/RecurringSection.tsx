@@ -68,7 +68,7 @@ export default function RecurringSection() {
               <div className={plan.featured ? 'inline-flex w-fit items-center rounded-md bg-white/[0.18] px-2 py-[3px] text-[11px] font-bold text-white' : 'inline-flex w-fit items-center rounded-md bg-[#F0FDF9] px-2 py-[3px] text-[11px] font-bold text-[#0F766E]'}>
                 20% off
               </div>
-              <p className={	ext-xs leading-relaxed }>{plan.note}</p>
+              <p className={`text-xs leading-relaxed ${plan.featured ? 'text-white/75' : 'text-gray-500'}`}>{plan.note}</p>
             </motion.div>
           ))}
         </motion.div>
