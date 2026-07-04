@@ -36,7 +36,7 @@ export default function PricingSection() {
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: '-80px' }}
-          transition={{ duration: 0.6, ease: 'easeOut' }}
+          transition={{ duration: 0.6, ease: 'easeOut' as const }}
         >
           <p className="mb-2.5 text-[11px] font-bold uppercase tracking-wider text-teal-700">Pricing</p>
           <h2 className="mb-3.5 text-[40px] font-bold leading-[1.1] tracking-[-0.025em] text-gray-900">
@@ -49,7 +49,7 @@ export default function PricingSection() {
 
         {/* Service cards */}
         <motion.div
-          className="grid-pricing-cards mb-12 grid grid-cols-2 gap-4 sm:grid-cols-5"
+          className="grid-pricing-cards mb-12 grid grid-cols-5 gap-4"
           variants={container}
           initial="hidden"
           whileInView="visible"
@@ -80,7 +80,7 @@ export default function PricingSection() {
 
         {/* Package cards */}
         <motion.div
-          className="grid-packages grid grid-cols-1 gap-5 sm:grid-cols-3"
+          className="grid-packages grid grid-cols-3 gap-5"
           variants={container}
           initial="hidden"
           whileInView="visible"
