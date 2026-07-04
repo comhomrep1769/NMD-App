@@ -349,6 +349,15 @@ export default function AdminRoutesPage() {
 
   return (
     <PortalShell requiredRole={['admin', 'superadmin']}>
+      <style>{`
+        @media (max-width: 768px) {
+          .nmd-route-grid { grid-template-columns: 1fr !important; }
+          .nmd-route-employees { flex-direction: row !important; flex-wrap: nowrap !important; overflow-x: auto !important; padding-bottom: 0.5rem !important; -webkit-overflow-scrolling: touch; }
+          .nmd-route-emp-btn { flex-shrink: 0 !important; min-width: 150px !important; }
+          .nmd-route-map-wrap { height: 240px !important; }
+          .nmd-route-map-inner { height: 240px !important; }
+        }
+      `}</style>
       <SectionHeader
         title="Route Planner"
         sub="Build and assign employee routes. Select an employee, add jobs, drag to reorder, then save."
@@ -364,16 +373,16 @@ export default function AdminRoutesPage() {
       {error && <ErrorCard message={error} />}
 
       {!loading && !error && (
-        <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '1.25rem', alignItems: 'start' }}>
+        <div className="nmd-route-grid" style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '1.25rem', alignItems: 'start' }}>
 
           {/* Employee list */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div className="nmd-route-employees" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 2 }}>Employees</div>
             {employees.map(emp => {
               const hasRoute = routes.some(r => r.employee_id === emp.id)
               const isSel = selectedEmployee?.id === emp.id
               return (
-                <button key={emp.id} onClick={() => selectEmployee(emp)}
+                <button key={emp.id} className="nmd-route-emp-btn" onClick={() => selectEmployee(emp)}
                   style={{ padding: '0.85rem 1rem', borderRadius: 10, border: `1px solid ${isSel ? '#0F766E' : '#E5E7EB'}`, background: isSel ? 'rgba(15,118,110,0.08)' : 'white', textAlign: 'left', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', transition: 'all 0.15s' }}>
                   <div style={{ fontWeight: 600, fontSize: '0.875rem', color: '#111827', marginBottom: 3 }}>{emp.name}</div>
                   <div style={{ fontSize: '0.75rem', color: isSel ? '#0F766E' : '#9CA3AF' }}>{hasRoute ? '✓ Route assigned' : 'No route yet'}</div>
@@ -399,8 +408,8 @@ export default function AdminRoutesPage() {
                 </div>
               </div>
 
-              <div style={{ position: 'relative', height: 420, width: '100%' }}>
-                <div ref={mapDivRef} style={{ height: 420, width: '100%', borderRadius: '0 0 9px 9px' }} />
+              <div className="nmd-route-map-wrap" style={{ position: 'relative', height: 420, width: '100%' }}>
+                <div ref={mapDivRef} className="nmd-route-map-inner" style={{ height: 420, width: '100%', borderRadius: '0 0 9px 9px' }} />
                 {mapStatus !== 'map-initialized' && (
                   <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9CA3AF', fontSize: '0.85rem', background: 'white', borderRadius: '0 0 9px 9px' }}>
                     {mapStatus === 'failed' ? 'Map failed to load' : 'Loading map...'}
