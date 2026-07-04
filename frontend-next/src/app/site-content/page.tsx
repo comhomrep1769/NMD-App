@@ -10,7 +10,8 @@ type ContentItem = {
 }
 
 const PAGE_LABELS: Record<string, string> = {
-  home: 'Homepage', login: 'Login & Auth Pages', global: 'Site-wide',
+  home: 'Homepage', login: 'Login & Auth Pages',
+  legal: 'Legal Pages', global: 'Site-wide',
 }
 
 const FIELD_HINTS: Record<string, string> = {

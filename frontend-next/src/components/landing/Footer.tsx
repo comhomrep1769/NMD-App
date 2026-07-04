@@ -90,8 +90,8 @@ export default async function Footer() {
         <div className="flex flex-wrap items-center justify-between gap-4 py-5">
           <span className="text-xs !text-white/22">&copy; {copyrightYear} NMD Pressure Washing Services LLC. All rights reserved.</span>
           <div className="flex gap-5">
-            <a href="#" className="text-xs !text-white/22">Privacy Policy</a>
-            <a href="#" className="text-xs !text-white/22">Terms of Service</a>
+            <a href="/privacy-policy" className="text-xs !text-white/22">Privacy Policy</a>
+            <a href="/terms-of-service" className="text-xs !text-white/22">Terms of Service</a>
             <a href="#" className="text-xs !text-white/22">Sitemap</a>
           </div>
         </div>
