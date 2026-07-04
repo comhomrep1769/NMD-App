@@ -183,7 +183,7 @@ export default function ClientRegisterPage() {
           <input style={inputStyle} placeholder="Email address *" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
           <input style={inputStyle} placeholder="Phone number" value={phone} onChange={e => setPhone(e.target.value)} />
 
-          <div ref={addressDivRef} style={{ width: '100%' }}>
+          <div style={{ width: '100%' }}><label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#5a6a88', marginBottom: 5, fontFamily: 'DM Sans, sans-serif' }}>Service Address</label><div ref={addressDivRef} style={{ width: '100%' }}>
             {placesStatus !== 'widget-attached' && (
               <input
                 style={inputStyle}
@@ -192,7 +192,7 @@ export default function ClientRegisterPage() {
                 onChange={e => setAddress(e.target.value)}
               />
             )}
-          </div>
+          </div></div>
 
           {/* Password with eye */}
           <div style={{ position: 'relative' }}>
