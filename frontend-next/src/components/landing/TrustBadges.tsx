@@ -1,4 +1,8 @@
-﻿function ShieldIcon() {
+﻿'use client'
+
+import { motion } from 'framer-motion'
+
+function ShieldIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-teal-700">
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
@@ -41,40 +45,45 @@ function RefreshIcon() {
   )
 }
 
+const badgeVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.08 } },
+}
+const badgeItem = {
+  hidden: { opacity: 0, y: 10 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' as const } },
+}
+
 export default function TrustBadges() {
   return (
     <div className="border-y border-gray-200 bg-white px-3 py-4 sm:px-4">
-      <div className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-center gap-x-3 gap-y-2">
-        <div className="flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap text-[12.5px] font-medium text-gray-700">
+      <motion.div
+        className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-center gap-x-3 gap-y-2"
+        variants={badgeVariants}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true }}
+      >
+        <motion.div variants={badgeItem} className="flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap text-[12.5px] font-medium text-gray-700">
           <ShieldIcon /> Licensed &amp; Insured
-        </div>
-        <div className="flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap text-[12.5px] font-medium text-gray-700">
+        </motion.div>
+        <motion.div variants={badgeItem} className="flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap text-[12.5px] font-medium text-gray-700">
           <HouseIcon /> Residential &amp; Commercial
-        </div>
-        <div className="flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap text-[12.5px] font-medium text-gray-700">
+        </motion.div>
+        <motion.div variants={badgeItem} className="flex flex-shrink-0 items-center gap-1.5 whitespace-nowrap text-[12.5px] font-medium text-gray-700">
           <DropletIcon /> Soft Wash Specialists
-        </div>
-
+        </motion.div>
         <span className="hidden h-4 w-px flex-shrink-0 bg-gray-200 sm:block" />
-
-        <div className="flex flex-shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] font-medium text-gray-600">
+        <motion.div variants={badgeItem} className="flex flex-shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] font-medium text-gray-600">
           <PinIcon /> Orlando &amp; Orange County &mdash; Primary
-        </div>
-        <div className="flex flex-shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] font-medium text-gray-600">
+        </motion.div>
+        <motion.div variants={badgeItem} className="flex flex-shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] font-medium text-gray-600">
           <PinIcon /> Brevard County
-        </div>
-        <div className="flex flex-shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] font-medium text-gray-600">
+        </motion.div>
+        <motion.div variants={badgeItem} className="flex flex-shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] font-medium text-gray-600">
           <RefreshIcon /> 20% Recurring Discount
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </div>
   )
 }
-
-
-
-
-
-
-
-
