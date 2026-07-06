@@ -107,7 +107,8 @@ app.use((req, res) => {
 });
 app.use((err, _req, res, _next) => {
     console.error("Unhandled backend error:", err);
-    const message = err instanceof Error ? err.message : "Unexpected backend server error.";
+    const isDev = process.env.NODE_ENV !== "production";
+    const message = isDev && err instanceof Error ? err.message : "An unexpected error occurred. Please try again.";
     if (message.toLowerCase().includes("request entity too large")) {
         return res.status(413).json({
             message: "Upload file is too large for the backend request limit. The backend limit has been increased to 25mb, redeploy and try again."
