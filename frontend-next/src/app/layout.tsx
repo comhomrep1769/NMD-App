@@ -69,7 +69,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const headScripts = parseHeadScripts(site['scripts.head'] || '')
   const bodyStart = site['scripts.body_start']?.trim() || ''
   const bodyEnd = site['scripts.body_end']?.trim() || ''
-  const faviconUrl = 'https://nmd-backend.onrender.com/api/site-content/favicon'
+  const faviconUrl = '/api/favicon'
 
   return (
     <html lang="en">
