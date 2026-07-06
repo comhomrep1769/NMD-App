@@ -69,7 +69,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const headScripts = parseHeadScripts(site['scripts.head'] || '')
   const bodyStart = site['scripts.body_start']?.trim() || ''
   const bodyEnd = site['scripts.body_end']?.trim() || ''
-  const faviconUrl = site['site.favicon_url']?.trim() || '/favicon.ico'
+  const faviconUrl = (process.env.NEXT_PUBLIC_API_URL || '') + '/api/site-content/favicon'
 
   return (
     <html lang="en">
