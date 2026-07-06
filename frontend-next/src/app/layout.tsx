@@ -61,6 +61,7 @@ export async function generateMetadata(): Promise<Metadata> {
     twitter: { card: 'summary_large_image', title: 'NMD Pressure Washing | Brevard & Orange County, FL', description: 'Professional pressure washing in Brevard & Orange County, FL.', images: ['/og-image.jpg'] },
     robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-video-preview': -1, 'max-image-preview': 'large', 'max-snippet': -1 } },
     alternates: { canonical: 'https://nmdpowash.com' },
+    icons: { icon: '/api/favicon', shortcut: '/api/favicon', apple: '/api/favicon' },
   }
 }
 
@@ -74,7 +75,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en">
       <head>
-        <link rel="icon" href={faviconUrl} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <script
