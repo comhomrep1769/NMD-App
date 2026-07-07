@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import PortalShell from '@/components/portal/PortalShell'
-import { DataTable, LoadingCard, ErrorCard, SearchInput, SectionHeader, StatusBadge, MetricCard, money, fmtDate } from '@/components/portal/PortalUI'
+import { LoadingCard, ErrorCard, SearchInput, StatusBadge, MetricCard, money, fmtDate } from '@/components/portal/PortalUI'
 import { getNmdToken } from '@/lib/authStorage'
 
 type Invoice = {
@@ -13,11 +13,7 @@ type Invoice = {
   paymentLinkUrl: string | null; paymentStatus: string | null
 }
 
-type ClientOption = {
-  id: string
-  name: string
-  email: string
-}
+type ClientOption = { id: string; name: string; email: string }
 
 const inputStyle: React.CSSProperties = {
   width: '100%', padding: '0.65rem 0.9rem', borderRadius: 8,
@@ -36,25 +32,34 @@ const modalBox: React.CSSProperties = {
   background: 'white', borderRadius: 14, width: '100%', maxWidth: 480,
   boxShadow: '0 20px 60px rgba(17,24,39,0.2)', overflow: 'hidden'
 }
+const menuItemStyle: React.CSSProperties = {
+  display: 'block', width: '100%', padding: '0.6rem 1rem',
+  background: 'none', border: 'none', textAlign: 'left',
+  fontSize: '0.85rem', color: '#374151', cursor: 'pointer',
+  fontFamily: 'DM Sans, sans-serif', fontWeight: 500,
+}
+const thStyle: React.CSSProperties = {
+  fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.06em',
+  textTransform: 'uppercase', color: '#9CA3AF', padding: '10px 16px',
+  textAlign: 'left', whiteSpace: 'nowrap',
+}
+const tdStyle: React.CSSProperties = {
+  padding: '14px 16px', fontSize: '0.875rem', color: '#374151',
+  borderTop: '1px solid #F3F4F6', verticalAlign: 'middle',
+}
 
-const STATUS_FILTERS: { key: string; label: string }[] = [
+const STATUS_FILTERS = [
   { key: 'all', label: 'All' },
   { key: 'unpaid', label: 'Unpaid' },
   { key: 'paid', label: 'Paid' },
 ]
 
-function ClientSearchDropdown({
-  clients, value, onChange, onSelect, selectedClient
-}: {
-  clients: ClientOption[]
-  value: string
-  onChange: (v: string) => void
-  onSelect: (c: ClientOption) => void
-  selectedClient: ClientOption | null
+function ClientSearchDropdown({ clients, value, onChange, onSelect, selectedClient }: {
+  clients: ClientOption[]; value: string; onChange: (v: string) => void
+  onSelect: (c: ClientOption) => void; selectedClient: ClientOption | null
 }) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
-
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
@@ -62,11 +67,7 @@ function ClientSearchDropdown({
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
-
-  const filtered = clients.filter(c =>
-    `${c.name} ${c.email}`.toLowerCase().includes(value.toLowerCase())
-  )
-
+  const filtered = clients.filter(c => `${c.name} ${c.email}`.toLowerCase().includes(value.toLowerCase()))
   return (
     <div ref={ref} style={{ position: 'relative' }}>
       <input
@@ -109,6 +110,8 @@ export default function InvoicesPage() {
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [isMobile, setIsMobile] = useState(false)
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
 
   const [showCreate, setShowCreate] = useState(false)
   const [createForm, setCreateForm] = useState({ clientName: '', jobName: '', total: '', status: 'unpaid' })
@@ -126,12 +129,27 @@ export default function InvoicesPage() {
 
   const [markPaidId, setMarkPaidId] = useState<string | null>(null)
   const [viewInvoice, setViewInvoice] = useState<Invoice | null>(null)
-
   const [sendingLinkId, setSendingLinkId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [linkError, setLinkError] = useState<{ id: string; message: string } | null>(null)
 
   const API = process.env.NEXT_PUBLIC_API_URL || ''
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      const target = e.target as Element
+      if (!target.closest('[data-invoice-menu]')) setOpenMenuId(null)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
 
   const load = () => {
     const token = getNmdToken()
@@ -140,7 +158,6 @@ export default function InvoicesPage() {
       .then(d => { setInvoices(d.invoices || []); setLoading(false) })
       .catch(() => { setError('Could not load invoices.'); setLoading(false) })
   }
-
   useEffect(() => { load() }, [])
 
   const loadClients = () => {
@@ -158,12 +175,8 @@ export default function InvoicesPage() {
   }
 
   const openCreate = () => {
-    loadClients()
-    setShowCreate(true)
-    setCreateClientSearch('')
-    setCreateSelectedClient(null)
-    setCreateError('')
-    setCreateForm({ clientName: '', jobName: '', total: '', status: 'unpaid' })
+    loadClients(); setShowCreate(true); setCreateClientSearch(''); setCreateSelectedClient(null)
+    setCreateError(''); setCreateForm({ clientName: '', jobName: '', total: '', status: 'unpaid' })
   }
 
   const filtered = invoices
@@ -190,10 +203,8 @@ export default function InvoicesPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to create invoice')
       setInvoices(p => [data.invoice, ...p])
-      setShowCreate(false)
-      setCreateForm({ clientName: '', jobName: '', total: '', status: 'unpaid' })
-      setCreateClientSearch('')
-      setCreateSelectedClient(null)
+      setShowCreate(false); setCreateForm({ clientName: '', jobName: '', total: '', status: 'unpaid' })
+      setCreateClientSearch(''); setCreateSelectedClient(null)
     } catch (err) { setCreateError(err instanceof Error ? err.message : 'Failed') }
     setCreateSaving(false)
   }
@@ -202,16 +213,13 @@ export default function InvoicesPage() {
     if (!files || files.length === 0) return
     const file = files[0]
     const reader = new FileReader()
-    reader.onload = (e) => {
-      setUploadFile({ name: file.name, dataUrl: e.target?.result as string })
-    }
+    reader.onload = (e) => setUploadFile({ name: file.name, dataUrl: e.target?.result as string })
     reader.readAsDataURL(file)
   }
 
   const handleUpload = async () => {
     if (!uploadInvoice || !uploadFile) return
-    setUploadError('')
-    setUploading(true)
+    setUploadError(''); setUploading(true)
     try {
       const token = getNmdToken()
       const res = await fetch(`${API}/api/invoices/${uploadInvoice.id}/upload`, {
@@ -222,8 +230,7 @@ export default function InvoicesPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Upload failed')
       setInvoices(p => p.map(i => i.id === uploadInvoice.id ? data.invoice : i))
-      setUploadInvoice(null)
-      setUploadFile(null)
+      setUploadInvoice(null); setUploadFile(null)
       alert('Invoice uploaded. Client has been notified by email.')
     } catch (err) { setUploadError(err instanceof Error ? err.message : 'Upload failed') }
     setUploading(false)
@@ -245,10 +252,8 @@ export default function InvoicesPage() {
     setMarkPaidId(null)
   }
 
-  // ── Generate (or fetch existing) Stripe payment link and email it to the client ──
   const handleSendPaymentLink = async (inv: Invoice) => {
-    setLinkError(null)
-    setSendingLinkId(inv.id)
+    setLinkError(null); setSendingLinkId(inv.id)
     try {
       const token = getNmdToken()
       const res = await fetch(`${API}/api/payments/invoices/${inv.id}/create-payment-link`, {
@@ -266,11 +271,14 @@ export default function InvoicesPage() {
   }
 
   const handleDelete = async (inv: Invoice) => {
-    if (!confirm('Delete invoice #' + inv.invoiceNumber + ' for ' + inv.clientName + '? This cannot be undone.')) return
+    if (!confirm(`Delete invoice #${inv.invoiceNumber} for ${inv.clientName}? This cannot be undone.`)) return
     setDeletingId(inv.id)
     try {
       const token = getNmdToken()
-      const res = await fetch(API + '/api/invoices/' + inv.id, { method: 'DELETE', headers: { Authorization: 'Bearer ' + token } })
+      const res = await fetch(`${API}/api/invoices/${inv.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      })
       if (!res.ok) throw new Error('Failed')
       setInvoices(p => p.filter(i => i.id !== inv.id))
     } catch (err) { alert(err instanceof Error ? err.message : 'Failed to delete') }
@@ -281,9 +289,63 @@ export default function InvoicesPage() {
     navigator.clipboard.writeText(url).then(() => alert('Payment link copied to clipboard.'))
   }
 
+  const ActionMenu = ({ inv }: { inv: Invoice }) => (
+    <div data-invoice-menu style={{ position: 'relative', display: 'flex', justifyContent: 'flex-end' }}>
+      <button
+        onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === inv.id ? null : inv.id) }}
+        style={{ width: 32, height: 32, borderRadius: 7, border: '1px solid #E5E7EB', background: openMenuId === inv.id ? '#F3F4F6' : 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6B7280', fontSize: 18, lineHeight: 1, fontFamily: 'DM Sans, sans-serif' }}
+      >⋯</button>
+      {openMenuId === inv.id && (
+        <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: 4, background: 'white', border: '1px solid #E5E7EB', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 50, minWidth: 196, overflow: 'hidden' }}>
+          <button onClick={() => { setUploadInvoice(inv); setOpenMenuId(null) }} style={menuItemStyle}
+            onMouseEnter={e => (e.currentTarget.style.background = '#F8FAF9')} onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+            📤 {inv.uploadedInvoiceUrl ? 'Re-upload Invoice' : 'Upload Invoice'}
+          </button>
+          {inv.uploadedInvoiceUrl && (
+            <button onClick={() => { setViewInvoice(inv); setOpenMenuId(null) }} style={menuItemStyle}
+              onMouseEnter={e => (e.currentTarget.style.background = '#F8FAF9')} onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+              👁 View Invoice
+            </button>
+          )}
+          {inv.status !== 'paid' && (
+            <button onClick={() => { handleMarkPaid(inv.id); setOpenMenuId(null) }} disabled={markPaidId === inv.id} style={menuItemStyle}
+              onMouseEnter={e => (e.currentTarget.style.background = '#F8FAF9')} onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+              ✓ {markPaidId === inv.id ? 'Marking...' : 'Mark as Paid'}
+            </button>
+          )}
+          {inv.status !== 'paid' && (
+            inv.paymentLinkUrl ? (
+              <button onClick={() => { handleCopyLink(inv.paymentLinkUrl!); setOpenMenuId(null) }} style={menuItemStyle}
+                onMouseEnter={e => (e.currentTarget.style.background = '#F8FAF9')} onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+                🔗 Copy Payment Link
+              </button>
+            ) : (
+              <button onClick={() => { handleSendPaymentLink(inv); setOpenMenuId(null) }} disabled={sendingLinkId === inv.id} style={menuItemStyle}
+                onMouseEnter={e => (e.currentTarget.style.background = '#F8FAF9')} onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+                💳 {sendingLinkId === inv.id ? 'Sending...' : 'Send Payment Link'}
+              </button>
+            )
+          )}
+          <div style={{ height: 1, background: '#F3F4F6', margin: '4px 0' }} />
+          <button onClick={() => { handleDelete(inv); setOpenMenuId(null) }} disabled={deletingId === inv.id}
+            style={{ ...menuItemStyle, color: '#DC2626' }}
+            onMouseEnter={e => (e.currentTarget.style.background = '#FEF2F2')} onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+            🗑 {deletingId === inv.id ? 'Deleting...' : 'Delete Invoice'}
+          </button>
+        </div>
+      )}
+      {linkError?.id === inv.id && (
+        <div style={{ position: 'absolute', right: 0, top: 40, fontSize: '0.72rem', color: '#DC2626', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 6, padding: '4px 8px', whiteSpace: 'nowrap', zIndex: 51 }}>
+          {linkError.message}
+        </div>
+      )}
+    </div>
+  )
+
   return (
     <PortalShell requiredRole={['admin', 'superadmin']}>
 
+      {/* Create Invoice Modal */}
       {showCreate && (
         <div style={modalOverlay}>
           <div style={modalBox}>
@@ -296,8 +358,7 @@ export default function InvoicesPage() {
               <div>
                 <label style={labelStyle}>Client Name *</label>
                 <ClientSearchDropdown
-                  clients={clients}
-                  value={createClientSearch}
+                  clients={clients} value={createClientSearch}
                   onChange={v => { setCreateClientSearch(v); setCreateForm(p => ({ ...p, clientName: v })); setCreateSelectedClient(null) }}
                   onSelect={c => { setCreateSelectedClient(c); setCreateClientSearch(c.name); setCreateForm(p => ({ ...p, clientName: c.name })) }}
                   selectedClient={createSelectedClient}
@@ -331,6 +392,7 @@ export default function InvoicesPage() {
         </div>
       )}
 
+      {/* Upload Modal */}
       {uploadInvoice && (
         <div style={modalOverlay}>
           <div style={modalBox}>
@@ -366,11 +428,12 @@ export default function InvoicesPage() {
         </div>
       )}
 
+      {/* View Invoice Modal */}
       {viewInvoice?.uploadedInvoiceUrl && (
         <div onClick={() => setViewInvoice(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', cursor: 'zoom-out' }}>
           <div onClick={e => e.stopPropagation()} style={{ maxWidth: 800, width: '100%' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div style={{ color: 'white', fontFamily: 'DM Sans, sans-serif', fontWeight: 700 }}>Invoice #{viewInvoice.invoiceNumber} - {viewInvoice.clientName}</div>
+              <div style={{ color: 'white', fontFamily: 'DM Sans, sans-serif', fontWeight: 700 }}>Invoice #{viewInvoice.invoiceNumber} — {viewInvoice.clientName}</div>
               <button onClick={() => setViewInvoice(null)} style={{ background: 'none', border: 'none', color: 'white', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
             </div>
             {viewInvoice.uploadedInvoiceUrl.startsWith('data:image') ? (
@@ -386,27 +449,33 @@ export default function InvoicesPage() {
         </div>
       )}
 
-      <SectionHeader
-        title="Invoices"
-        sub={`${invoices.length} total invoices`}
-        action={
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+      {/* Page Header */}
+      <div style={{ marginBottom: '1.5rem' }}>
+        <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#0F766E', marginBottom: 4, fontFamily: 'DM Sans, sans-serif' }}>Finances</div>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+          <div>
+            <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#111827', margin: 0, letterSpacing: '-0.02em', fontFamily: 'DM Sans, sans-serif' }}>Invoices</h1>
+            <p style={{ fontSize: '0.85rem', color: '#6B7280', margin: '4px 0 0', fontFamily: 'DM Sans, sans-serif' }}>{invoices.length} total invoices</p>
+          </div>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             <SearchInput value={search} onChange={setSearch} placeholder="Search invoices..." />
             <button onClick={openCreate} style={{ padding: '0.6rem 1.25rem', borderRadius: 8, background: '#0F766E', color: 'white', fontWeight: 600, fontSize: '0.85rem', border: 'none', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', whiteSpace: 'nowrap' }}>
               + Create Invoice
             </button>
           </div>
-        }
-      />
+        </div>
+      </div>
 
+      {/* Metric Cards */}
       {!loading && !error && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
           <MetricCard label="Paid" value={money(paidTotal)} sub={`${paid.length} invoices`} accent="#0F766E" />
           <MetricCard label="Outstanding" value={money(unpaidTotal)} sub={`${unpaid.length} invoices`} accent="#EF4444" />
           <MetricCard label="Total" value={invoices.length} sub="all invoices" accent="#6D28D9" />
         </div>
       )}
 
+      {/* Status Filters */}
       <div style={{ display: 'flex', gap: 6, marginBottom: '1.25rem', flexWrap: 'wrap' }}>
         {STATUS_FILTERS.map(f => (
           <button key={f.key} onClick={() => setStatusFilter(f.key)}
@@ -416,60 +485,103 @@ export default function InvoicesPage() {
               background: statusFilter === f.key ? '#F0FDF9' : 'white',
               color: statusFilter === f.key ? '#0F766E' : '#6B7280',
               fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif',
-            }}>
-            {f.label}
-          </button>
+            }}>{f.label}</button>
         ))}
       </div>
 
       {loading && <LoadingCard />}
       {error && <ErrorCard message={error} />}
-      {!loading && !error && (
-        <DataTable
-          headers={['Invoice #', 'Client', 'Job', 'Total', 'Status', 'Created', '']}
-          emptyMessage="No invoices found."
-          rows={filtered.map(inv => [
-            <span key="num" style={{ fontWeight: 700, color: '#0F766E' }}>#{inv.invoiceNumber}</span>,
-            <span key="client" style={{ fontWeight: 500 }}>{inv.clientName || '—'}</span>,
-            <span key="job" style={{ color: '#6B7280' }}>{inv.jobName || '—'}</span>,
-            <span key="total" style={{ fontWeight: 600 }}>${Number(inv.total).toFixed(2)}</span>,
-            <StatusBadge key="status" status={inv.status} />,
-            <span key="date" style={{ color: '#9CA3AF', whiteSpace: 'nowrap' }}>{fmtDate(inv.createdAt)}</span>,
-            <div key="actions" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                <button onClick={() => setUploadInvoice(inv)} style={{ padding: '0.3rem 0.65rem', borderRadius: 6, border: 'none', background: '#F0FDF9', color: '#0F766E', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
+
+      {!loading && !error && filtered.length === 0 && (
+        <div style={{ background: 'white', borderRadius: 10, border: '1px solid #E5E7EB', padding: '3rem', textAlign: 'center', color: '#9CA3AF', fontFamily: 'DM Sans, sans-serif' }}>
+          No invoices found.
+        </div>
+      )}
+
+      {/* Mobile: Card Layout */}
+      {!loading && !error && filtered.length > 0 && isMobile && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {filtered.map(inv => (
+            <div key={inv.id} style={{ background: 'white', borderRadius: 10, border: '1px solid #E5E7EB', padding: '1rem', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontWeight: 700, color: '#0F766E', fontSize: '0.95rem', fontFamily: 'DM Sans, sans-serif' }}>#{inv.invoiceNumber}</span>
+                  <StatusBadge status={inv.status} />
+                </div>
+                <span style={{ fontWeight: 700, color: '#111827', fontSize: '1rem', fontFamily: 'DM Sans, sans-serif' }}>${Number(inv.total).toFixed(2)}</span>
+              </div>
+              <div style={{ fontWeight: 600, color: '#111827', fontSize: '0.9rem', marginBottom: 2, fontFamily: 'DM Sans, sans-serif' }}>{inv.clientName || '—'}</div>
+              <div style={{ color: '#6B7280', fontSize: '0.82rem', marginBottom: 2, fontFamily: 'DM Sans, sans-serif' }}>{inv.jobName || '—'}</div>
+              <div style={{ color: '#9CA3AF', fontSize: '0.75rem', marginBottom: 14, fontFamily: 'DM Sans, sans-serif' }}>{fmtDate(inv.createdAt)}</div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <button onClick={() => setUploadInvoice(inv)} style={{ padding: '0.4rem 0.75rem', borderRadius: 6, border: 'none', background: '#F0FDF9', color: '#0F766E', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
                   {inv.uploadedInvoiceUrl ? 'Re-upload' : 'Upload'}
                 </button>
                 {inv.uploadedInvoiceUrl && (
-                  <button onClick={() => setViewInvoice(inv)} style={{ padding: '0.3rem 0.65rem', borderRadius: 6, border: 'none', background: '#F3F4F6', color: '#374151', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>View</button>
+                  <button onClick={() => setViewInvoice(inv)} style={{ padding: '0.4rem 0.75rem', borderRadius: 6, border: 'none', background: '#F3F4F6', color: '#374151', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>View</button>
                 )}
                 {inv.status !== 'paid' && (
-                  <button onClick={() => handleMarkPaid(inv.id)} disabled={markPaidId === inv.id} style={{ padding: '0.3rem 0.65rem', borderRadius: 6, border: 'none', background: '#F0FDF9', color: '#059669', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
-                    {markPaidId === inv.id ? '...' : 'Mark Paid'}
+                  <button onClick={() => handleMarkPaid(inv.id)} disabled={markPaidId === inv.id} style={{ padding: '0.4rem 0.75rem', borderRadius: 6, border: 'none', background: '#ECFDF5', color: '#059669', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
+                    {markPaidId === inv.id ? 'Marking...' : 'Mark Paid'}
                   </button>
                 )}
-              </div>
-              {inv.status !== 'paid' && (
-                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                  {inv.paymentLinkUrl ? (
-                    <button onClick={() => handleCopyLink(inv.paymentLinkUrl!)} style={{ padding: '0.3rem 0.65rem', borderRadius: 6, border: 'none', background: '#FEF9C3', color: '#92400E', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
-                      🔗 Copy Link
-                    </button>
+                {inv.status !== 'paid' && (
+                  inv.paymentLinkUrl ? (
+                    <button onClick={() => handleCopyLink(inv.paymentLinkUrl!)} style={{ padding: '0.4rem 0.75rem', borderRadius: 6, border: 'none', background: '#FEF9C3', color: '#92400E', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>🔗 Copy Link</button>
                   ) : (
-                    <button onClick={() => handleSendPaymentLink(inv)} disabled={sendingLinkId === inv.id} style={{ padding: '0.3rem 0.65rem', borderRadius: 6, border: 'none', background: '#FEF9C3', color: '#92400E', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
-                      {sendingLinkId === inv.id ? 'Sending...' : '💳 Send Payment Link'}
+                    <button onClick={() => handleSendPaymentLink(inv)} disabled={sendingLinkId === inv.id} style={{ padding: '0.4rem 0.75rem', borderRadius: 6, border: 'none', background: '#FEF9C3', color: '#92400E', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
+                      {sendingLinkId === inv.id ? 'Sending...' : '💳 Pay Link'}
                     </button>
-                  )}
-                </div>
-              )}
+                  )
+                )}
+                <button onClick={() => handleDelete(inv)} disabled={deletingId === inv.id} style={{ padding: '0.4rem 0.75rem', borderRadius: 6, border: '1px solid #FECACA', background: 'white', color: '#DC2626', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
+                  {deletingId === inv.id ? '...' : 'Delete'}
+                </button>
+              </div>
               {linkError?.id === inv.id && (
-                <div style={{ fontSize: '0.7rem', color: '#B91C1C' }}>{linkError.message}</div>
+                <div style={{ fontSize: '0.75rem', color: '#DC2626', marginTop: 8, fontFamily: 'DM Sans, sans-serif' }}>{linkError.message}</div>
               )}
-              <button onClick={() => handleDelete(inv)} disabled={deletingId === inv.id} style={{ padding: '0.35rem', borderRadius: 6, border: '1px solid #FECACA', background: 'white', color: '#DC2626', cursor: 'pointer', display: 'flex', alignItems: 'center', marginTop: 4 }}>{deletingId === inv.id ? "..." : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>}</button>
             </div>
-          ])}
-        />
+          ))}
+        </div>
       )}
+
+      {/* Desktop: Table Layout */}
+      {!loading && !error && filtered.length > 0 && !isMobile && (
+        <div style={{ background: 'white', borderRadius: 10, border: '1px solid #E5E7EB', overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: '#F9FAFB' }}>
+                <th style={thStyle}>Invoice #</th>
+                <th style={thStyle}>Client</th>
+                <th style={thStyle}>Job</th>
+                <th style={thStyle}>Total</th>
+                <th style={thStyle}>Status</th>
+                <th style={thStyle}>Created</th>
+                <th style={{ ...thStyle, textAlign: 'right' }}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(inv => (
+                <tr key={inv.id}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#FAFAFA')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'white')}>
+                  <td style={tdStyle}><span style={{ fontWeight: 700, color: '#0F766E' }}>#{inv.invoiceNumber}</span></td>
+                  <td style={tdStyle}><span style={{ fontWeight: 500, color: '#111827' }}>{inv.clientName || '—'}</span></td>
+                  <td style={{ ...tdStyle, color: '#6B7280' }}>{inv.jobName || '—'}</td>
+                  <td style={tdStyle}><span style={{ fontWeight: 600, color: '#111827' }}>${Number(inv.total).toFixed(2)}</span></td>
+                  <td style={tdStyle}><StatusBadge status={inv.status} /></td>
+                  <td style={{ ...tdStyle, color: '#9CA3AF', whiteSpace: 'nowrap' }}>{fmtDate(inv.createdAt)}</td>
+                  <td style={{ ...tdStyle, textAlign: 'right' }}>
+                    <ActionMenu inv={inv} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
     </PortalShell>
   )
 }
