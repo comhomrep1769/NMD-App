@@ -361,7 +361,6 @@ export default function RequestsPage() {
       const res = await fetch(API + "/api/requests/" + id, { method: "DELETE", headers: { Authorization: "Bearer " + token } })
       if (!res.ok) throw new Error("Failed")
       setRequests(p => p.filter(r => r.id !== id))
-      if (selected?.id === id) setSelected(null)
     } catch (err) { alert("Failed to delete request") }
     setDeletingReqId(null)
   }
