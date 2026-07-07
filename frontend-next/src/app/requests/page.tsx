@@ -729,7 +729,8 @@ export default function RequestsPage() {
               {r.status === 'reviewed' && (
                 <span style={{ fontSize: '0.75rem', color: '#0F766E', fontWeight: 600 }}>Quoted</span>
               )}
-            </div>
+            </div>,
+            <button key="del" onClick={() => deleteRequest(r.id, r.clientName)} disabled={deletingReqId === r.id} style={{ padding: '0.25rem 0.5rem', borderRadius: 5, border: 'none', background: '#FEF2F2', color: '#B91C1C', fontWeight: 600, fontSize: '0.7rem', cursor: 'pointer' }}>{deletingReqId === r.id ? '...' : 'Del'}</button>
           ])}
         />
       )}
