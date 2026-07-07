@@ -312,3 +312,4 @@ router.delete("/:employeeId", requireAuth, requireRole("admin", "superadmin"), a
     client.release();
   }
 });
+export default router;
