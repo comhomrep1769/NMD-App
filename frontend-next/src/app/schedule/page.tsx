@@ -39,7 +39,7 @@ export default function SchedulePage() {
     startTime: '', endTime: '', notes: '', status: 'scheduled',
     assignedUserIds: [] as string[],
   })
-  const [deletingJobId, setDeletingJobId] = useState<string | null>(null)
+ 
   const API = process.env.NEXT_PUBLIC_API_URL || ""
 
   const loadJobs = () => {
