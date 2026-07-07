@@ -42,7 +42,7 @@ function mapEmployee(row) {
 }
 router.get("/", requireAuth, requireRole("admin", "superadmin"), async (_req, res) => {
     try {
-        const result = await pool.query(`SELECT id, email, display_name, role, created_at, pay_rate, must_change_password
+        const result = await pool.query(`SELECT id, email, display_name, role, created_at, pay_rate, must_change_password, profile_image_url
       FROM users WHERE role IN ('admin', 'superadmin', 'employee', 'sales') ORDER BY created_at DESC`);
         return res.json({ employees: result.rows.map(mapEmployee) });
     }
