@@ -518,7 +518,7 @@ export default function PortalShell({
           imageSrc={cropSrc}
           onCancel={() => setCropSrc('')}
           onCropDone={(cropped) => {
-            setProfileUrl(cropped)
+            setProfileUrlDraft(cropped)
             setCropSrc('')
           }}
         />
