@@ -252,7 +252,7 @@ export default function SchedulePage() {
             <span key="end" style={{ color: '#9CA3AF', whiteSpace: 'nowrap' }}>{j.endTime ? fmtDate(j.endTime) : "—"}</span>,
             <span key="assigned" style={{ color: '#374151' }}>{j.assignedEmployees.map(e => e.displayName).join(", ") || "Unassigned"}</span>,
             <StatusBadge key="status" status={j.status} />,
-              <button key="del" onClick={() => deleteJob(j.id, j.title)} disabled={deletingJobId === j.id} style={{ padding: "0.25rem 0.5rem", borderRadius: 5, border: "none", background: "#FEF2F2", color: "#B91C1C", fontWeight: 600, fontSize: "0.7rem", cursor: "pointer" }}>{deletingJobId === j.id ? "..." : "Delete"}</button>
+              <button key="del" onClick={() => deleteJob(j.id, j.title)} disabled={deletingJobId === j.id} style={{ padding: "0.25rem 0.5rem", borderRadius: 5, border: "none", background: "#FEF2F2", color: "#B91C1C", fontWeight: 600, fontSize: "0.7rem", cursor: "pointer" }}>{deletingJobId === j.id ? "..." : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>}</button>
           ])}
           emptyMessage="No jobs scheduled."
         />

@@ -465,7 +465,7 @@ export default function InvoicesPage() {
               {linkError?.id === inv.id && (
                 <div style={{ fontSize: '0.7rem', color: '#B91C1C' }}>{linkError.message}</div>
               )}
-              <button onClick={() => handleDelete(inv)} disabled={deletingId === inv.id} style={{ padding: '0.3rem 0.65rem', borderRadius: 6, border: 'none', background: '#FEF2F2', color: '#B91C1C', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', marginTop: 4 }}>{deletingId === inv.id ? 'Deleting...' : 'Delete'}</button>
+              <button onClick={() => handleDelete(inv)} disabled={deletingId === inv.id} style={{ padding: '0.35rem', borderRadius: 6, border: '1px solid #FECACA', background: 'white', color: '#DC2626', cursor: 'pointer', display: 'flex', alignItems: 'center', marginTop: 4 }}>{deletingId === inv.id ? "..." : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>}</button>
             </div>
           ])}
         />
