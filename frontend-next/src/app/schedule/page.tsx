@@ -33,11 +33,12 @@ export default function SchedulePage() {
   const [saving, setSaving] = useState(false)
   const [modalError, setModalError] = useState("")
   const [form, setForm] = useState({
-  const [deletingJobId, setDeletingJobId] = useState<string | null>(null)
+  
     title: '', clientName: '', address: '',
     startTime: '', endTime: '', notes: '', status: 'scheduled',
     assignedUserIds: [] as string[],
   })
+  const [deletingJobId, setDeletingJobId] = useState<string | null>(null)
   const API = process.env.NEXT_PUBLIC_API_URL || ""
 
   const loadJobs = () => {
