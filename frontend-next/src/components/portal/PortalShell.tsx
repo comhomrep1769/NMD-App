@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { getNmdAuth, clearNmdAuth } from '@/lib/authStorage'
 import type { StoredNmdUser } from '@/lib/authStorage'
 import Link from 'next/link'
+import CropModal from '@/components/portal/CropModal'
 
 type NavItem = { href: string; label: string; icon: string; group?: string }
 
