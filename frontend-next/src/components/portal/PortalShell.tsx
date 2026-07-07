@@ -274,6 +274,7 @@ export default function PortalShell({
   const [profilePic, setProfilePic] = useState('')
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   const [profileUrlDraft, setProfileUrlDraft] = useState('')
+  const [cropSrc, setCropSrc] = useState('')
   const profileMenuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
