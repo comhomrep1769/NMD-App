@@ -9,6 +9,7 @@ type Applicant = {
   id: string; fullName: string; email: string; phone: string | null
   position: string; message: string | null; resumeDataUrl: string | null
   resumeFileName: string | null; status: string; adminNotes: string | null; createdAt: string
+userId: string | null; onboardingComplete: boolean
 }
 
 const STATUS_OPTIONS = ['new', 'reviewed', 'interview', 'hired', 'rejected']
@@ -167,6 +168,12 @@ export default function ApplicantsPage() {
                     </div>
                     <div style={{ fontSize: '0.8rem', color: '#0F766E', marginBottom: 2 }}>{a.position}</div>
                     <div style={{ fontSize: '0.78rem', color: '#9CA3AF' }}>{a.email} · {fmtDate(a.createdAt)}</div>
+{a.status === 'hired' && a.userId && !a.onboardingComplete && (
+  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#92400E', background: '#FEF3C7', padding: '2px 8px', borderRadius: 100, marginTop: 4, display: 'inline-block' }}>Onboarding Pending</div>
+)}
+{a.status === 'hired' && a.onboardingComplete && (
+  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#059669', background: '#F0FDF9', padding: '2px 8px', borderRadius: 100, marginTop: 4, display: 'inline-block' }}>Onboarding Complete</div>
+)}
                   </div>
                 ))}
               </div>

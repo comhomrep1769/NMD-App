@@ -2,6 +2,8 @@ import { Router } from "express";
 import { pool } from "../db.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 import { buildNmdEmailTemplate, sendEmail } from "../services/email.js";
+import bcrypt from "bcryptjs";
+import crypto from "crypto";
 const router = Router();
 function mapApplicant(row) {
     return {
@@ -16,6 +18,8 @@ function mapApplicant(row) {
         status: row.status,
         adminNotes: row.admin_notes,
         createdAt: row.created_at,
+        userId: row.user_id,
+        onboardingComplete: row.onboarding_complete ?? false,
     };
 }
 // Public — submit application
@@ -83,11 +87,53 @@ router.patch("/:id", requireAuth, requireRole("admin"), async (req, res) => {
     try {
         const { id } = req.params;
         const { status, adminNotes } = req.body;
+        // Check current state
+        const current = await pool.query("SELECT * FROM job_applicants WHERE id = $1 LIMIT 1", [id]);
+        if (current.rows.length === 0)
+            return res.status(404).json({ error: "Applicant not found" });
+        const applicant = current.rows[0];
+        // If changing to hired and no user account exists yet, create one
+        if (status === "hired" && !applicant.user_id) {
+            const tempPassword = crypto.randomBytes(16).toString("hex");
+            const passwordHash = await bcrypt.hash(tempPassword, 12);
+            const nameParts = applicant.full_name.trim().split(/\s+/);
+            // Create employee user
+            const userResult = await pool.query(`INSERT INTO users (email, password_hash, display_name, role, phone, date_joined, must_change_password)
+         VALUES ($1, $2, $3, 'employee', $4, CURRENT_DATE, true)
+         ON CONFLICT (email) DO UPDATE SET role = 'employee', must_change_password = true
+         RETURNING id`, [applicant.email.toLowerCase(), passwordHash, applicant.full_name.trim(), applicant.phone]);
+            const userId = userResult.rows[0].id;
+            // Generate onboarding token (7 day expiry)
+            const onboardToken = crypto.randomBytes(48).toString("hex");
+            const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+            await pool.query("INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)", [userId, onboardToken, expiresAt]);
+            // Link applicant to user
+            await pool.query("UPDATE job_applicants SET user_id = $1 WHERE id = $2", [userId, id]);
+            // Send onboarding email
+            const frontendUrl = process.env.FRONTEND_URL || "https://nmdpowash.com";
+            const onboardUrl = frontendUrl + "/employee/onboard?token=" + onboardToken;
+            try {
+                await sendEmail({
+                    to: applicant.email,
+                    subject: "Welcome to NMD Pressure Washing — Complete Your Setup",
+                    html: buildNmdEmailTemplate({
+                        title: "You're Hired!",
+                        heading: "Welcome to the NMD Team!",
+                        message: "Hi " + applicant.full_name + ",\n\nCongratulations! You've been hired as part of the NMD Pressure Washing team.\n\nClick the button below to set up your password and profile image. This link expires in 7 days.",
+                        buttonText: "Complete Onboarding",
+                        buttonUrl: onboardUrl,
+                        footerNote: "Clean Results. Reliable Service. Every Time."
+                    }),
+                    text: "Welcome to NMD! Set up your account here: " + onboardUrl
+                });
+            }
+            catch (emailErr) {
+                console.error("Onboarding email error:", emailErr);
+            }
+        }
         const result = await pool.query(`UPDATE job_applicants
        SET status = COALESCE($2, status), admin_notes = COALESCE($3, admin_notes)
        WHERE id = $1 RETURNING *`, [id, status ?? null, adminNotes ?? null]);
-        if (result.rows.length === 0)
-            return res.status(404).json({ error: "Applicant not found" });
         return res.json({ applicant: mapApplicant(result.rows[0]) });
     }
     catch (error) {
