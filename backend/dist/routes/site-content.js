@@ -58,25 +58,26 @@ router.get("/favicon", async (_req, res) => {
     try {
         await ensureSiteContentTable();
         const result = await pool.query("SELECT value FROM site_content WHERE key = 'site.favicon_url' LIMIT 1");
-        const value = result.rows[0]?.value || '';
-        if (value.startsWith('data:')) {
-            const matches = value.match(/^data:([^;]+);base64,(.+)$/);
-            if (matches) {
-                const mimeType = matches[1];
-                const buffer = Buffer.from(matches[2], 'base64');
-                res.set('Content-Type', mimeType);
-                res.set('Cache-Control', 'public, max-age=86400');
+        const value = result.rows[0]?.value || "";
+        if (value.startsWith("data:")) {
+            const semiIdx = value.indexOf(";base64,");
+            if (semiIdx > 5) {
+                const mimeType = value.substring(5, semiIdx);
+                const b64 = value.substring(semiIdx + 8);
+                const buffer = Buffer.from(b64, "base64");
+                res.set("Content-Type", mimeType);
+                res.set("Cache-Control", "public, max-age=86400");
                 return res.send(buffer);
             }
         }
-        if (value && (value.startsWith('http') || value.startsWith('/'))) {
+        if (value && (value.startsWith("http") || value.startsWith("/"))) {
             return res.redirect(value);
         }
-        return res.redirect('/nmd-logo-email.png');
+        return res.redirect("/nmd-logo-email.png");
     }
     catch (error) {
-        console.error('favicon serve error', error);
-        return res.status(500).json({ error: 'Server error' });
+        console.error("favicon serve error", error);
+        return res.status(500).json({ error: "Server error" });
     }
 });
 // ── Public: anonymous visitors / public pages need this with no auth.
