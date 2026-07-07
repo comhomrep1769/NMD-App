@@ -276,7 +276,9 @@ export default function PortalShell({
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   const [profileUrlDraft, setProfileUrlDraft] = useState('')
   const [cropSrc, setCropSrc] = useState('')
+  const [uploadingImage, setUploadingImage] = useState(false)
   const profileMenuRef = useRef<HTMLDivElement>(null)
+  const API = process.env.NEXT_PUBLIC_API_URL || 'https://nmd-backend.onrender.com'
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768)
@@ -312,6 +314,10 @@ export default function PortalShell({
     }
     setUser(auth.user)
     setChecked(true)
+    fetch(`${API}/api/auth/me`, { headers: { Authorization: `Bearer ${auth.token}` } })
+      .then(r => r.json())
+      .then(d => { if (d.user?.profileImageUrl) setProfilePic(d.user.profileImageUrl) })
+      .catch(() => {})
   }, [router, requiredRole])
 
   useEffect(() => {
@@ -319,8 +325,6 @@ export default function PortalShell({
   }, [pathname, isMobile])
 
   useEffect(() => {
-    const saved = localStorage.getItem('nmd_profile_pic')
-    if (saved) { setProfilePic(saved); setProfileUrlDraft(saved) }
     const onClickAway = (e: MouseEvent) => {
       if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
         setProfileMenuOpen(false)
@@ -332,27 +336,50 @@ export default function PortalShell({
 
   const handleLogout = () => { clearNmdAuth(); router.replace('/') }
 
-  const saveProfileUrl = () => {
+  const saveImageToDb = async (dataUrl: string | null) => {
+    const auth = getNmdAuth()
+    if (!auth?.token) return
+    try {
+      await fetch(`${API}/api/auth/profile-image`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${auth.token}` },
+        body: JSON.stringify({ profileImageUrl: dataUrl })
+      })
+    } catch (err) { console.error('Failed to save profile image', err) }
+  }
+
+  const saveProfileUrl = async () => {
     const url = profileUrlDraft.trim()
     if (!url) return
-    localStorage.setItem('nmd_profile_pic', url)
+    setUploadingImage(true)
+    await saveImageToDb(url)
     setProfilePic(url)
     setProfileMenuOpen(false)
+    setUploadingImage(false)
   }
-  const removeProfilePic = () => {
-    localStorage.removeItem('nmd_profile_pic')
+
+  const removeProfilePic = async () => {
+    await saveImageToDb(null)
     setProfilePic(''); setProfileUrlDraft(''); setProfileMenuOpen(false)
   }
+
   const onProfileFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     const reader = new FileReader()
-    reader.onload = (ev) => {
-      const dataUrl = ev.target?.result as string
-      localStorage.setItem('nmd_profile_pic', dataUrl)
-      setProfilePic(dataUrl); setProfileUrlDraft(dataUrl); setProfileMenuOpen(false)
-    }
+    reader.onload = (ev) => { setCropSrc(ev.target?.result as string) }
     reader.readAsDataURL(file)
+    e.target.value = ''
+  }
+
+  const handleCropDone = async (cropped: string) => {
+    setCropSrc('')
+    setUploadingImage(true)
+    await saveImageToDb(cropped)
+    setProfilePic(cropped)
+    setProfileUrlDraft(cropped)
+    setUploadingImage(false)
+    setProfileMenuOpen(false)
   }
 
   if (!checked) return (
@@ -462,7 +489,7 @@ export default function PortalShell({
                   style={{ width: '100%', padding: '7px 10px', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.14)', borderRadius: 6, fontSize: 12, color: '#fff', outline: 'none', fontFamily: "'DM Sans',sans-serif", boxSizing: 'border-box', marginBottom: 8 }}
                 />
                 <div style={{ display: 'flex', gap: 6 }}>
-                  <button onClick={saveProfileUrl} style={{ flex: 1, background: '#0F766E', color: '#fff', fontSize: 12, fontWeight: 600, padding: 7, borderRadius: 6, border: 'none', cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>Save</button>
+                  <button onClick={saveProfileUrl} disabled={uploadingImage} style={{ flex: 1, background: '#0F766E', color: '#fff', fontSize:12, fontWeight: 600, padding: 7, borderRadius: 6, border: 'none', cursor: uploadingImage ? 'not-allowed' : 'pointer', fontFamily: "'DM Sans',sans-serif", opacity: uploadingImage ? 0.7 : 1 }}>{uploadingImage ? 'Saving...' : 'Save'}</button>
                   {profilePic && (
                     <button onClick={removeProfilePic} style={{ padding: '7px 10px', background: 'rgba(239,68,68,0.15)', color: '#FCA5A5', fontSize: 12, borderRadius: 6, border: 'none', cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>Remove</button>
                   )}
@@ -517,10 +544,7 @@ export default function PortalShell({
         <CropModal
           imageSrc={cropSrc}
           onCancel={() => setCropSrc('')}
-          onCropDone={(cropped) => {
-            setProfileUrlDraft(cropped)
-            setCropSrc('')
-          }}
+          onCropDone={handleCropDone}
         />
       )}
         </div>

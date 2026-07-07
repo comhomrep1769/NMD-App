@@ -46,6 +46,7 @@ type DbUser = {
   created_at: string;
   updated_at: string;
   must_change_password: boolean;
+  profile_image_url?: string | null;
 };
 
 type SeedUserResponse = {
@@ -81,6 +82,7 @@ function mapUser(user: DbUser) {
     createdAt: user.created_at,
     updatedAt: user.updated_at,
     mustChangePassword: user.must_change_password ?? false,
+    profileImageUrl: user.profile_image_url || null,
   };
 }
 
@@ -481,6 +483,29 @@ router.post("/onboard", async (req, res) => {
   } catch (error) {
     console.error("onboard error", error);
     return res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.patch("/profile-image", async (req, res) => {
+  try {
+    const token = getBearerToken(req);
+    if (!token) return res.status(401).json({ error: "Missing authorization token." });
+    let decoded: { id?: string };
+    try {
+      decoded = jwt.verify(token, getJwtSecret()) as { id?: string };
+    } catch {
+      return res.status(401).json({ error: "Invalid or expired session." });
+    }
+    if (!decoded.id) return res.status(401).json({ error: "Invalid token." });
+    const { profileImageUrl } = req.body as { profileImageUrl?: string | null };
+    await pool.query(
+      `UPDATE users SET profile_image_url = $1, updated_at = NOW() WHERE id = $2`,
+      [profileImageUrl || null, decoded.id]
+    );
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error("profile-image error:", err);
+    return res.status(500).json({ error: "Failed to update profile image." });
   }
 });
 
