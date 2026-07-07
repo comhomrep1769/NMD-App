@@ -33,6 +33,7 @@ export default function SchedulePage() {
   const [saving, setSaving] = useState(false)
   const [modalError, setModalError] = useState("")
   const [form, setForm] = useState({
+  const [deletingJobId, setDeletingJobId] = useState<string | null>(null)
     title: '', clientName: '', address: '',
     startTime: '', endTime: '', notes: '', status: 'scheduled',
     assignedUserIds: [] as string[],
@@ -64,6 +65,19 @@ export default function SchedulePage() {
       .then(d => setEmployees(d.employees || []))
       .catch(() => {})
   }, [])
+
+
+  const deleteJob = async (jobId: string, title: string) => {
+    if (!confirm("Delete job \"" + title + "\"? This cannot be undone.")) return
+    setDeletingJobId(jobId)
+    try {
+      const token = getNmdToken()
+      const res = await fetch(API + "/api/jobs/" + jobId, { method: "DELETE", headers: { Authorization: "Bearer " + token } })
+      if (!res.ok) throw new Error("Failed")
+      setJobs(p => p.filter(j => j.id !== jobId))
+    } catch (err) { alert("Failed to delete job") }
+    setDeletingJobId(null)
+  }
 
   const update = (field: string, value: string) =>
     setForm(prev => ({ ...prev, [field]: value }))

@@ -293,6 +293,7 @@ export default function RequestsPage() {
   const [statusLoading, setStatusLoading] = useState<string | null>(null)
   const [viewPhoto, setViewPhoto] = useState<Request | null>(null)
   const [viewSignature, setViewSignature] = useState<Request | null>(null)
+  const [deletingReqId, setDeletingReqId] = useState<string | null>(null)
 
   const API = process.env.NEXT_PUBLIC_API_URL || ''
 
@@ -349,6 +350,20 @@ export default function RequestsPage() {
     } else {
       setQuoteRequest(r)
     }
+  }
+
+
+  const deleteRequest = async (id: string, name: string) => {
+    if (!confirm("Delete request from \"" + name + "\"? This cannot be undone.")) return
+    setDeletingReqId(id)
+    try {
+      const token = getNmdToken()
+      const res = await fetch(API + "/api/requests/" + id, { method: "DELETE", headers: { Authorization: "Bearer " + token } })
+      if (!res.ok) throw new Error("Failed")
+      setRequests(p => p.filter(r => r.id !== id))
+      if (selected?.id === id) setSelected(null)
+    } catch (err) { alert("Failed to delete request") }
+    setDeletingReqId(null)
   }
 
   const handleCreateQuote = async (e: React.FormEvent) => {
