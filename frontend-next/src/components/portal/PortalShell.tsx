@@ -374,12 +374,12 @@ export default function PortalShell({
 
   const handleCropDone = async (cropped: string) => {
     setCropSrc('')
-    setUploadingImage(true)
-    await saveImageToDb(cropped)
     setProfilePic(cropped)
     setProfileUrlDraft(cropped)
-    setUploadingImage(false)
     setProfileMenuOpen(false)
+    setUploadingImage(true)
+    await saveImageToDb(cropped)
+    setUploadingImage(false)
   }
 
   if (!checked) return (
@@ -404,9 +404,7 @@ export default function PortalShell({
 
   const avatarStyle = (size: number, border: string): React.CSSProperties => ({
     width: size, height: size, borderRadius: '50%', flexShrink: 0,
-    backgroundImage: profilePic ? `url('${profilePic}')` : undefined,
-    backgroundSize: 'cover', backgroundPosition: 'center',
-    background: profilePic ? undefined : '#0F766E',
+    backgroundColor: profilePic ? 'transparent' : '#0F766E',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     cursor: 'pointer', border, overflow: 'hidden',
   })
@@ -476,7 +474,9 @@ export default function PortalShell({
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 10 }}>Profile Picture</div>
                 {profilePic && (
                   <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
-                    <div style={avatarStyle(56, '2px solid #34D399')} />
+                    <div style={avatarStyle(56, '2px solid #34D399')}>
+                    {profilePic && <img src={profilePic} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
+                  </div>
                   </div>
                 )}
                 <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, width: '100%', padding: 7, background: 'rgba(255,255,255,0.07)', border: '1px dashed rgba(255,255,255,0.18)', borderRadius: 7, cursor: 'pointer', fontSize: 12, color: 'rgba(255,255,255,0.7)', marginBottom: 8, fontFamily: "'DM Sans',sans-serif" }}>
@@ -498,7 +498,7 @@ export default function PortalShell({
             )}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', marginBottom: 2 }}>
               <div onClick={() => setProfileMenuOpen(o => !o)} style={avatarStyle(28, profilePic ? '2px solid #34D399' : '2px solid transparent')} title="Update profile picture">
-                {!profilePic && <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', pointerEvents: 'none' }}>{initials}</span>}
+                {profilePic ? <img src={profilePic} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', pointerEvents: 'none' }}>{initials}</span>}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 12, fontWeight: 600, color: '#fff', lineHeight: 1.1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.displayName || 'User'}</div>
@@ -531,7 +531,7 @@ export default function PortalShell({
             <span style={{ fontSize: 15, fontWeight: 600, color: '#111827', letterSpacing: '-0.01em' }}>{activeLabel}</span>
           </div>
           <div onClick={() => setProfileMenuOpen(o => !o)} style={avatarStyle(32, profilePic ? '2px solid #0F766E' : 'none')} title="Update profile picture">
-            {!profilePic && <span style={{ fontSize: 10, fontWeight: 700, color: '#34D399', pointerEvents: 'none' }}>{initials}</span>}
+            {profilePic ? <img src={profilePic} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : <span style={{ fontSize: 10, fontWeight: 700, color: '#34D399', pointerEvents: 'none' }}>{initials}</span>}
           </div>
         </div>
 
