@@ -510,6 +510,17 @@ export default function PortalShell({
           {children}
         </div>
       </div>
-    </div>
+
+      {cropSrc && (
+        <CropModal
+          imageSrc={cropSrc}
+          onCancel={() => setCropSrc('')}
+          onCropDone={(cropped) => {
+            setProfileUrl(cropped)
+            setCropSrc('')
+          }}
+        />
+      )}
+        </div>
   )
 }

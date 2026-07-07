@@ -1,5 +1,0 @@
-﻿const fs = require('fs')
-let c = fs.readFileSync('frontend-next/src/components/landing/CtaBand.tsx', 'utf8')
-c = c.replace('fetch(\/api/site-content)', 'fetch(\/api/site-content)')
-fs.writeFileSync('frontend-next/src/components/landing/CtaBand.tsx', c, 'utf8')
-console.log('CtaBand fixed')
