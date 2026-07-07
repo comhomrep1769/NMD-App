@@ -32,6 +32,7 @@ export default function SchedulePage() {
   const [showModal, setShowModal] = useState(false)
   const [saving, setSaving] = useState(false)
   const [modalError, setModalError] = useState("")
+  const [deletingJobId, setDeletingJobId] = useState<string | null>(null)
   const [form, setForm] = useState({
   
     title: '', clientName: '', address: '',
@@ -165,6 +166,7 @@ export default function SchedulePage() {
                     <option value="completed">Completed</option>
                     <option value="cancelled">Cancelled</option>
                   </select>
+              <button onClick={() => deleteJob(j.id, j.title)} disabled={deletingJobId === j.id} style={{ padding: "0.25rem 0.55rem", borderRadius: 5, border: "none", background: "#FEF2F2", color: "#B91C1C", fontWeight: 600, fontSize: "0.7rem", cursor: "pointer", marginLeft: 6 }}>{deletingJobId === j.id ? "..." : "Delete"}</button>
                 </div>
                 <div style={{ gridColumn: '1 / -1' }}>
                   <label style={labelStyle}>Service Address *</label>
