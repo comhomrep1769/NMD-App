@@ -68,6 +68,14 @@ export default async function Footer() {
               <a href="/mission" className="text-sm !text-white/50">Our Mission</a>
               <a href="/join-our-team" className="text-sm !text-white/50">Join Our Team</a>
               <a href="#" className="text-sm !text-white/50">Follow Us</a>
+              <div className="my-1.5 h-px bg-white/10" />
+              <a href="/employee/login" className="flex items-center gap-1.5 text-sm !text-white/35">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <circle cx="6" cy="4" r="2.2" stroke="currentColor" strokeWidth="1.2" />
+                  <path d="M1.5 10.5c0-2.21 2.015-4 4.5-4s4.5 1.79 4.5 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                </svg>
+                Employee Portal
+              </a>
             </div>
           </div>
         </div>
