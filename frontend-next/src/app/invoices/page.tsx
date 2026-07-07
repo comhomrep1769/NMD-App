@@ -128,6 +128,7 @@ export default function InvoicesPage() {
   const [viewInvoice, setViewInvoice] = useState<Invoice | null>(null)
 
   const [sendingLinkId, setSendingLinkId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [linkError, setLinkError] = useState<{ id: string; message: string } | null>(null)
 
   const API = process.env.NEXT_PUBLIC_API_URL || ''
@@ -262,6 +263,18 @@ export default function InvoicesPage() {
       setLinkError({ id: inv.id, message: err instanceof Error ? err.message : 'Failed to send payment link' })
     }
     setSendingLinkId(null)
+  }
+
+  const handleDelete = async (inv: Invoice) => {
+    if (!confirm('Delete invoice #' + inv.invoiceNumber + ' for ' + inv.clientName + '? This cannot be undone.')) return
+    setDeletingId(inv.id)
+    try {
+      const token = getNmdToken()
+      const res = await fetch(API + '/api/invoices/' + inv.id, { method: 'DELETE', headers: { Authorization: 'Bearer ' + token } })
+      if (!res.ok) throw new Error('Failed')
+      setInvoices(p => p.filter(i => i.id !== inv.id))
+    } catch (err) { alert(err instanceof Error ? err.message : 'Failed to delete') }
+    setDeletingId(null)
   }
 
   const handleCopyLink = (url: string) => {
