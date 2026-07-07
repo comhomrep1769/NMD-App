@@ -261,23 +261,54 @@ router.post("/:employeeId/reset-password", requireAuth, requireRole("admin", "su
 });
 
 router.delete("/:employeeId", requireAuth, requireRole("admin", "superadmin"), async (req, res) => {
+  const client = await pool.connect();
   try {
     const { employeeId } = req.params;
 
-    const result = await pool.query(
-      `DELETE FROM users WHERE id = $1 AND role IN ('admin', 'superadmin', 'employee', 'sales') RETURNING id`,
+    await client.query("BEGIN");
+
+    // Verify employee exists first
+    const check = await client.query(
+      `SELECT id, display_name FROM users WHERE id = $1 AND role IN ('admin', 'superadmin', 'employee', 'sales') LIMIT 1`,
       [employeeId]
     );
-
-    if (result.rows.length === 0) {
+    if (check.rows.length === 0) {
+      await client.query("ROLLBACK");
       return res.status(404).json({ error: "Employee not found" });
     }
 
+    // Nullify all NO ACTION foreign key references before deleting
+    await client.query(`UPDATE bonus_approvals    SET approved_by = NULL WHERE approved_by = $1`, [employeeId]);
+    await client.query(`UPDATE bonus_approvals    SET user_id = NULL     WHERE user_id = $1`,     [employeeId]);
+    await client.query(`UPDATE invoices           SET sales_rep_id = NULL WHERE sales_rep_id = $1`, [employeeId]);
+    await client.query(`UPDATE job_applicants     SET user_id = NULL     WHERE user_id = $1`,     [employeeId]);
+    await client.query(`UPDATE job_photos         SET user_id = NULL     WHERE user_id = $1`,     [employeeId]);
+    await client.query(`UPDATE pricing_references SET created_by = NULL  WHERE created_by = $1`,  [employeeId]);
+    await client.query(`UPDATE routes             SET created_by = NULL  WHERE created_by = $1`,  [employeeId]);
+    await client.query(`UPDATE treatment_cases    SET created_by = NULL  WHERE created_by = $1`,  [employeeId]);
+
+    // Now safe to delete — CASCADE rules handle the rest
+    await client.query(
+      `DELETE FROM users WHERE id = $1`,
+      [employeeId]
+    );
+
+    await client.query("COMMIT");
+
+    await logActivity({
+      actorType: "admin",
+      actorId: req.user!.id,
+      action: "employee_deleted",
+      description: `Employee ${check.rows[0].display_name} was deleted`,
+      metadata: { employeeId },
+    });
+
     return res.json({ deleted: true });
   } catch (error) {
+    await client.query("ROLLBACK");
     console.error("employee delete error", error);
-    return res.status(500).json({ error: "Server error" });
+    return res.status(500).json({ error: "Failed to delete employee" });
+  } finally {
+    client.release();
   }
 });
-
-export default router;

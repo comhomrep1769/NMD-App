@@ -147,7 +147,10 @@ export default function EmployeesPage() {
       if (!res.ok) throw new Error('Failed to delete employee')
       setEmployees(prev => prev.filter(e => e.id !== deleteEmployee.id))
       setDeleteEmployee(null)
-    } catch (err) { console.error(err) }
+    } catch (err) {
+      console.error(err)
+      alert(err instanceof Error ? err.message : 'Failed to delete employee')
+    }
     setDeleting(false)
   }
 
