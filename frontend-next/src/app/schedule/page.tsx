@@ -166,7 +166,6 @@ export default function SchedulePage() {
                     <option value="completed">Completed</option>
                     <option value="cancelled">Cancelled</option>
                   </select>
-              <button onClick={() => deleteJob(j.id, j.title)} disabled={deletingJobId === j.id} style={{ padding: "0.25rem 0.55rem", borderRadius: 5, border: "none", background: "#FEF2F2", color: "#B91C1C", fontWeight: 600, fontSize: "0.7rem", cursor: "pointer", marginLeft: 6 }}>{deletingJobId === j.id ? "..." : "Delete"}</button>
                 </div>
                 <div style={{ gridColumn: '1 / -1' }}>
                   <label style={labelStyle}>Service Address *</label>
@@ -252,7 +251,8 @@ export default function SchedulePage() {
             <span key="start" style={{ color: '#6B7280', whiteSpace: 'nowrap' }}>{j.startTime ? fmtDate(j.startTime) : "—"}</span>,
             <span key="end" style={{ color: '#9CA3AF', whiteSpace: 'nowrap' }}>{j.endTime ? fmtDate(j.endTime) : "—"}</span>,
             <span key="assigned" style={{ color: '#374151' }}>{j.assignedEmployees.map(e => e.displayName).join(", ") || "Unassigned"}</span>,
-            <StatusBadge key="status" status={j.status} />
+            <StatusBadge key="status" status={j.status} />,
+              <button key="del" onClick={() => deleteJob(j.id, j.title)} disabled={deletingJobId === j.id} style={{ padding: "0.25rem 0.5rem", borderRadius: 5, border: "none", background: "#FEF2F2", color: "#B91C1C", fontWeight: 600, fontSize: "0.7rem", cursor: "pointer" }}>{deletingJobId === j.id ? "..." : "Delete"}</button>
           ])}
           emptyMessage="No jobs scheduled."
         />
