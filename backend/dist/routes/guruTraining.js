@@ -1,8 +1,9 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
+import { requireAuth, requireRole } from "../middleware/auth.js";
 const router = Router();
 // GET all entries (optionally filter by category)
-router.get('/', async (req, res) => {
+router.get('/', requireAuth, requireRole("admin", "superadmin"), async (req, res) => {
     try {
         const { category, search } = req.query;
         let query = 'SELECT * FROM guru_training';
@@ -29,7 +30,7 @@ router.get('/', async (req, res) => {
     }
 });
 // GET single entry
-router.get('/:id', async (req, res) => {
+router.get('/:id', requireAuth, requireRole("admin", "superadmin"), async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM guru_training WHERE id = $1', [req.params.id]);
         if (result.rows.length === 0)
@@ -41,7 +42,7 @@ router.get('/:id', async (req, res) => {
     }
 });
 // POST create entry
-router.post('/', async (req, res) => {
+router.post('/', requireAuth, requireRole("admin", "superadmin"), async (req, res) => {
     try {
         const { category, title, content } = req.body;
         if (!category || !title || !content) {
@@ -56,7 +57,7 @@ router.post('/', async (req, res) => {
     }
 });
 // PUT update entry
-router.put('/:id', async (req, res) => {
+router.put('/:id', requireAuth, requireRole("admin", "superadmin"), async (req, res) => {
     try {
         const { category, title, content } = req.body;
         const result = await pool.query(`UPDATE guru_training
@@ -75,7 +76,7 @@ router.put('/:id', async (req, res) => {
     }
 });
 // DELETE entry
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', requireAuth, requireRole("admin", "superadmin"), async (req, res) => {
     try {
         await pool.query('DELETE FROM guru_training WHERE id = $1', [req.params.id]);
         res.json({ success: true });

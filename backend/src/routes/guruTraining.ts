@@ -1,10 +1,11 @@
 import { Router, Request, Response } from 'express';
 import { pool } from '../db.js';
+import { requireAuth, requireRole } from "../middleware/auth.js";
 
 const router = Router();
 
 // GET all entries (optionally filter by category)
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', requireAuth, requireRole("admin", "superadmin"), async (req: Request, res: Response) => {
   try {
     const { category, search } = req.query;
     let query = 'SELECT * FROM guru_training';
@@ -31,7 +32,7 @@ router.get('/', async (req: Request, res: Response) => {
 });
 
 // GET single entry
-router.get('/:id', async (req: Request, res: Response) => {
+router.get('/:id', requireAuth, requireRole("admin", "superadmin"), async (req: Request, res: Response) => {
   try {
     const result = await pool.query('SELECT * FROM guru_training WHERE id = $1', [req.params.id]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' });
@@ -42,7 +43,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 // POST create entry
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', requireAuth, requireRole("admin", "superadmin"), async (req: Request, res: Response) => {
   try {
     const { category, title, content } = req.body;
     if (!category || !title || !content) {
@@ -60,7 +61,7 @@ router.post('/', async (req: Request, res: Response) => {
 });
 
 // PUT update entry
-router.put('/:id', async (req: Request, res: Response) => {
+router.put('/:id', requireAuth, requireRole("admin", "superadmin"), async (req: Request, res: Response) => {
   try {
     const { category, title, content } = req.body;
     const result = await pool.query(
@@ -81,7 +82,7 @@ router.put('/:id', async (req: Request, res: Response) => {
 });
 
 // DELETE entry
-router.delete('/:id', async (req: Request, res: Response) => {
+router.delete('/:id', requireAuth, requireRole("admin", "superadmin"), async (req: Request, res: Response) => {
   try {
     await pool.query('DELETE FROM guru_training WHERE id = $1', [req.params.id]);
     res.json({ success: true });
