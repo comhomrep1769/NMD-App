@@ -17,14 +17,14 @@ const SITE_DEFAULTS: Record<string, string> = {
   'scripts.body_start': '',
   'scripts.body_end': '',
   'site.favicon_url': '/favicon.ico',
-  'site.phone': '(407) 555-0182',
-  'site.email': 'hello@nmdpowash.com',
+  'site.phone': '(321) 888-6586',
+  'site.email': 'nmdpowash@gmail.com',
   'site.address': 'Orlando, FL',
 }
 
 async function getGlobalSiteContent(): Promise<Record<string, string>> {
   try {
-    const API = process.env.NEXT_PUBLIC_API_URL || ''
+    const API = process.env.NEXT_PUBLIC_API_URL || 'https://nmd-backend.onrender.com'
     const res = await fetch(`${API}/api/site-content`, { cache: 'no-store' })
     if (!res.ok) return SITE_DEFAULTS
     const data = await res.json()
