@@ -3,13 +3,17 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 
-const PHONE_DEFAULT = '(407) 555-0182'
+const PHONE_DEFAULT = '(321) 888-6586'
+
+function formatPhoneForTel(phone: string): string {
+  return 'tel:+1' + phone.replace(/\D/g, '')
+}
 
 export default function CtaBand() {
   const [phone, setPhone] = useState(PHONE_DEFAULT)
 
   useEffect(() => {
-    const API = process.env.NEXT_PUBLIC_API_URL || ''
+    const API = process.env.NEXT_PUBLIC_API_URL || 'https://nmd-backend.onrender.com'
     fetch(`${API}/api/site-content`)
       .then(r => r.json())
       .then(d => { if (d.content?.['site.phone']) setPhone(d.content['site.phone']) })
@@ -43,7 +47,9 @@ export default function CtaBand() {
           <a href="/client/request-service" className="inline-flex items-center whitespace-nowrap rounded-lg bg-teal-700 px-[30px] py-3.5 text-[15px] font-semibold !text-white">
             Get a Free Quote
           </a>
-          <span className="px-1 text-[13px] text-white/35">or call {phone}</span>
+          <span className="px-1 text-[13px] text-white/35">
+            or call <a href={formatPhoneForTel(phone)} className="text-white/50 hover:text-white/70" style={{ textDecoration: 'none' }}>{phone}</a>
+          </span>
         </motion.div>
       </div>
     </section>

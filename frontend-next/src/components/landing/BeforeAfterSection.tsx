@@ -9,25 +9,25 @@ type Item = {
   tagBg: string
   tagColor: string
   imageKey: string
-  defaultImg: string
 }
 
 const ITEMS: Item[] = [
-  { title: 'Driveway Cleaning', location: 'Winter Park, FL', tag: 'Residential', tagBg: '#F0FDF9', tagColor: '#0F766E', imageKey: 'gallery.driveway_image_url', defaultImg: 'https://picsum.photos/seed/nmd-driveway/900/600' },
-  { title: 'Roof Soft Wash', location: 'Orlando, FL', tag: 'Specialty', tagBg: '#F0FDF9', tagColor: '#0F766E', imageKey: 'gallery.roof_image_url', defaultImg: 'https://picsum.photos/seed/nmd-roof/900/600' },
-  { title: 'Commercial Parking Lot', location: 'Kissimmee, FL', tag: 'Commercial', tagBg: '#EFF6FF', tagColor: '#1D4ED8', imageKey: 'gallery.parking_lot_image_url', defaultImg: 'https://picsum.photos/seed/nmd-parkinglot/900/600' },
-  { title: 'Fence Restoration', location: 'Melbourne, FL', tag: 'Specialty', tagBg: '#FEF3C7', tagColor: '#92400E', imageKey: 'gallery.fence_image_url', defaultImg: 'https://picsum.photos/seed/nmd-fence/900/600' },
+  { title: 'Driveway Cleaning', location: 'Winter Park, FL', tag: 'Residential', tagBg: '#F0FDF9', tagColor: '#0F766E', imageKey: 'gallery.driveway_image_url' },
+  { title: 'Roof Soft Wash', location: 'Orlando, FL', tag: 'Specialty', tagBg: '#F0FDF9', tagColor: '#0F766E', imageKey: 'gallery.roof_image_url' },
+  { title: 'Commercial Parking Lot', location: 'Kissimmee, FL', tag: 'Commercial', tagBg: '#EFF6FF', tagColor: '#1D4ED8', imageKey: 'gallery.parking_lot_image_url' },
+  { title: 'Fence Restoration', location: 'Melbourne, FL', tag: 'Specialty', tagBg: '#FEF3C7', tagColor: '#92400E', imageKey: 'gallery.fence_image_url' },
 ]
+
+const PLACEHOLDER_SVG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='600' fill='%23E5E7EB'%3E%3Crect width='900' height='600'/%3E%3Ctext x='50%25' y='48%25' dominant-baseline='middle' text-anchor='middle' font-family='system-ui,sans-serif' font-size='20' font-weight='600' fill='%239CA3AF'%3EPhoto Coming Soon%3C/text%3E%3Ctext x='50%25' y='56%25' dominant-baseline='middle' text-anchor='middle' font-family='system-ui,sans-serif' font-size='13' fill='%23D1D5DB'%3EUpload via Admin %E2%86%92 Site Content %E2%86%92 Images%3C/text%3E%3C/svg%3E"
 
 export default function BeforeAfterSection() {
   const [afterState, setAfterState] = useState<boolean[]>(ITEMS.map(() => false))
   const [siteImages, setSiteImages] = useState<Record<string, string>>({})
-  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null)
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     setMounted(true)
-    const API = process.env.NEXT_PUBLIC_API_URL || ''
+    const API = process.env.NEXT_PUBLIC_API_URL || 'https://nmd-backend.onrender.com'
     fetch(`${API}/api/site-content`)
       .then(r => r.json())
       .then(d => { if (d.content) setSiteImages(d.content) })
@@ -37,6 +37,10 @@ export default function BeforeAfterSection() {
   const toggle = (i: number, value: boolean) => {
     setAfterState((prev) => { const next = [...prev]; next[i] = value; return next })
   }
+
+  // Only show the section if at least one real image has been uploaded
+  const hasAnyRealImage = ITEMS.some(item => siteImages[item.imageKey])
+  if (!hasAnyRealImage && mounted) return null
 
   return (
     <section className="bg-[#F8FAF9] px-4 py-24 sm:px-[65px]">
@@ -67,30 +71,33 @@ export default function BeforeAfterSection() {
         <div className="grid-gallery grid grid-cols-2 gap-6">
           {ITEMS.map((item, i) => {
             const showAfter = afterState[i]
-            const imgUrl = siteImages[item.imageKey] || item.defaultImg
+            const imgUrl = siteImages[item.imageKey] || PLACEHOLDER_SVG
+            const hasRealImage = !!siteImages[item.imageKey]
             return (
               <div
                 key={item.title}
                 className="nmd-gallery-card overflow-hidden rounded-xl border border-gray-200 bg-white"
                 style={mounted ? { animation: `nmdFadeUp 0.5s ease both`, animationDelay: `${i * 100}ms` } : { opacity: 0 }}
-                onMouseEnter={() => setHoveredIdx(i)}
-                onMouseLeave={() => setHoveredIdx(null)}
               >
                 <div className="relative h-[280px] overflow-hidden">
                   <img
                     src={imgUrl}
                     alt={`${showAfter ? 'After' : 'Before'} — ${item.title}`}
                     className="nmd-gallery-img h-full w-full object-cover"
-                    style={showAfter ? { filter: 'brightness(1.08) saturate(1.12)' } : { filter: 'brightness(0.7) saturate(0.4) sepia(0.25)' }}
+                    style={hasRealImage ? (showAfter ? { filter: 'brightness(1.08) saturate(1.12)' } : { filter: 'brightness(0.7) saturate(0.4) sepia(0.25)' }) : {}}
                   />
-                  <div
-                    className="pointer-events-none absolute inset-0"
-                    style={{ background: showAfter ? 'linear-gradient(to top, rgba(0,0,0,0.18) 0%, transparent 55%)' : 'linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 55%)', transition: 'background 0.55s ease' }}
-                  />
-                  <div className="absolute bottom-3.5 right-3.5 flex gap-0.5 rounded-full bg-black/65 p-[3px]">
-                    <button onClick={() => toggle(i, false)} className={!showAfter ? 'rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-gray-900' : 'rounded-full px-3 py-1.5 text-xs font-normal text-white/70'} style={{ transition: 'background 0.2s ease, color 0.2s ease' }}>Before</button>
-                    <button onClick={() => toggle(i, true)} className={showAfter ? 'rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-gray-900' : 'rounded-full px-3 py-1.5 text-xs font-normal text-white/70'} style={{ transition: 'background 0.2s ease, color 0.2s ease' }}>After</button>
-                  </div>
+                  {hasRealImage && (
+                    <>
+                      <div
+                        className="pointer-events-none absolute inset-0"
+                        style={{ background: showAfter ? 'linear-gradient(to top, rgba(0,0,0,0.18) 0%, transparent 55%)' : 'linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 55%)', transition: 'background 0.55s ease' }}
+                      />
+                      <div className="absolute bottom-3.5 right-3.5 flex gap-0.5 rounded-full bg-black/65 p-[3px]">
+                        <button onClick={() => toggle(i, false)} className={!showAfter ? 'rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-gray-900' : 'rounded-full px-3 py-1.5 text-xs font-normal text-white/70'} style={{ transition: 'background 0.2s ease, color 0.2s ease' }}>Before</button>
+                        <button onClick={() => toggle(i, true)} className={showAfter ? 'rounded-full bg-white/90 px-3 py-1.5 text-xs font-semibold text-gray-900' : 'rounded-full px-3 py-1.5 text-xs font-normal text-white/70'} style={{ transition: 'background 0.2s ease, color 0.2s ease' }}>After</button>
+                      </div>
+                    </>
+                  )}
                 </div>
                 <div className="flex items-center justify-between px-5 py-4">
                   <div>
@@ -107,5 +114,3 @@ export default function BeforeAfterSection() {
     </section>
   )
 }
-
-

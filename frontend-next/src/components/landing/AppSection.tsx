@@ -94,7 +94,7 @@ export default function AppSection() {
             <a href="/client/register" className="inline-flex items-center rounded-lg bg-teal-700 px-6 py-3.5 text-[15px] font-semibold !text-white">
               Create Client Account
             </a>
-            <a href="#" className="text-sm font-medium text-teal-700">Learn more &rarr;</a>
+            <a href="/client/register" className="text-sm font-medium text-teal-700">Learn more &rarr;</a>
           </motion.div>
         </div>
 
@@ -127,7 +127,7 @@ export default function AppSection() {
                 </div>
                 <div className="rounded-[10px] border-l-[3px] border-amber-500 bg-white px-3 py-2.5">
                   <div className="mb-1 text-[9px] font-bold uppercase tracking-wider text-amber-700">Invoice Due</div>
-                  <div className="text-[13px] font-semibold text-gray-900">Invoice #1042 &middot; .00</div>
+                  <div className="text-[13px] font-semibold text-gray-900">Invoice #1042 &middot; $350.00</div>
                   <div className="mt-1.5 inline-block rounded bg-teal-700 px-2 py-1 text-[9px] font-bold tracking-wide text-white">PAY NOW</div>
                 </div>
                 <div className="rounded-[10px] border-l-[3px] border-emerald-500 bg-white px-3 py-2.5">

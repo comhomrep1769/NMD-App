@@ -2,14 +2,18 @@
 const AREA_LINKS = ['Orange County FL', 'Orlando FL', 'Winter Park FL', 'Kissimmee FL', 'Brevard County FL', 'Melbourne FL', 'Palm Bay FL']
 
 const CONTACT_DEFAULTS: Record<string, string> = {
-  'site.phone': '(407) 555-0182',
-  'site.email': 'hello@nmdpowash.com',
+  'site.phone': '(321) 888-6586',
+  'site.email': 'nmdpowash@gmail.com',
   'site.copyright_year': '2026',
+}
+
+function formatPhoneForTel(phone: string): string {
+  return 'tel:+1' + phone.replace(/\D/g, '')
 }
 
 async function getSiteContact(): Promise<Record<string, string>> {
   try {
-    const API = process.env.NEXT_PUBLIC_API_URL || ''
+    const API = process.env.NEXT_PUBLIC_API_URL || 'https://nmd-backend.onrender.com'
     const res = await fetch(`${API}/api/site-content`, { cache: 'no-store' })
     if (!res.ok) return CONTACT_DEFAULTS
     const data = await res.json()
@@ -24,7 +28,6 @@ export default async function Footer() {
   const phone = site['site.phone']
   const email = site['site.email']
   const copyrightYear = site['site.copyright_year'] || String(new Date().getFullYear())
-  // year from site content
 
   return (
     <footer className="bg-gray-900 pt-16">
@@ -39,7 +42,10 @@ export default async function Footer() {
               Professional pressure washing for homes, businesses, and industrial properties
               across Central Florida. Licensed, insured, and committed to results.
             </p>
-            <p className="text-[13px] !text-white/30">{phone} &middot; {email}</p>
+            <div className="flex flex-col gap-1">
+              <a href={formatPhoneForTel(phone)} className="text-[13px] !text-white/30 hover:!text-white/50" style={{ textDecoration: 'none' }}>{phone}</a>
+              <a href={`mailto:${email}`} className="text-[13px] !text-white/30 hover:!text-white/50" style={{ textDecoration: 'none' }}>{email}</a>
+            </div>
           </div>
 
           <div>
@@ -67,7 +73,6 @@ export default async function Footer() {
               <a href="/client/register" className="text-sm !text-white/50">Create Client Account</a>
               <a href="/mission" className="text-sm !text-white/50">Our Mission</a>
               <a href="/join-our-team" className="text-sm !text-white/50">Join Our Team</a>
-              <a href="#" className="text-sm !text-white/50">Follow Us</a>
               <div className="my-1.5 h-px bg-white/10" />
               <a href="/employee/login" className="flex items-center gap-1.5 text-sm !text-white/35">
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
@@ -85,11 +90,10 @@ export default async function Footer() {
           <div className="flex gap-5">
             <a href="/privacy-policy" className="text-xs !text-white/22">Privacy Policy</a>
             <a href="/terms-of-service" className="text-xs !text-white/22">Terms of Service</a>
-            <a href="#" className="text-xs !text-white/22">Sitemap</a>
+            <a href="/sitemap.xml" className="text-xs !text-white/22">Sitemap</a>
           </div>
         </div>
       </div>
     </footer>
   )
 }
-
