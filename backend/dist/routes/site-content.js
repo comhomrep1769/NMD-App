@@ -38,12 +38,6 @@ const DEFAULT_CONTENT = [
     { key: "hero.stat2_label", value: "Counties served", valueType: "text", section: "content", page: "home", label: "Hero Stat 2 Label", sortOrder: 11 },
     { key: "hero.stat3_value", value: "20%", valueType: "text", section: "content", page: "home", label: "Hero Stat 3 Value", sortOrder: 12 },
     { key: "hero.stat3_label", value: "Recurring discount", valueType: "text", section: "content", page: "home", label: "Hero Stat 3 Label", sortOrder: 13 },
-    // ── Homepage gallery / before-after photos (BeforeAfterSection.tsx) ──
-    // Cards only render when a real photo exists for the key. Empty = card hidden.
-    { key: "gallery.driveway_image_url", value: "", valueType: "image", section: "content", page: "home", label: "Gallery — Driveway Cleaning (Winter Park)", sortOrder: 20 },
-    { key: "gallery.roof_image_url", value: "", valueType: "image", section: "content", page: "home", label: "Gallery — Roof Soft Wash (Orlando)", sortOrder: 21 },
-    { key: "gallery.parking_lot_image_url", value: "", valueType: "image", section: "content", page: "home", label: "Gallery — Commercial Parking Lot (Kissimmee)", sortOrder: 22 },
-    { key: "gallery.fence_image_url", value: "", valueType: "image", section: "content", page: "home", label: "Gallery — Fence Restoration (Melbourne)", sortOrder: 23 },
     // ── Client login page (LoginPageClient.tsx) ──
     { key: "login.hero_image_url", value: "", valueType: "image", section: "content", page: "login", label: "Client Login — Side Panel Image", sortOrder: 1 },
     // ── Homepage SEO (page.tsx) ──

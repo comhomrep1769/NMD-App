@@ -45,6 +45,7 @@ const ADMIN_NAV: NavItem[] = [
   { href: '/chat', label: 'Chat', icon: 'chat', group: 'System' },
   { href: '/guru-training', label: 'Guru Training', icon: 'training', group: 'System' },
   { href: '/site-content', label: 'Site Content', icon: 'edit', group: 'System' },
+  { href: '/gallery', label: 'Gallery', icon: 'photos', group: 'System' },
 ]
 
 const EMPLOYEE_NAV: NavItem[] = [
