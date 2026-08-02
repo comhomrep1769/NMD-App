@@ -38,6 +38,14 @@ const DEFAULT_CONTENT = [
     { key: "hero.stat2_label", value: "Counties served", valueType: "text", section: "content", page: "home", label: "Hero Stat 2 Label", sortOrder: 11 },
     { key: "hero.stat3_value", value: "20%", valueType: "text", section: "content", page: "home", label: "Hero Stat 3 Value", sortOrder: 12 },
     { key: "hero.stat3_label", value: "Recurring discount", valueType: "text", section: "content", page: "home", label: "Hero Stat 3 Label", sortOrder: 13 },
+    // ── Homepage gallery / before-after photos (BeforeAfterSection.tsx) ──
+    // Cards only render when a real photo exists for the key. Empty = card hidden.
+    { key: "gallery.driveway_image_url", value: "", valueType: "image", section: "content", page: "home", label: "Gallery — Driveway Cleaning (Winter Park)", sortOrder: 20 },
+    { key: "gallery.roof_image_url", value: "", valueType: "image", section: "content", page: "home", label: "Gallery — Roof Soft Wash (Orlando)", sortOrder: 21 },
+    { key: "gallery.parking_lot_image_url", value: "", valueType: "image", section: "content", page: "home", label: "Gallery — Commercial Parking Lot (Kissimmee)", sortOrder: 22 },
+    { key: "gallery.fence_image_url", value: "", valueType: "image", section: "content", page: "home", label: "Gallery — Fence Restoration (Melbourne)", sortOrder: 23 },
+    // ── Client login page (LoginPageClient.tsx) ──
+    { key: "login.hero_image_url", value: "", valueType: "image", section: "content", page: "login", label: "Client Login — Side Panel Image", sortOrder: 1 },
     // ── Homepage SEO (page.tsx) ──
     { key: "seo.home.title", value: "NMD Pressure Washing | Brevard & Orange County, FL", valueType: "text", section: "seo", page: "home", label: "Page Title Tag", sortOrder: 1 },
     { key: "seo.home.description", value: "Professional pressure washing in Brevard County & Orange County, FL. Residential, commercial, industrial, and specialty restoration. Free quotes. 20% off recurring plans.", valueType: "richtext", section: "seo", page: "home", label: "Meta Description", sortOrder: 2 },
@@ -80,17 +88,60 @@ router.get("/favicon", async (_req, res) => {
         return res.status(500).json({ error: "Server error" });
     }
 });
+// ── Serve any image-type site_content row as real binary bytes ──
+// Keeps multi-megabyte base64 out of the public JSON payload and lets
+// next/image optimize + cache it like any ordinary remote image.
+router.get("/image/:key", async (req, res) => {
+    try {
+        await ensureSiteContentTable();
+        const key = String(req.params.key || "");
+        const result = await pool.query("SELECT value FROM site_content WHERE key = $1 AND value_type = 'image' LIMIT 1", [key]);
+        const value = result.rows[0]?.value || "";
+        if (!value)
+            return res.status(404).json({ error: "Not found" });
+        if (value.startsWith("data:")) {
+            const semiIdx = value.indexOf(";base64,");
+            if (semiIdx > 5) {
+                const mimeType = value.substring(5, semiIdx);
+                if (!mimeType.startsWith("image/"))
+                    return res.status(415).json({ error: "Unsupported type" });
+                const buffer = Buffer.from(value.substring(semiIdx + 8), "base64");
+                res.set("Content-Type", mimeType);
+                res.set("Cache-Control", "public, max-age=31536000, immutable");
+                return res.send(buffer);
+            }
+            return res.status(415).json({ error: "Unsupported type" });
+        }
+        if (value.startsWith("http") || value.startsWith("/"))
+            return res.redirect(value);
+        return res.status(404).json({ error: "Not found" });
+    }
+    catch (error) {
+        console.error("site content image serve error", error);
+        return res.status(500).json({ error: "Server error" });
+    }
+});
 // ── Public: anonymous visitors / public pages need this with no auth.
 // Returns BOTH content and seo rows — meta tags are public-facing data
 // by nature, no reason to gate them behind auth. ──
-router.get("/", async (_req, res) => {
+router.get("/", async (req, res) => {
     try {
         await ensureSiteContentTable();
         await ensureSiteContentSeeded();
-        const result = await pool.query(`SELECT key, value FROM site_content`);
+        const result = await pool.query(`SELECT key, value, value_type FROM site_content`);
+        // Base64 image blobs are replaced with a URL to the binary endpoint above.
+        // Without this, every landing page load downloads every uploaded image
+        // inline as base64 (roughly 33% larger than the original file) in one
+        // JSON response, before a single pixel renders.
+        const base = `${req.protocol}://${req.get("host")}`;
         const content = {};
-        for (const row of result.rows)
-            content[row.key] = row.value;
+        for (const row of result.rows) {
+            const value = row.value || "";
+            content[row.key] =
+                row.value_type === "image" && value.startsWith("data:")
+                    ? `${base}/api/site-content/image/${encodeURIComponent(row.key)}`
+                    : value;
+        }
         return res.json({ content });
     }
     catch (error) {
