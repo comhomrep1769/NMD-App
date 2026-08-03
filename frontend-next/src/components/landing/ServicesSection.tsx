@@ -95,7 +95,6 @@ export default function ServicesSection() {
       <div className="mx-auto max-w-[1440px] px-4 sm:px-[65px]">
         <div className="mb-10 flex flex-wrap items-start justify-between gap-6">
           <div>
-            <p className="mb-3 text-[11px] font-bold uppercase tracking-wider text-teal-700">Services</p>
             <h2 className="mb-4 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
               Every Surface, Every Property Type
             </h2>

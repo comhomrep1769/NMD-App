@@ -85,7 +85,6 @@ export default function MissionPage() {
       <section className="bg-white px-4 py-24 sm:px-[65px]">
         <div className="grid-mission-statement mx-auto flex max-w-[1440px] gap-12">
           <div className="flex-shrink-0" style={{ width: '380px' }}>
-            <p className="mb-4 text-[11px] font-bold uppercase tracking-wider text-teal-700">Who We Are</p>
             <h2 className="mb-6 text-3xl font-bold leading-[1.1] tracking-tight text-gray-900 sm:text-4xl">
               A Central Florida company built on reliability
             </h2>
@@ -137,7 +136,6 @@ export default function MissionPage() {
       <section className="bg-[#F8FAF9] px-4 py-24 sm:px-[65px]">
         <div className="mx-auto max-w-[1440px]">
           <div className="mb-14">
-            <p className="mb-2.5 text-[11px] font-bold uppercase tracking-wider text-teal-700">Our Values</p>
             <h2 className="text-[40px] font-bold leading-[1.1] tracking-[-0.025em] text-gray-900">
               What we believe in
             </h2>
@@ -162,7 +160,6 @@ export default function MissionPage() {
       <section className="bg-white px-4 py-24 sm:px-[65px]">
         <div className="mx-auto flex max-w-[1440px] flex-wrap items-center gap-12">
           <div className="min-w-0 flex-1 basis-[400px]">
-            <p className="mb-[16px] text-[11px] font-bold uppercase tracking-wider text-teal-700">How We Work</p>
             <h2 className="mb-[24px] text-[32px] font-bold leading-[1.1] tracking-tight text-gray-900">
               Every job is documented from start to finish
             </h2>

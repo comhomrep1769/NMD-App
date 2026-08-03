@@ -56,7 +56,6 @@ export default function AppSection() {
             viewport={{ once: true, margin: '-80px' }}
             transition={{ duration: 0.6, ease: 'easeOut' as const }}
           >
-            <p className="mb-2.5 text-[11px] font-bold uppercase tracking-wider text-teal-700">Client App</p>
             <h2 className="mb-4.5 text-[40px] font-bold leading-[1.1] tracking-[-0.025em] text-gray-900">
               Your Property. Under Control.
             </h2>

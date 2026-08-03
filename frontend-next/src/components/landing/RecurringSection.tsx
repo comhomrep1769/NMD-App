@@ -32,7 +32,6 @@ export default function RecurringSection() {
           transition={{ duration: 0.6, ease: 'easeOut' as const }}
         >
           <div>
-            <p className="mb-3 text-[11px] font-bold uppercase tracking-wider text-teal-700">Recurring plans</p>
             <h2 className="mb-4 max-w-[500px] text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
               Save 20% on every recurring service.
             </h2>

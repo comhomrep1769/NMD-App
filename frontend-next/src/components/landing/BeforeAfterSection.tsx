@@ -62,7 +62,6 @@ export default function BeforeAfterSection() {
 
       <div className="mx-auto max-w-[1440px]">
         <div className="mb-12">
-          <p className="mb-2.5 text-[11px] font-bold uppercase tracking-wider text-teal-700">Gallery</p>
           <h2 className="mb-3.5 max-w-[600px] text-[40px] font-bold leading-[1.1] tracking-[-0.025em] text-gray-900">The Proof Is in the Photos.</h2>
           <p className="max-w-[480px] text-base leading-relaxed text-gray-500">Real jobs, photographed before we started and after we finished. Tap any photo to switch.</p>
         </div>
