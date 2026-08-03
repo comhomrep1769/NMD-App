@@ -15,7 +15,7 @@ const DEFAULTS: Record<string, string> = {
   'hero.subtext': 'Professional pressure washing for homes, businesses, and industrial properties across Orlando, Orange County & Brevard County. From driveways to rooftops - we restore every surface to its best.',
   'hero.cta_primary_text': 'Get a Free Quote',
   'hero.cta_secondary_text': 'View Services',
-  'hero.stat1_value': '100+',
+  'hero.stat1_value': '118',
   'hero.stat1_label': 'Services offered',
   'hero.stat2_value': '2',
   'hero.stat2_label': 'Counties served',
@@ -158,4 +158,3 @@ export default async function Hero() {
     </section>
   )
 }
-

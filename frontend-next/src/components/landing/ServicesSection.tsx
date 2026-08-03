@@ -147,7 +147,7 @@ export default function ServicesSection() {
             >
               {expanded
                 ? 'Show less ↑'
-                : `Show all ${services.length} services ↓`}
+                : `Show all ${services.length} ${active} services ↓`}
             </button>
           </div>
         )}

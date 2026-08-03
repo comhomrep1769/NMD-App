@@ -37,7 +37,7 @@ const DEFAULT_CONTENT: Array<{
   { key: "hero.subtext", value: "Professional pressure washing for homes, businesses, and industrial properties across Orlando, Orange County & Brevard County. From driveways to rooftops — we restore every surface to its best.", valueType: "richtext", section: "content", page: "home", label: "Hero Subtext", sortOrder: 5 },
   { key: "hero.cta_primary_text", value: "Get a Free Quote", valueType: "text", section: "content", page: "home", label: "Hero Primary Button Text", sortOrder: 6 },
   { key: "hero.cta_secondary_text", value: "View Services", valueType: "text", section: "content", page: "home", label: "Hero Secondary Button Text", sortOrder: 7 },
-  { key: "hero.stat1_value", value: "100+", valueType: "text", section: "content", page: "home", label: "Hero Stat 1 Value", sortOrder: 8 },
+  { key: "hero.stat1_value", value: "118", valueType: "text", section: "content", page: "home", label: "Hero Stat 1 Value", sortOrder: 8 },
   { key: "hero.stat1_label", value: "Services offered", valueType: "text", section: "content", page: "home", label: "Hero Stat 1 Label", sortOrder: 9 },
   { key: "hero.stat2_value", value: "2", valueType: "text", section: "content", page: "home", label: "Hero Stat 2 Value", sortOrder: 10 },
   { key: "hero.stat2_label", value: "Counties served", valueType: "text", section: "content", page: "home", label: "Hero Stat 2 Label", sortOrder: 11 },
