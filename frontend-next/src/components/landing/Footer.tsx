@@ -1,4 +1,6 @@
-﻿const SERVICES_LINKS = ['Residential', 'Commercial', 'Industrial', 'Specialty & Restoration', 'Recurring Plans']
+﻿import { formatPhone } from '@/lib/phone'
+
+const SERVICES_LINKS = ['Residential', 'Commercial', 'Industrial', 'Specialty & Restoration', 'Recurring Plans']
 const AREA_LINKS = ['Orange County FL', 'Orlando FL', 'Winter Park FL', 'Kissimmee FL', 'Brevard County FL', 'Melbourne FL', 'Palm Bay FL']
 
 const CONTACT_DEFAULTS: Record<string, string> = {
@@ -25,7 +27,7 @@ async function getSiteContact(): Promise<Record<string, string>> {
 
 export default async function Footer() {
   const site = await getSiteContact()
-  const phone = site['site.phone']
+  const phone = formatPhone(site['site.phone'])
   const email = site['site.email']
   const copyrightYear = site['site.copyright_year'] || String(new Date().getFullYear())
 
