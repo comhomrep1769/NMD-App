@@ -95,6 +95,10 @@ router.get("/:id/image/:slot", async (req: any, res: any) => {
         const buffer = Buffer.from(value.substring(semiIdx + 8), "base64");
         res.set("Content-Type", mimeType);
         res.set("Cache-Control", "public, max-age=31536000, immutable");
+        // Helmet defaults to Cross-Origin-Resource-Policy: same-origin, which
+        // makes the browser silently discard this image on the public site,
+        // since the frontend and backend sit on different hosts.
+        res.set("Cross-Origin-Resource-Policy", "cross-origin");
         return res.send(buffer);
       }
       return res.status(415).json({ error: "Unsupported type" });
