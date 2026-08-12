@@ -21,24 +21,24 @@ const fadeUp: Variants = {
 function FeatureIcon({ index }: { index: number }) {
   const paths = [
     <svg key="0" width="15" height="15" viewBox="0 0 15 15" fill="none">
-      <rect x="1.5" y="3" width="12" height="9" rx="1.5" stroke="#0F766E" strokeWidth="1.3" />
-      <path d="M5 3V2.5C5 2 5.5 1.5 6 1.5H9C9.5 1.5 10 2 10 2.5V3" stroke="#0F766E" strokeWidth="1.3" strokeLinecap="round" />
+      <rect x="1.5" y="3" width="12" height="9" rx="1.5" stroke="#0B5D52" strokeWidth="1.3" />
+      <path d="M5 3V2.5C5 2 5.5 1.5 6 1.5H9C9.5 1.5 10 2 10 2.5V3" stroke="#0B5D52" strokeWidth="1.3" strokeLinecap="round" />
     </svg>,
     <svg key="1" width="15" height="15" viewBox="0 0 15 15" fill="none">
-      <rect x="1.5" y="1.5" width="12" height="12" rx="2" stroke="#0F766E" strokeWidth="1.3" />
-      <path d="M5 1.5V3.5M10 1.5V3.5M1.5 6H13.5" stroke="#0F766E" strokeWidth="1.3" strokeLinecap="round" />
+      <rect x="1.5" y="1.5" width="12" height="12" rx="2" stroke="#0B5D52" strokeWidth="1.3" />
+      <path d="M5 1.5V3.5M10 1.5V3.5M1.5 6H13.5" stroke="#0B5D52" strokeWidth="1.3" strokeLinecap="round" />
     </svg>,
     <svg key="2" width="15" height="15" viewBox="0 0 15 15" fill="none">
-      <rect x="2" y="1.5" width="10" height="12" rx="1.5" stroke="#0F766E" strokeWidth="1.3" />
-      <circle cx="7.5" cy="7.5" r="2" stroke="#0F766E" strokeWidth="1.3" />
+      <rect x="2" y="1.5" width="10" height="12" rx="1.5" stroke="#0B5D52" strokeWidth="1.3" />
+      <circle cx="7.5" cy="7.5" r="2" stroke="#0B5D52" strokeWidth="1.3" />
     </svg>,
     <svg key="3" width="15" height="15" viewBox="0 0 15 15" fill="none">
-      <path d="M1.5 3.5L7.5 8L13.5 3.5" stroke="#0F766E" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-      <rect x="1.5" y="2.5" width="12" height="10" rx="1.5" stroke="#0F766E" strokeWidth="1.3" />
+      <path d="M1.5 3.5L7.5 8L13.5 3.5" stroke="#0B5D52" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="1.5" y="2.5" width="12" height="10" rx="1.5" stroke="#0B5D52" strokeWidth="1.3" />
     </svg>,
   ]
   return (
-    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[#F0FDF9]">
+    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-[#E7F0ED]">
       {paths[index]}
     </div>
   )
@@ -46,7 +46,7 @@ function FeatureIcon({ index }: { index: number }) {
 
 export default function AppSection() {
   return (
-    <section className="bg-white px-4 py-24 sm:px-[65px]">
+    <section className="bg-white px-4 pb-24 pt-20 sm:px-[65px]">
       <div className="mx-auto flex max-w-[1440px] flex-wrap items-center gap-20">
 
         <div className="min-w-0 flex-1 basis-[380px]">

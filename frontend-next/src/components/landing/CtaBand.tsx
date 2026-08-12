@@ -21,7 +21,7 @@ export default function CtaBand() {
   }, [])
 
   return (
-    <section className="relative overflow-hidden bg-gray-900 px-4 py-24 sm:px-[65px]">
+    <section className="relative overflow-hidden bg-gray-900 px-4 py-28 sm:px-[65px]">
       <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'repeating-linear-gradient(135deg, rgba(255,255,255,0.013) 0, rgba(255,255,255,0.013) 1px, transparent 0, transparent 50%)', backgroundSize: '32px 32px' }} />
       <div className="relative mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-12">
         <motion.div

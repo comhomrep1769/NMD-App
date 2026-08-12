@@ -16,11 +16,11 @@ type GalleryItem = {
 }
 
 const CATEGORY_STYLES: Record<string, { bg: string; color: string }> = {
-  Residential: { bg: '#F0FDF9', color: '#0F766E' },
+  Residential: { bg: '#E7F0ED', color: '#0B5D52' },
   Commercial: { bg: '#EFF6FF', color: '#1D4ED8' },
   Industrial: { bg: '#F5F3FF', color: '#6D28D9' },
   Specialty: { bg: '#FEF3C7', color: '#92400E' },
-  Seasonal: { bg: '#F0FDF9', color: '#059669' },
+  Seasonal: { bg: '#E7F0ED', color: '#059669' },
 }
 
 const INITIAL_COUNT = 4
@@ -48,7 +48,7 @@ export default function BeforeAfterSection() {
   const hasMore = items.length > INITIAL_COUNT
 
   return (
-    <section className="bg-[#F8FAF9] px-4 py-24 sm:px-[65px]">
+    <section className="bg-[#F5F3EF] px-4 py-28 sm:px-[65px]">
       <style>{`
         .nmd-gallery-card { transition: transform 0.2s ease-out, box-shadow 0.2s ease-out; }
         .nmd-gallery-card:hover { transform: translateY(-3px); box-shadow: 0 12px 36px rgba(0,0,0,0.10); }
@@ -76,7 +76,7 @@ export default function BeforeAfterSection() {
               ? `After: ${item.title.toLowerCase()} completed in ${place}`
               : `Before: ${item.title.toLowerCase()} showing the surface in ${place} prior to cleaning`
             return (
-              <div key={item.id} className="nmd-gallery-card overflow-hidden rounded-xl border border-gray-200 bg-white">
+              <div key={item.id} className="nmd-gallery-card overflow-hidden rounded-xl border border-[#DDD8CF] bg-white">
                 <button
                   type="button"
                   onClick={() => toggle(item.id)}
@@ -137,7 +137,7 @@ export default function BeforeAfterSection() {
             <button
               type="button"
               onClick={() => setExpanded(v => !v)}
-              className="rounded-[10px] border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 hover:border-teal-700 hover:text-teal-700"
+              className="rounded-[10px] border border-[#DDD8CF] bg-white px-5 py-3 text-sm font-semibold text-gray-700 hover:border-teal-700 hover:text-teal-700"
               style={{ transition: 'border-color 0.15s ease-out, color 0.15s ease-out' }}
             >
               {expanded ? 'Show fewer jobs' : `See ${items.length - INITIAL_COUNT} more jobs`}

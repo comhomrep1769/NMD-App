@@ -91,7 +91,7 @@ export default function ServicesSection() {
   }
 
   return (
-    <section className="bg-white py-20" id="services">
+    <section className="bg-white pb-16 pt-24" id="services">
       <div className="mx-auto max-w-[1440px] px-4 sm:px-[65px]">
         <div className="mb-10 flex flex-wrap items-start justify-between gap-6">
           <div>
@@ -111,7 +111,7 @@ export default function ServicesSection() {
           </a>
         </div>
 
-        <div className="mb-8 flex flex-wrap gap-x-8 border-b border-gray-200">
+        <div className="mb-8 flex flex-wrap gap-x-8 border-b border-[#DDD8CF]">
           {CATEGORIES.map((cat) => (
             <button
               key={cat}

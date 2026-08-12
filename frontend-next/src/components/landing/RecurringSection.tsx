@@ -22,7 +22,7 @@ export default function RecurringSection() {
   ]
 
   return (
-    <section className="bg-white px-4 py-24 sm:px-[65px]" id="recurring">
+    <section className="bg-white px-4 pb-24 pt-16 sm:px-[65px]" id="recurring">
       <div className="mx-auto max-w-[1440px]">
         <motion.div
           className="mb-12 flex flex-wrap items-start justify-between gap-6"
@@ -57,14 +57,14 @@ export default function RecurringSection() {
             <motion.div
               key={plan.freq}
               variants={fadeUp}
-              className={plan.featured ? 'flex flex-col gap-2.5 rounded-xl bg-teal-700 px-4 py-5' : 'flex flex-col gap-2.5 rounded-xl border border-gray-200 bg-[#F8FAF9] px-4 py-5'}
+              className={plan.featured ? 'flex flex-col gap-2.5 rounded-xl bg-teal-700 px-4 py-5' : 'flex flex-col gap-2.5 rounded-xl border border-[#DDD8CF] bg-[#F5F3EF] px-4 py-5'}
               style={plan.featured ? { position: 'relative' } : undefined}
             >
               {plan.featured && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#0C5A54] px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white">Popular</div>
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[#094A42] px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white">Popular</div>
               )}
               <div className={`text-[13px] font-bold ${plan.featured ? 'text-white' : 'text-gray-900'}`}>{plan.freq}</div>
-              <div className={plan.featured ? 'inline-flex w-fit items-center rounded-md bg-white/[0.18] px-2 py-[3px] text-[11px] font-bold text-white' : 'inline-flex w-fit items-center rounded-md bg-[#F0FDF9] px-2 py-[3px] text-[11px] font-bold text-[#0F766E]'}>
+              <div className={plan.featured ? 'inline-flex w-fit items-center rounded-md bg-white/[0.18] px-2 py-[3px] text-[11px] font-bold text-white' : 'inline-flex w-fit items-center rounded-md bg-[#E7F0ED] px-2 py-[3px] text-[11px] font-bold text-[#0B5D52]'}>
                 20% off
               </div>
               <p className={`text-xs leading-relaxed ${plan.featured ? 'text-white/75' : 'text-gray-500'}`}>{plan.note}</p>
@@ -81,7 +81,7 @@ export default function RecurringSection() {
         >
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-blue-100 text-lg text-blue-700">&#8505;</div>
           <div>
-            <h4 className="mb-1 text-sm font-bold text-gray-900">First service is billed at the standard rate</h4>
+            <h3 className="mb-1 text-sm font-bold text-gray-900">First service is billed at the standard rate</h3>
             <p className="text-sm leading-relaxed text-gray-500">
               Your recurring discount activates from the second visit onward. Pricing is
               calculated after your first service based on your property size and scope &mdash;

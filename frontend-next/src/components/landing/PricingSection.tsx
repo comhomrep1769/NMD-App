@@ -27,7 +27,7 @@ export default function PricingSection() {
   ]
 
   return (
-    <section id="pricing" className="bg-[#F8FAF9] px-4 py-24 sm:px-[65px]">
+    <section id="pricing" className="bg-[#F5F3EF] px-4 pb-20 pt-24 sm:px-[65px]">
       <div className="mx-auto max-w-[1440px]">
 
         {/* Header */}
@@ -55,7 +55,7 @@ export default function PricingSection() {
           viewport={{ once: true, margin: '-60px' }}
         >
           {services.map((s) => (
-            <motion.div key={s.name} variants={fadeUp} className="flex flex-col rounded-xl border border-gray-200 bg-white p-6">
+            <motion.div key={s.name} variants={fadeUp} className="flex flex-col rounded-xl border border-[#DDD8CF] bg-white p-6">
               <div className="mb-3 text-[11px] font-bold uppercase tracking-wider text-teal-700">{s.name}</div>
               <div className="mb-0.5 text-3xl font-extrabold leading-none text-gray-900">{s.price}</div>
               <div className="mb-4 text-xs text-gray-400">starting price</div>
@@ -79,26 +79,26 @@ export default function PricingSection() {
 
         {/* Package cards */}
         <motion.div
-          className="grid-packages grid grid-cols-3 gap-5"
+          className="grid-packages grid grid-cols-3 gap-6"
           variants={container}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: '-60px' }}
         >
           {/* Bronze */}
-          <motion.div variants={fadeUp} className="rounded-xl border border-gray-200 bg-white p-7">
+          <motion.div variants={fadeUp} className="rounded-xl border border-[#DDD8CF] bg-white p-7">
             <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-amber-800">Bronze</div>
             <div className="mb-1 text-4xl font-extrabold leading-none text-gray-900">{packages[0].price}</div>
             <div className="mb-5 text-xs text-gray-400">one-time service</div>
             <div className="mb-6 flex flex-col gap-2.5">
               {packages[0].items.map((item) => (
                 <div key={item} className="flex items-center gap-2 text-sm text-gray-700">
-                  <span className="flex h-3.5 w-3.5 flex-shrink-0 items-center justify-center rounded-full bg-[#F0FDF9] text-teal-700">&#10003;</span>
+                  <span className="flex h-3.5 w-3.5 flex-shrink-0 items-center justify-center rounded-full bg-[#E7F0ED] text-teal-700">&#10003;</span>
                   {item}
                 </div>
               ))}
             </div>
-            <a href="/client/request-service" className="block rounded-lg border border-gray-200 py-2.5 text-center text-sm font-semibold text-gray-700">Get a Quote</a>
+            <a href="/client/request-service" className="block rounded-lg border border-[#DDD8CF] py-2.5 text-center text-sm font-semibold text-gray-700">Get a Quote</a>
           </motion.div>
 
           {/* Silver */}
