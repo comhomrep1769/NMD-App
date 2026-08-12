@@ -10,13 +10,14 @@ import AppSection from '@/components/landing/AppSection'
 import Footer from '@/components/landing/Footer'
 import GuruChat from '@/components/landing/GuruChat'
 import BeforeAfterSection from '@/components/landing/BeforeAfterSection'
+import MobileCallBar from '@/components/landing/MobileCallBar'
 
 // Fallback defaults — exact current values from this file — used if the
 // site-content API is unreachable, so metadata is never blank even if the
 // backend/DB is temporarily down.
 const SEO_DEFAULTS: Record<string, string> = {
-  'seo.home.title': 'NMD Pressure Washing | Brevard & Orange County, FL',
-  'seo.home.description': 'Professional pressure washing in Brevard County & Orange County, FL. Residential, commercial, industrial, and specialty restoration. Free quotes. 20% off recurring plans.',
+  'seo.home.title': 'NMD Pressure Washing | Brevard County FL & Wilkes-Barre PA',
+  'seo.home.description': 'Professional pressure washing in Brevard County, FL and Wilkes-Barre, PA. Residential, commercial, industrial, and specialty restoration. Free quotes. 20% off recurring plans.',
   'seo.home.og_image': '/og-image.jpg',
 }
 
@@ -58,7 +59,7 @@ export async function generateMetadata(): Promise<Metadata> {
           url: ogImage,
           width: 1200,
           height: 630,
-          alt: 'NMD Pressure Washing — Brevard & Orange County Florida',
+          alt: 'NMD Pressure Washing — Brevard County Florida and Wilkes-Barre Pennsylvania',
         },
       ],
     },
@@ -98,6 +99,7 @@ export default function HomePage() {
 
       <Footer />
       <GuruChat />
+      <MobileCallBar />
     </>
   )
 }

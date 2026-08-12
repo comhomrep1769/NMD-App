@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useRef } from 'react'
 import Link from 'next/link'
@@ -18,7 +18,7 @@ const POSITIONS: Position[] = [
     id: 1,
     title: 'Field Technician',
     type: 'Full-time',
-    location: 'Orlando metro + Brevard County',
+    location: 'Brevard County, FL',
     description: 'Operate pressure washing equipment on residential and commercial jobs. Training provided \u2014 no prior experience required.',
     badge: 'hiring',
   },
@@ -34,13 +34,13 @@ const POSITIONS: Position[] = [
     id: 3,
     title: 'Route Driver / Logistics',
     type: 'Part-time',
-    location: 'Orlando area',
+    location: 'Brevard County, FL',
     description: 'Drive company vehicle, transport equipment, coordinate daily route logistics. Clean driving record required.',
     badge: 'parttime',
   },
 ]
 
-const CITIES = ['Orlando, FL', 'Winter Park, FL', 'Kissimmee, FL', 'Melbourne, FL', 'Palm Bay, FL']
+const CITIES = ['Melbourne, FL', 'Palm Bay, FL', 'Cocoa, FL', 'Titusville, FL', 'Wilkes-Barre, PA']
 
 export default function JoinOurTeamPage() {
   const [firstName, setFirstName] = useState('')
@@ -110,7 +110,7 @@ export default function JoinOurTeamPage() {
       <Navbar />
 
       {submitted ? (
-        <section className="min-h-[100vh] flex items-center justify-center bg-[#F8FAF9] px-[24px]">
+        <section className="min-h-[100vh] flex items-center justify-center bg-[#F5F3EF] px-[24px]">
           <div className="bg-white border border-[#E5E7EB] rounded-[14px] p-[48px] max-w-[460px] w-full text-center">
             <div className="w-[56px] h-[56px] bg-[#F0FDF9] rounded-full flex items-center justify-center mx-auto mb-[20px]">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -183,7 +183,7 @@ export default function JoinOurTeamPage() {
           </section>
 
           {/* OPEN POSITIONS + APPLICATION FORM */}
-          <section className="py-[96px] bg-[#F8FAF9]">
+          <section className="py-[96px] bg-[#F5F3EF]">
             <div className="jt-positions-row jt-container max-w-[1440px] mx-auto px-[65px] flex gap-[64px] items-start">
               {/* Positions */}
               <div className="jt-positions-col" style={{ flex: '0 0 380px' }}>

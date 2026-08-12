@@ -139,7 +139,7 @@ export default function AdminTimeclockPage() {
 
   const btnStyle = (color: string, disabled: boolean): React.CSSProperties => ({
     padding: '0.6rem 1.25rem', borderRadius: 8, border: 'none',
-    background: disabled ? '#E5E7EB' : color,
+    background: disabled ? '#DDD8CF' : color,
     color: disabled ? '#9CA3AF' : 'white',
     fontWeight: 700, fontSize: '0.875rem',
     cursor: disabled ? 'not-allowed' : 'pointer',
@@ -185,7 +185,7 @@ export default function AdminTimeclockPage() {
 
       {/* ── My Clock ── */}
       {!myLoading && (
-        <div style={{ background: 'white', border: `1.5px solid ${mySession ? 'rgba(15,118,110,0.35)' : '#E5E7EB'}`, borderRadius: 10, padding: '1.25rem 1.5rem', marginBottom: '1.5rem' }}>
+        <div style={{ background: 'white', border: `1.5px solid ${mySession ? 'rgba(15,118,110,0.35)' : '#DDD8CF'}`, borderRadius: 10, padding: '1.25rem 1.5rem', marginBottom: '1.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: mySession ? '1rem' : 0 }}>
             <div>
               <div style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#111827' }}>
@@ -244,8 +244,8 @@ export default function AdminTimeclockPage() {
                         disabled={!!myActionLoading || blocked}
                         style={{
                           padding: '0.4rem 0.85rem', borderRadius: 7, fontFamily: 'DM Sans, sans-serif',
-                          border: `1.5px solid ${used ? '#E5E7EB' : 'rgba(15,118,110,0.3)'}`,
-                          background: used ? '#F8FAF9' : 'rgba(15,118,110,0.06)',
+                          border: `1.5px solid ${used ? '#DDD8CF' : 'rgba(15,118,110,0.3)'}`,
+                          background: used ? '#F5F3EF' : 'rgba(15,118,110,0.06)',
                           color: used ? '#9CA3AF' : '#0F766E',
                           fontWeight: 600, fontSize: '0.8rem',
                           cursor: blocked || !!myActionLoading ? 'not-allowed' : 'pointer',
@@ -319,7 +319,7 @@ export default function AdminTimeclockPage() {
                 const closedSessions = emp.sessions.filter(s => s.status === 'closed')
                 const hasActive = emp.activeSessions > 0
                 return (
-                  <div key={emp.userId} style={{ background: 'white', border: `1.5px solid ${hasActive ? 'rgba(146,64,14,0.35)' : '#E5E7EB'}`, borderRadius: 10, overflow: 'hidden' }}>
+                  <div key={emp.userId} style={{ background: 'white', border: `1.5px solid ${hasActive ? 'rgba(146,64,14,0.35)' : '#DDD8CF'}`, borderRadius: 10, overflow: 'hidden' }}>
                     <div onClick={() => setExpandedEmployee(isExpanded ? null : emp.userId)}
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem', cursor: 'pointer', gap: 12, flexWrap: 'wrap' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -346,7 +346,7 @@ export default function AdminTimeclockPage() {
                       <div style={{ borderTop: '1px solid #E5E7EB', overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                           <thead>
-                            <tr style={{ background: '#F8FAF9' }}>
+                            <tr style={{ background: '#F5F3EF' }}>
                               {['Date', 'Clock In', 'Clock Out', 'Total', 'Break', 'Penalty', 'Paid Time', 'Status'].map(h => (
                                 <th key={h} style={{ padding: '0.6rem 1rem', textAlign: 'left', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9CA3AF' }}>{h}</th>
                               ))}
@@ -371,7 +371,7 @@ export default function AdminTimeclockPage() {
                                 </td>
                               </tr>
                             ))}
-                            <tr style={{ background: '#F8FAF9', borderTop: '1.5px solid #E5E7EB' }}>
+                            <tr style={{ background: '#F5F3EF', borderTop: '1.5px solid #E5E7EB' }}>
                               <td colSpan={6} style={{ padding: '0.65rem 1rem', fontWeight: 700, color: '#111827', fontSize: '0.82rem' }}>
                                 Total ({closedSessions.length} completed session{closedSessions.length !== 1 ? 's' : ''})
                               </td>
@@ -380,7 +380,7 @@ export default function AdminTimeclockPage() {
                             </tr>
                           </tbody>
                         </table>
-                        <div style={{ padding: '0.75rem 1rem', background: '#F8FAF9', borderTop: '1px solid #E5E7EB', display: 'flex', gap: 10 }}>
+                        <div style={{ padding: '0.75rem 1rem', background: '#F5F3EF', borderTop: '1px solid #E5E7EB', display: 'flex', gap: 10 }}>
                           <Link href="/payroll" style={{ fontSize: '0.82rem', fontWeight: 600, color: '#1D4ED8', textDecoration: 'none', padding: '4px 12px', borderRadius: 6, border: '1px solid rgba(29,78,216,0.2)', background: 'rgba(29,78,216,0.05)' }}>
                             → Use in Payroll
                           </Link>

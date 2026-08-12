@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import PortalShell from '@/components/portal/PortalShell'
@@ -145,7 +145,7 @@ export default function AdminPhotosPage() {
               { key: 'job', label: `Job Photos (${jobCount})` },
             ].map(f => (
               <button key={f.key} onClick={() => setSourceFilter(f.key)}
-                style={{ padding: '0.35rem 0.85rem', borderRadius: 20, border: `1px solid ${sourceFilter === f.key ? '#1D4ED8' : '#E5E7EB'}`, background: sourceFilter === f.key ? '#EFF6FF' : 'white', color: sourceFilter === f.key ? '#1D4ED8' : '#6B7280', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
+                style={{ padding: '0.35rem 0.85rem', borderRadius: 20, border: `1px solid ${sourceFilter === f.key ? '#1D4ED8' : '#DDD8CF'}`, background: sourceFilter === f.key ? '#EFF6FF' : 'white', color: sourceFilter === f.key ? '#1D4ED8' : '#6B7280', fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
                 {f.label}
               </button>
             ))}
@@ -166,7 +166,7 @@ export default function AdminPhotosPage() {
                   <div key={`${p.source}-${p.id}-${i}`} onClick={() => setSelected(p)}
                     style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 10, overflow: 'hidden', cursor: 'pointer', transition: 'border-color 0.15s' }}
                     onMouseEnter={e => (e.currentTarget.style.borderColor = '#0F766E')}
-                    onMouseLeave={e => (e.currentTarget.style.borderColor = '#E5E7EB')}
+                    onMouseLeave={e => (e.currentTarget.style.borderColor = '#DDD8CF')}
                   >
                     <img src={p.photoDataUrl} alt={p.caption || p.serviceType}
                       style={{ width: '100%', height: 200, objectFit: 'cover', display: 'block' }} />

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect, Suspense, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -93,8 +93,8 @@ function OnboardForm() {
       )}
 
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '1.25rem', background: '#F8FAF9', borderRadius: 12, border: '1.5px dashed #E5E7EB' }}>
-          <div style={{ width: 80, height: 80, borderRadius: '50%', background: avatarPreview ? 'none' : '#E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: '3px solid #0F766E' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '1.25rem', background: '#F5F3EF', borderRadius: 12, border: '1.5px dashed #E5E7EB' }}>
+          <div style={{ width: 80, height: 80, borderRadius: '50%', background: avatarPreview ? 'none' : '#DDD8CF', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: '3px solid #0F766E' }}>
             {avatarPreview ? (
               <img src={avatarPreview} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             ) : (
@@ -147,7 +147,7 @@ function OnboardForm() {
 
 export default function OnboardPage() {
   return (
-    <div style={{ minHeight: '100vh', background: '#F8FAF9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'DM Sans, sans-serif', padding: '2rem' }}>
+    <div style={{ minHeight: '100vh', background: '#F5F3EF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'DM Sans, sans-serif', padding: '2rem' }}>
       <Suspense fallback={<div style={{ color: '#6B7280' }}>Loading...</div>}>
         <OnboardForm />
       </Suspense>

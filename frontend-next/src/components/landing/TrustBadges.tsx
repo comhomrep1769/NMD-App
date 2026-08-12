@@ -56,7 +56,7 @@ const badgeItem = {
 
 export default function TrustBadges() {
   return (
-    <div className="border-y border-gray-200 bg-white px-3 py-4 sm:px-4">
+    <div className="border-y border-[#DDD8CF] bg-white px-3 py-4 sm:px-4">
       <motion.div
         className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-center gap-x-3 gap-y-2"
         variants={badgeVariants}
@@ -74,13 +74,13 @@ export default function TrustBadges() {
           <DropletIcon /> Soft Wash Specialists
         </motion.div>
         <span className="hidden h-4 w-px flex-shrink-0 bg-gray-200 sm:block" />
-        <motion.div variants={badgeItem} className="flex flex-shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] font-medium text-gray-600">
-          <PinIcon /> Orlando &amp; Orange County &mdash; Primary
+        <motion.div variants={badgeItem} className="flex flex-shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-[#DDD8CF] bg-gray-50 px-2.5 py-1 text-[11px] font-medium text-gray-600">
+          <PinIcon /> Brevard County, FL &mdash; Primary
         </motion.div>
-        <motion.div variants={badgeItem} className="flex flex-shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] font-medium text-gray-600">
-          <PinIcon /> Brevard County
+        <motion.div variants={badgeItem} className="flex flex-shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-[#DDD8CF] bg-gray-50 px-2.5 py-1 text-[11px] font-medium text-gray-600">
+          <PinIcon /> Wilkes-Barre, PA
         </motion.div>
-        <motion.div variants={badgeItem} className="flex flex-shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] font-medium text-gray-600">
+        <motion.div variants={badgeItem} className="flex flex-shrink-0 items-center gap-1 whitespace-nowrap rounded-md border border-[#DDD8CF] bg-gray-50 px-2.5 py-1 text-[11px] font-medium text-gray-600">
           <RefreshIcon /> 20% Recurring Discount
         </motion.div>
       </motion.div>

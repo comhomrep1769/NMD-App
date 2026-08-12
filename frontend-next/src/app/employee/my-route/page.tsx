@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState, useRef, useCallback } from 'react'
 import PortalShell from '@/components/portal/PortalShell'
@@ -273,7 +273,7 @@ export default function EmployeeRoutePage() {
     if (stop.completed_at) return { label: 'Completed', color: '#059669', bg: '#F0FDF9', border: '#A7F3D0' }
     if (stop.arrived_at) return { label: 'Arrived', color: '#1D4ED8', bg: '#EFF6FF', border: '#93C5FD' }
     if (stop.departed_at) return { label: 'On the way', color: '#92400E', bg: '#FEF9C3', border: '#FDE68A' }
-    return { label: 'Pending', color: '#6B7280', bg: '#F8FAF9', border: '#E5E7EB' }
+    return { label: 'Pending', color: '#6B7280', bg: '#F5F3EF', border: '#DDD8CF' }
   }
   const completedCount = stops.filter(s => s.completed_at).length
 
@@ -290,7 +290,7 @@ export default function EmployeeRoutePage() {
           style={{ padding: '0.6rem 0.9rem', borderRadius: 8, border: '1.5px solid #E5E7EB', fontSize: '0.875rem', fontFamily: 'DM Sans, sans-serif', color: '#111827', background: 'white' }} />
         {stops.length > 0 && <div style={{ fontSize: '0.85rem', color: '#6B7280', fontWeight: 500 }}>{completedCount}/{stops.length} stops complete</div>}
         {stops.length > 0 && (
-          <div style={{ flex: 1, minWidth: 120, height: 6, background: '#E5E7EB', borderRadius: 3, overflow: 'hidden' }}>
+          <div style={{ flex: 1, minWidth: 120, height: 6, background: '#DDD8CF', borderRadius: 3, overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${(completedCount / stops.length) * 100}%`, background: '#0F766E', borderRadius: 3, transition: 'width 0.4s ease' }} />
           </div>
         )}
@@ -316,7 +316,7 @@ export default function EmployeeRoutePage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           <div style={{ background: 'white', borderRadius: 10, border: '1px solid #E5E7EB', overflow: 'hidden' }}>
             <div ref={mapRef} style={{ height: 400, width: '100%' }} />
-            <div style={{ padding: '0.75rem 1rem', background: '#F8FAF9', borderTop: '1px solid #E5E7EB', display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+            <div style={{ padding: '0.75rem 1rem', background: '#F5F3EF', borderTop: '1px solid #E5E7EB', display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
               {[{ color: '#0F766E', label: 'Pending' }, { color: '#F59E0B', label: 'On the way' }, { color: '#1D4ED8', label: 'Arrived' }, { color: '#9CA3AF', label: 'Complete' }].map(({ color, label }) => (
                 <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', color: '#6B7280' }}>
                   <div style={{ width: 12, height: 12, borderRadius: '50%', background: color }} />
@@ -339,8 +339,8 @@ export default function EmployeeRoutePage() {
                 const isUploadingThis = photoUploading === String(stop.job_id)
 
                 return (
-                  <div key={stop.stop_id} style={{ background: '#F8FAF9', borderRadius: 10, border: `1px solid ${isClockedIn ? '#A7F3D0' : '#E5E7EB'}`, padding: '1rem', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                    <div style={{ width: 30, height: 30, borderRadius: '50%', background: stop.completed_at ? '#E5E7EB' : '#0F766E', color: stop.completed_at ? '#9CA3AF' : 'white', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <div key={stop.stop_id} style={{ background: '#F5F3EF', borderRadius: 10, border: `1px solid ${isClockedIn ? '#A7F3D0' : '#DDD8CF'}`, padding: '1rem', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                    <div style={{ width: 30, height: 30, borderRadius: '50%', background: stop.completed_at ? '#DDD8CF' : '#0F766E', color: stop.completed_at ? '#9CA3AF' : 'white', fontWeight: 800, fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       {stop.completed_at ? '✓' : stop.stop_order}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -369,7 +369,7 @@ export default function EmployeeRoutePage() {
 
                       {/* Job clock in/out */}
                       {!stop.completed_at && (
-                        <div style={{ marginBottom: 8, padding: '0.6rem 0.75rem', borderRadius: 8, background: isClockedIn ? '#F0FDF9' : 'white', border: `1px solid ${isClockedIn ? '#A7F3D0' : '#E5E7EB'}` }}>
+                        <div style={{ marginBottom: 8, padding: '0.6rem 0.75rem', borderRadius: 8, background: isClockedIn ? '#F0FDF9' : 'white', border: `1px solid ${isClockedIn ? '#A7F3D0' : '#DDD8CF'}` }}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
                             <div style={{ fontSize: '0.75rem', color: isClockedIn ? '#059669' : '#9CA3AF', fontWeight: 600 }}>
                               {isClockedIn ? `⏱ Job time: clocked in at ${fmt(activeLog!.clocked_in_at)}` : '⏱ Job time tracking'}
@@ -450,7 +450,7 @@ export default function EmployeeRoutePage() {
                               <button
                                 onClick={() => photoInputRefs.current[String(stop.job_id)]?.click()}
                                 disabled={isUploadingThis}
-                                style={{ padding: '0.5rem 1rem', borderRadius: 7, border: 'none', background: isUploadingThis ? '#E5E7EB' : '#0F766E', color: isUploadingThis ? '#9CA3AF' : 'white', fontWeight: 700, fontSize: '0.8rem', cursor: isUploadingThis ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
+                                style={{ padding: '0.5rem 1rem', borderRadius: 7, border: 'none', background: isUploadingThis ? '#DDD8CF' : '#0F766E', color: isUploadingThis ? '#9CA3AF' : 'white', fontWeight: 700, fontSize: '0.8rem', cursor: isUploadingThis ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
                                 {isUploadingThis ? 'Uploading...' : '📷 Take / Upload Photo'}
                               </button>
                             </div>

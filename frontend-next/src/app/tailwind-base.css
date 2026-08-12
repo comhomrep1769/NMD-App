@@ -2,6 +2,46 @@
 
 @theme {
   --breakpoint-lg: 48rem;
+
+  --color-teal-50: #E7F0ED;
+  --color-teal-100: #C6DCD6;
+  --color-teal-200: #9BC2B9;
+  --color-teal-600: #0D6B5E;
+  --color-teal-700: #0B5D52;
+  --color-teal-800: #094A42;
+  --color-teal-900: #06342E;
+
+  --color-stone-page: #F5F3EF;
+  --color-stone-border: #DDD8CF;
+
+  --color-rust-50: #FAF0E9;
+  --color-rust-500: #C2703D;
+  --color-rust-700: #8A4A24;
+}
+
+/* Every interactive element gets a visible focus ring. 30 places in this
+   codebase set outline:none on inputs; without this rule keyboard users
+   have no indication of where they are on the page. */
+:focus-visible {
+  outline: 2px solid #0B5D52;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+  border-color: #0B5D52 !important;
+  box-shadow: 0 0 0 3px rgba(11, 93, 82, 0.18);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 @media (max-width: 767px) {

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import PortalShell from '@/components/portal/PortalShell'
@@ -356,7 +356,7 @@ const CATEGORY_COLORS: Record<string, { bg: string; color: string; border: strin
   'Surfactant':        { bg: '#EFF6FF', color: '#1D4ED8', border: '#93C5FD' },
   'Maintenance':       { bg: '#F5F3FF', color: '#6D28D9', border: '#DDD6FE' },
   'Specialty':         { bg: '#FFF0F8', color: '#8B2D6B', border: '#F5A0D8' },
-  'Testing':           { bg: '#F8FAF9', color: '#6B7280', border: '#E5E7EB' },
+  'Testing':           { bg: '#F5F3EF', color: '#6B7280', border: '#DDD8CF' },
   'Sealer / Coating':  { bg: '#F0FDF9', color: '#0F766E', border: '#A7F3D0' },
 }
 
@@ -390,7 +390,7 @@ export default function EmployeeChemicalsPage() {
       <div style={{ display: 'flex', gap: 8, marginBottom: '1.25rem' }}>
         {(['chemicals', 'sealers'] as const).map(t => (
           <button key={t} onClick={() => { setTab(t); setCategory('All'); setSearch('') }}
-            style={{ padding: '0.55rem 1.25rem', borderRadius: 8, border: `1px solid ${tab === t ? '#0F766E' : '#E5E7EB'}`, background: tab === t ? '#0F766E' : 'white', color: tab === t ? 'white' : '#6B7280', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', textTransform: 'capitalize' }}>
+            style={{ padding: '0.55rem 1.25rem', borderRadius: 8, border: `1px solid ${tab === t ? '#0F766E' : '#DDD8CF'}`, background: tab === t ? '#0F766E' : 'white', color: tab === t ? 'white' : '#6B7280', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', textTransform: 'capitalize' }}>
             {t === 'chemicals' ? `🧪 Chemicals (${CHEMICALS.length})` : `🛡️ Sealers (${SEALERS.length})`}
           </button>
         ))}
@@ -425,7 +425,7 @@ export default function EmployeeChemicalsPage() {
               No chemicals found matching your search.
             </div>
           ) : filteredChemicals.map(chem => {
-            const catStyle = CATEGORY_COLORS[chem.category] || { bg: '#F8FAF9', color: '#6B7280', border: '#E5E7EB' }
+            const catStyle = CATEGORY_COLORS[chem.category] || { bg: '#F5F3EF', color: '#6B7280', border: '#DDD8CF' }
             const isOpen = expanded === chem.name
             return (
               <div key={chem.name} style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 10, overflow: 'hidden' }}>
@@ -446,7 +446,7 @@ export default function EmployeeChemicalsPage() {
                   <span style={{ color: '#9CA3AF', flexShrink: 0 }}>{isOpen ? '▲' : '▼'}</span>
                 </div>
                 {isOpen && (
-                  <div style={{ borderTop: '1px solid #E5E7EB', padding: '1rem 1.25rem', background: '#F8FAF9', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ borderTop: '1px solid #E5E7EB', padding: '1rem 1.25rem', background: '#F5F3EF', display: 'flex', flexDirection: 'column', gap: 10 }}>
                     <div>
                       <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 4 }}>Use Cases</div>
                       <div style={{ fontSize: '0.875rem', color: '#374151', lineHeight: 1.6 }}>{chem.useCases}</div>
@@ -497,7 +497,7 @@ export default function EmployeeChemicalsPage() {
                   <span style={{ color: '#9CA3AF', flexShrink: 0 }}>{isOpen ? '▲' : '▼'}</span>
                 </div>
                 {isOpen && (
-                  <div style={{ borderTop: '1px solid #E5E7EB', padding: '1rem 1.25rem', background: '#F8FAF9', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ borderTop: '1px solid #E5E7EB', padding: '1rem 1.25rem', background: '#F5F3EF', display: 'flex', flexDirection: 'column', gap: 10 }}>
                     <div>
                       <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 4 }}>Best For</div>
                       <div style={{ fontSize: '0.875rem', color: '#374151', lineHeight: 1.6 }}>{sealer.bestFor}</div>

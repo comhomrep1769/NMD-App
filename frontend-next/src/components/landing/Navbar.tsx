@@ -17,7 +17,7 @@ export default function Navbar() {
 
   return (
     <>
-      <nav className="fixed inset-x-0 top-0 z-50 h-[68px] border-b border-gray-200 bg-white">
+      <nav className="fixed inset-x-0 top-0 z-50 h-[68px] border-b border-[#DDD8CF] bg-white">
         <div className="mx-auto flex h-full max-w-[1440px] items-center px-6 sm:px-[65px]">
           <Link href="/" className="mr-10 flex flex-shrink-0 items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-700 text-xs font-extrabold !text-white">
@@ -52,7 +52,7 @@ export default function Navbar() {
           <div className="nav-desktop-only ml-auto flex flex-shrink-0 items-center gap-3">
             <a
               href={phoneHref}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[13px] font-bold text-gray-900 hover:text-teal-700"
+              className="inline-flex min-h-[44px] items-center gap-1.5 px-2.5 py-1.5 text-[13px] font-bold text-[#8A4A24] hover:text-[#C2703D]"
               aria-label={`Call NMD Pressure Washing at ${phoneDisplay}`}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -73,7 +73,7 @@ export default function Navbar() {
 
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="nav-mobile-toggle ml-auto h-9 w-9 items-center justify-center rounded-md border border-gray-200"
+            className="nav-mobile-toggle ml-auto h-9 w-9 items-center justify-center rounded-md border border-[#DDD8CF]"
             aria-label="Toggle menu"
           >
             <span className="text-lg leading-none">{mobileOpen ? '\u2715' : '\u2630'}</span>
@@ -82,11 +82,11 @@ export default function Navbar() {
       </nav>
 
       {mobileOpen && (
-        <div className="fixed inset-x-0 top-[68px] z-[99] flex flex-col gap-3 border-b border-gray-200 bg-white p-5 shadow-lg">
+        <div className="fixed inset-x-0 top-[68px] z-[99] flex flex-col gap-3 border-b border-[#DDD8CF] bg-white p-5 shadow-lg">
           <a
             href={phoneHref}
             onClick={() => setMobileOpen(false)}
-            className="mb-1 flex min-h-[48px] items-center justify-center gap-2 rounded-[10px] bg-teal-700 text-base font-semibold !text-white"
+            className="mb-1 flex min-h-[48px] items-center justify-center gap-2 rounded-[10px] bg-[#A85A2C] text-base font-semibold !text-white"
           >
             Call {phoneDisplay}
           </a>

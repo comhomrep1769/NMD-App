@@ -216,7 +216,7 @@ export default function EmployeeChat() {
                           <img src={m.image_url} alt="attachment" style={{ maxWidth: "100%", borderRadius: 10, marginBottom: m.body ? 4 : 0 }} />
                         )}
                         {m.body && (
-                          <div style={{ background: isOwn ? "#0F766E" : "#F8FAF9", borderRadius: 10, padding: "0.5rem 0.85rem", fontSize: "0.875rem", color: isOwn ? "white" : "#111827" }}>
+                          <div style={{ background: isOwn ? "#0F766E" : "#F5F3EF", borderRadius: 10, padding: "0.5rem 0.85rem", fontSize: "0.875rem", color: isOwn ? "white" : "#111827" }}>
                             {m.body}
                           </div>
                         )}

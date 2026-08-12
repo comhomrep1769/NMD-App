@@ -190,7 +190,7 @@ export default function SchedulePage() {
                     <label style={labelStyle}>Assign Employees</label>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                       {employees.map(emp => (
-                        <label key={emp.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0.6rem 0.9rem', background: form.assignedUserIds.includes(emp.id) ? 'rgba(15,118,110,0.08)' : '#F9FAFB', border: `1px solid ${form.assignedUserIds.includes(emp.id) ? 'rgba(15,118,110,0.3)' : '#E5E7EB'}`, borderRadius: 8, cursor: 'pointer' }}>
+                        <label key={emp.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0.6rem 0.9rem', background: form.assignedUserIds.includes(emp.id) ? 'rgba(15,118,110,0.08)' : '#F9FAFB', border: `1px solid ${form.assignedUserIds.includes(emp.id) ? 'rgba(15,118,110,0.3)' : '#DDD8CF'}`, borderRadius: 8, cursor: 'pointer' }}>
                           <input
                             type="checkbox"
                             checked={form.assignedUserIds.includes(emp.id)}
@@ -217,7 +217,7 @@ export default function SchedulePage() {
               <button
                 onClick={handleSubmit}
                 disabled={saving}
-                style={{ flex: 2, padding: '0.7rem', borderRadius: 8, border: 'none', background: saving ? '#E5E7EB' : '#0F766E', color: saving ? '#9CA3AF' : 'white', fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif' }}
+                style={{ flex: 2, padding: '0.7rem', borderRadius: 8, border: 'none', background: saving ? '#DDD8CF' : '#0F766E', color: saving ? '#9CA3AF' : 'white', fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif' }}
               >
                 {saving ? 'Creating...' : 'Create Job'}
               </button>

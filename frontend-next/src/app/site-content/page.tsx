@@ -82,7 +82,7 @@ export default function SiteContentPage() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         {justSaved && <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 600 }}>Saved</span>}
         <button onClick={() => saveItem(item.key)} disabled={!dirty || isSaving}
-          style={{ padding: '0.4rem 0.9rem', borderRadius: 8, border: 'none', background: !dirty || isSaving ? '#E5E7EB' : '#0F766E', color: !dirty || isSaving ? '#9CA3AF' : 'white', fontWeight: 600, fontSize: '0.78rem', cursor: !dirty || isSaving ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
+          style={{ padding: '0.4rem 0.9rem', borderRadius: 8, border: 'none', background: !dirty || isSaving ? '#DDD8CF' : '#0F766E', color: !dirty || isSaving ? '#9CA3AF' : 'white', fontWeight: 600, fontSize: '0.78rem', cursor: !dirty || isSaving ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
           {isSaving ? 'Saving...' : 'Save'}
         </button>
       </div>

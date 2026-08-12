@@ -1,4 +1,4 @@
-﻿import type { Metadata } from 'next'
+﻿import type { Metadata, Viewport } from 'next'
 import { DM_Sans } from 'next/font/google'
 import './tailwind-base.css'
 import './globals.css'
@@ -10,8 +10,18 @@ const dmSans = DM_Sans({
   display: 'swap',
 })
 
+// Explicit so zoom is never disabled and the theme colour matches the new
+// stone page background rather than the browser default.
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  themeColor: '#0B5D52',
+}
+
 const SITE_DEFAULTS: Record<string, string> = {
-  'seo.global.description': 'Professional pressure washing services in Brevard County and Orange County, Florida. Residential, commercial, industrial, and specialty restoration. Get a free quote today.',
+  'seo.global.description': 'Professional pressure washing serving Brevard County, Florida and the Wilkes-Barre area of Pennsylvania. Residential, commercial, industrial, and specialty restoration. Get a free quote today.',
   'seo.global.search_console_verification': '',
   'scripts.head': '',
   'scripts.body_start': '',
@@ -19,7 +29,7 @@ const SITE_DEFAULTS: Record<string, string> = {
   'site.favicon_url': '/favicon.ico',
   'site.phone': '(321) 888-6586',
   'site.email': 'nmdpowash@gmail.com',
-  'site.address': 'Orlando, FL',
+  'site.address': 'Melbourne, FL',
 }
 
 async function getGlobalSiteContent(): Promise<Record<string, string>> {
@@ -46,19 +56,19 @@ export async function generateMetadata(): Promise<Metadata> {
   const verificationCode = site['seo.global.search_console_verification']
   return {
     metadataBase: new URL('https://nmdpowash.com'),
-    title: { default: 'NMD Pressure Washing | Brevard & Orange County, FL', template: '%s | NMD Pressure Washing' },
+    title: { default: 'NMD Pressure Washing | Brevard County FL & Wilkes-Barre PA', template: '%s | NMD Pressure Washing' },
     description: site['seo.global.description'],
-    keywords: ['pressure washing Brevard County', 'pressure washing Orange County Florida', 'house washing Melbourne FL', 'roof cleaning Brevard County', 'driveway cleaning Florida', 'commercial pressure washing Orlando', 'soft washing Florida', 'NMD pressure washing'],
+    keywords: ['pressure washing Brevard County', 'pressure washing Melbourne FL', 'house washing Palm Bay FL', 'roof cleaning Brevard County', 'pressure washing Wilkes-Barre PA', 'power washing Luzerne County', 'soft washing Florida', 'NMD pressure washing'],
     authors: [{ name: 'NMD Pressure Washing' }],
     creator: 'NMD Pressure Washing',
     ...(verificationCode ? { verification: { google: verificationCode } } : {}),
     openGraph: {
       type: 'website', locale: 'en_US', url: 'https://nmdpowash.com', siteName: 'NMD Pressure Washing',
-      title: 'NMD Pressure Washing | Brevard & Orange County, FL',
-      description: 'Professional pressure washing in Brevard & Orange County, FL. Residential, commercial, industrial, and specialty restoration services.',
-      images: [{ url: '/og-image.jpg', width: 1200, height: 630, alt: 'NMD Pressure Washing — Brevard & Orange County Florida' }],
+      title: 'NMD Pressure Washing | Brevard County FL & Wilkes-Barre PA',
+      description: 'Professional pressure washing in Brevard County, FL and Wilkes-Barre, PA. Residential, commercial, industrial, and specialty restoration services.',
+      images: [{ url: '/og-image.jpg', width: 1200, height: 630, alt: 'NMD Pressure Washing — Brevard County Florida and Wilkes-Barre Pennsylvania' }],
     },
-    twitter: { card: 'summary_large_image', title: 'NMD Pressure Washing | Brevard & Orange County, FL', description: 'Professional pressure washing in Brevard & Orange County, FL.', images: ['/og-image.jpg'] },
+    twitter: { card: 'summary_large_image', title: 'NMD Pressure Washing | Brevard County FL & Wilkes-Barre PA', description: 'Professional pressure washing in Brevard County, FL and Wilkes-Barre, PA.', images: ['/og-image.jpg'] },
     robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-video-preview': -1, 'max-image-preview': 'large', 'max-snippet': -1 } },
     alternates: { canonical: 'https://nmdpowash.com' },
     icons: { icon: '/api/favicon', shortcut: '/api/favicon', apple: '/api/favicon' },
@@ -75,8 +85,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en">
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -84,12 +92,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               '@context': 'https://schema.org',
               '@type': 'LocalBusiness',
               name: 'NMD Pressure Washing',
-              description: 'Professional pressure washing services in Brevard County and Orange County, Florida.',
+              description: 'Professional pressure washing serving Brevard County, Florida and the Wilkes-Barre area of Pennsylvania.',
               url: 'https://nmdpowash.com',
               telephone: site['site.phone'] || '',
               areaServed: [
                 { '@type': 'AdministrativeArea', name: 'Brevard County', containedInPlace: { '@type': 'State', name: 'Florida' } },
-                { '@type': 'AdministrativeArea', name: 'Orange County', containedInPlace: { '@type': 'State', name: 'Florida' } },
+                { '@type': 'City', name: 'Wilkes-Barre', containedInPlace: { '@type': 'State', name: 'Pennsylvania' } },
               ],
               serviceType: ['Pressure Washing', 'Soft Washing', 'Roof Cleaning', 'House Washing', 'Driveway Cleaning', 'Commercial Pressure Washing', 'Rust Removal'],
               priceRange: '$$',
@@ -99,7 +107,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               address: {
                 '@type': 'PostalAddress',
                 streetAddress: site['site.address'] || '',
-                addressLocality: 'Orlando',
+                addressLocality: 'Melbourne',
                 addressRegion: 'FL',
                 addressCountry: 'US',
               },
@@ -118,5 +126,3 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     </html>
   )
 }
-
-

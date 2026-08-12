@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import PortalShell from '@/components/portal/PortalShell'
@@ -28,7 +28,7 @@ const statusStyle = (status: string): React.CSSProperties => {
 
 const filterTabStyle = (active: boolean): React.CSSProperties => ({
   padding: '0.35rem 0.85rem', borderRadius: 20,
-  border: `1px solid ${active ? '#0F766E' : '#E5E7EB'}`,
+  border: `1px solid ${active ? '#0F766E' : '#DDD8CF'}`,
   background: active ? '#F0FDF9' : 'white',
   color: active ? '#0F766E' : '#6B7280',
   fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif',
@@ -161,7 +161,7 @@ export default function ApplicantsPage() {
                 {filtered.map(a => (
                   <div key={a.id}
                     onClick={() => { setSelected(a); setNotes(a.adminNotes || '') }}
-                    style={{ background: 'white', border: `1.5px solid ${selected?.id === a.id ? '#0F766E' : '#E5E7EB'}`, borderRadius: 10, padding: '1rem', cursor: 'pointer', transition: 'border-color 0.15s' }}>
+                    style={{ background: 'white', border: `1.5px solid ${selected?.id === a.id ? '#0F766E' : '#DDD8CF'}`, borderRadius: 10, padding: '1rem', cursor: 'pointer', transition: 'border-color 0.15s' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6, flexWrap: 'wrap', gap: 6 }}>
                       <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#111827' }}>{a.fullName}</div>
                       <span style={statusStyle(a.status)}>{a.status}</span>
@@ -208,7 +208,7 @@ export default function ApplicantsPage() {
                 {selected.message && (
                   <div>
                     <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 6 }}>Message</div>
-                    <div style={{ fontSize: '0.85rem', color: '#374151', background: '#F8FAF9', borderRadius: 8, padding: '0.75rem', lineHeight: 1.6 }}>{selected.message}</div>
+                    <div style={{ fontSize: '0.85rem', color: '#374151', background: '#F5F3EF', borderRadius: 8, padding: '0.75rem', lineHeight: 1.6 }}>{selected.message}</div>
                   </div>
                 )}
 

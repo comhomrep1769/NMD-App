@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import PortalShell from '@/components/portal/PortalShell'
@@ -29,7 +29,7 @@ const labelStyle: React.CSSProperties = {
 
 const filterTabStyle = (active: boolean): React.CSSProperties => ({
   padding: '0.35rem 0.85rem', borderRadius: 20,
-  border: `1.5px solid ${active ? '#0F766E' : '#E5E7EB'}`,
+  border: `1.5px solid ${active ? '#0F766E' : '#DDD8CF'}`,
   background: active ? '#F0FDF9' : 'white',
   color: active ? '#0F766E' : '#6B7280',
   fontWeight: active ? 700 : 400,

@@ -482,7 +482,7 @@ export default function RequestsPage() {
             </div>
 
             {/* Client info */}
-            <div style={{ padding: '1rem 1.5rem', background: '#F8FAF9', borderBottom: '1px solid #E5E7EB', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem 1.5rem' }}>
+            <div style={{ padding: '1rem 1.5rem', background: '#F5F3EF', borderBottom: '1px solid #E5E7EB', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem 1.5rem' }}>
               <div>
                 <div style={{ fontSize: '0.72rem', color: '#9CA3AF', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Client</div>
                 <div style={{ fontWeight: 600, color: '#111827', fontSize: '0.9rem' }}>{viewSignature.firstName} {viewSignature.lastName}</div>
@@ -556,7 +556,7 @@ export default function RequestsPage() {
             </div>
 
             <div style={{ overflowY: 'auto', flex: 1 }}>
-              <div style={{ padding: '1rem 1.5rem', background: '#F8FAF9', borderBottom: '1px solid #E5E7EB' }}>
+              <div style={{ padding: '1rem 1.5rem', background: '#F5F3EF', borderBottom: '1px solid #E5E7EB' }}>
                 <div style={{ fontSize: '0.8rem', color: '#6B7280', marginBottom: 4 }}>Creating quote for</div>
                 <div style={{ fontWeight: 700, color: '#111827', fontFamily: 'DM Sans, sans-serif' }}>{quoteRequest.firstName} {quoteRequest.lastName}</div>
                 <div style={{ fontSize: '0.82rem', color: '#6B7280', marginTop: 2 }}>{quoteRequest.serviceType} · {quoteRequest.address}</div>

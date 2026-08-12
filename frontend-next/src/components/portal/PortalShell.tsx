@@ -384,7 +384,7 @@ export default function PortalShell({
   }
 
   if (!checked) return (
-    <div style={{ minHeight: '100vh', background: '#F8FAF9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'DM Sans, sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: '#F5F3EF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'DM Sans, sans-serif' }}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
         <div style={{ width: 40, height: 40, borderRadius: 10, background: '#0F766E', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800, fontSize: '0.8rem' }}>NMD</div>
         <div style={{ fontSize: '0.85rem', color: '#6B7280' }}>Loading portal...</div>
@@ -413,7 +413,7 @@ export default function PortalShell({
   let lastGroup: string | undefined
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F8FAF9', fontFamily: 'DM Sans, sans-serif', display: 'flex' }}>
+    <div style={{ minHeight: '100vh', background: '#F5F3EF', fontFamily: 'DM Sans, sans-serif', display: 'flex' }}>
 
       {isMobile && sidebarOpen && (
         <div onClick={() => setSidebarOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 39 }} />

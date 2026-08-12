@@ -133,7 +133,7 @@ export default function MissionPage() {
       </section>
 
       {/* VALUES */}
-      <section className="bg-[#F8FAF9] px-4 py-24 sm:px-[65px]">
+      <section className="bg-[#F5F3EF] px-4 py-24 sm:px-[65px]">
         <div className="mx-auto max-w-[1440px]">
           <div className="mb-14">
             <h2 className="text-[40px] font-bold leading-[1.1] tracking-[-0.025em] text-gray-900">
@@ -142,7 +142,7 @@ export default function MissionPage() {
           </div>
           <div className="grid-values grid grid-cols-4 gap-6">
             {VALUES.map((v) => (
-              <div key={v.title} className="rounded-xl border border-gray-200 bg-white p-7">
+              <div key={v.title} className="rounded-xl border border-[#DDD8CF] bg-white p-7">
                 <div className="mb-5 flex h-10 w-10 items-center justify-center rounded-[10px] bg-[#F0FDF9]">
                   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#0F766E" strokeWidth="1.4" strokeLinejoin="round">
                     {v.icon}

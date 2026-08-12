@@ -1,24 +1,21 @@
 ﻿import Link from 'next/link'
 
-const ORANGE_COUNTY_CITIES = ['Orlando', 'Winter Park', 'Kissimmee', 'Ocoee']
 const BREVARD_COUNTY_CITIES = ['Melbourne', 'Cocoa', 'Palm Bay', 'Titusville']
-const PENDING_STATES = [
-  { state: 'Ohio', cities: ['Columbus', 'Cleveland', 'Cincinnati'] },
-  { state: 'Pennsylvania', cities: ['Philadelphia', 'Pittsburgh'] },
-]
+// Second operating hub. Surrounding towns to be confirmed by the owner.
+const PENNSYLVANIA_CITIES = ['Wilkes-Barre']
 
 const DEFAULTS: Record<string, string> = {
   'hero.image_url': 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=1800&q=80',
-  'hero.badge_text': 'Orlando & Central Florida . Brevard County',
+  'hero.badge_text': 'Brevard County, FL . Wilkes-Barre, PA',
   'hero.headline_main': 'We make every surface',
   'hero.headline_highlight': 'spotless.',
-  'hero.subtext': 'Professional pressure washing for homes, businesses, and industrial properties across Orlando, Orange County & Brevard County. From driveways to rooftops - we restore every surface to its best.',
+  'hero.subtext': 'Professional pressure washing for homes, businesses, and industrial properties across Brevard County, Florida and the Wilkes-Barre area of Pennsylvania. From driveways to rooftops - we restore every surface to its best.',
   'hero.cta_primary_text': 'Get a Free Quote',
   'hero.cta_secondary_text': 'View Services',
   'hero.stat1_value': '118',
   'hero.stat1_label': 'Services offered',
   'hero.stat2_value': '2',
-  'hero.stat2_label': 'Counties served',
+  'hero.stat2_label': 'States served',
   'hero.stat3_value': '20%',
   'hero.stat3_label': 'Recurring discount',
 }
@@ -99,24 +96,15 @@ export default async function Hero() {
           <h2 className="mb-2 text-xl font-bold !text-white">We come to you.</h2>
           <p className="mb-5 text-sm leading-relaxed !text-white/60">
             Fully mobile &mdash; we serve residential, commercial, and industrial
-            properties across two counties, with expansion underway.
+            properties from two hubs, in Florida and Pennsylvania.
           </p>
 
           <div className="mb-6 flex flex-col gap-3">
             <div className="border-b border-white/10 pb-3">
               <div className="mb-2 flex items-center gap-1.5">
-                <strong className="text-sm font-semibold !text-white">Orange County</strong>
+                <strong className="text-sm font-semibold !text-white">Brevard County, FL</strong>
                 <span className="rounded bg-white/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide !text-white">Primary</span>
               </div>
-              <div className="flex flex-wrap gap-1.5">
-                {ORANGE_COUNTY_CITIES.map((c) => (
-                  <span key={c} className="rounded-md bg-white/10 px-2.5 py-1 text-xs !text-white/70">{c}</span>
-                ))}
-              </div>
-            </div>
-
-            <div className="border-b border-white/10 pb-3">
-              <strong className="mb-2 block text-sm font-semibold !text-white">Brevard County</strong>
               <div className="flex flex-wrap gap-1.5">
                 {BREVARD_COUNTY_CITIES.map((c) => (
                   <span key={c} className="rounded-md bg-white/10 px-2.5 py-1 text-xs !text-white/70">{c}</span>
@@ -124,24 +112,11 @@ export default async function Hero() {
               </div>
             </div>
 
-            <div className="pt-1">
-              <div className="mb-2.5 flex items-center gap-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider !text-amber-400/80">Expanding Soon</span>
-                <div className="h-px flex-1 bg-amber-400/20" />
-              </div>
-              <div className="flex flex-col gap-2.5">
-                {PENDING_STATES.map(({ state, cities }) => (
-                  <div key={state}>
-                    <div className="mb-1.5 flex items-center gap-1.5">
-                      <strong className="text-sm font-semibold !text-white/70">{state}</strong>
-                      <span className="rounded bg-amber-400/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide !text-amber-400">Pending</span>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {cities.map((c) => (
-                        <span key={c} className="rounded-md border border-white/10 px-2.5 py-1 text-xs !text-white/40">{c}</span>
-                      ))}
-                    </div>
-                  </div>
+            <div className="pb-1">
+              <strong className="mb-2 block text-sm font-semibold !text-white">Pennsylvania</strong>
+              <div className="flex flex-wrap gap-1.5">
+                {PENNSYLVANIA_CITIES.map((c) => (
+                  <span key={c} className="rounded-md bg-white/10 px-2.5 py-1 text-xs !text-white/70">{c}</span>
                 ))}
               </div>
             </div>

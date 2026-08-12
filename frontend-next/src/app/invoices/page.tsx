@@ -71,7 +71,7 @@ function ClientSearchDropdown({ clients, value, onChange, onSelect, selectedClie
   return (
     <div ref={ref} style={{ position: 'relative' }}>
       <input
-        style={{ ...inputStyle, borderColor: selectedClient ? '#0F766E' : '#E5E7EB' }}
+        style={{ ...inputStyle, borderColor: selectedClient ? '#0F766E' : '#DDD8CF' }}
         value={value}
         onChange={e => { onChange(e.target.value); setOpen(true) }}
         onFocus={() => setOpen(true)}
@@ -86,7 +86,7 @@ function ClientSearchDropdown({ clients, value, onChange, onSelect, selectedClie
           {filtered.map(c => (
             <div key={c.id} onMouseDown={() => { onSelect(c); setOpen(false) }}
               style={{ padding: '0.65rem 1rem', cursor: 'pointer', borderBottom: '1px solid #F3F4F6', fontSize: '0.875rem', color: '#111827' }}
-              onMouseEnter={e => (e.currentTarget.style.background = '#F8FAF9')}
+              onMouseEnter={e => (e.currentTarget.style.background = '#F5F3EF')}
               onMouseLeave={e => (e.currentTarget.style.background = 'white')}
             >
               <span style={{ fontWeight: 600 }}>{c.name}</span>
@@ -298,30 +298,30 @@ export default function InvoicesPage() {
       {openMenuId === inv.id && (
         <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: 4, background: 'white', border: '1px solid #E5E7EB', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 50, minWidth: 196, overflow: 'hidden' }}>
           <button onClick={() => { setUploadInvoice(inv); setOpenMenuId(null) }} style={menuItemStyle}
-            onMouseEnter={e => (e.currentTarget.style.background = '#F8FAF9')} onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+            onMouseEnter={e => (e.currentTarget.style.background = '#F5F3EF')} onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
             📤 {inv.uploadedInvoiceUrl ? 'Re-upload Invoice' : 'Upload Invoice'}
           </button>
           {inv.uploadedInvoiceUrl && (
             <button onClick={() => { setViewInvoice(inv); setOpenMenuId(null) }} style={menuItemStyle}
-              onMouseEnter={e => (e.currentTarget.style.background = '#F8FAF9')} onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+              onMouseEnter={e => (e.currentTarget.style.background = '#F5F3EF')} onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
               👁 View Invoice
             </button>
           )}
           {inv.status !== 'paid' && (
             <button onClick={() => { handleMarkPaid(inv.id); setOpenMenuId(null) }} disabled={markPaidId === inv.id} style={menuItemStyle}
-              onMouseEnter={e => (e.currentTarget.style.background = '#F8FAF9')} onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+              onMouseEnter={e => (e.currentTarget.style.background = '#F5F3EF')} onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
               ✓ {markPaidId === inv.id ? 'Marking...' : 'Mark as Paid'}
             </button>
           )}
           {inv.status !== 'paid' && (
             inv.paymentLinkUrl ? (
               <button onClick={() => { handleCopyLink(inv.paymentLinkUrl!); setOpenMenuId(null) }} style={menuItemStyle}
-                onMouseEnter={e => (e.currentTarget.style.background = '#F8FAF9')} onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+                onMouseEnter={e => (e.currentTarget.style.background = '#F5F3EF')} onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
                 🔗 Copy Payment Link
               </button>
             ) : (
               <button onClick={() => { handleSendPaymentLink(inv); setOpenMenuId(null) }} disabled={sendingLinkId === inv.id} style={menuItemStyle}
-                onMouseEnter={e => (e.currentTarget.style.background = '#F8FAF9')} onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+                onMouseEnter={e => (e.currentTarget.style.background = '#F5F3EF')} onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
                 💳 {sendingLinkId === inv.id ? 'Sending...' : 'Send Payment Link'}
               </button>
             )
@@ -400,7 +400,7 @@ export default function InvoicesPage() {
               <div style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#111827' }}>Upload Invoice</div>
               <button onClick={() => { setUploadInvoice(null); setUploadFile(null); setUploadError('') }} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#9CA3AF' }}>×</button>
             </div>
-            <div style={{ padding: '1rem 1.5rem', background: '#F8FAF9', borderBottom: '1px solid #E5E7EB' }}>
+            <div style={{ padding: '1rem 1.5rem', background: '#F5F3EF', borderBottom: '1px solid #E5E7EB' }}>
               <div style={{ fontSize: '0.8rem', color: '#6B7280', marginBottom: 2 }}>Uploading for</div>
               <div style={{ fontWeight: 700, color: '#111827', fontFamily: 'DM Sans, sans-serif' }}>{uploadInvoice.clientName}</div>
               <div style={{ fontSize: '0.82rem', color: '#6B7280' }}>Invoice #{uploadInvoice.invoiceNumber} · {uploadInvoice.jobName} · ${Number(uploadInvoice.total).toFixed(2)}</div>
@@ -414,12 +414,12 @@ export default function InvoicesPage() {
                   {uploadFile ? uploadFile.name : '+ Select Invoice File (PDF or Image)'}
                 </button>
               </div>
-              <div style={{ fontSize: '0.78rem', color: '#9CA3AF', background: '#F8FAF9', borderRadius: 8, padding: '0.65rem 0.9rem', border: '1px solid #E5E7EB' }}>
+              <div style={{ fontSize: '0.78rem', color: '#9CA3AF', background: '#F5F3EF', borderRadius: 8, padding: '0.65rem 0.9rem', border: '1px solid #E5E7EB' }}>
                 After uploading, the client will automatically receive an email notification.
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
                 <button onClick={() => { setUploadInvoice(null); setUploadFile(null); setUploadError('') }} style={{ flex: 1, padding: '0.7rem', borderRadius: 8, border: '1px solid #E5E7EB', background: 'white', color: '#6B7280', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Cancel</button>
-                <button onClick={handleUpload} disabled={!uploadFile || uploading} style={{ flex: 2, padding: '0.7rem', borderRadius: 8, border: 'none', background: uploadFile ? '#0F766E' : '#E5E7EB', color: uploadFile ? 'white' : '#9CA3AF', fontWeight: 600, cursor: (!uploadFile || uploading) ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: uploading ? 0.7 : 1 }}>
+                <button onClick={handleUpload} disabled={!uploadFile || uploading} style={{ flex: 2, padding: '0.7rem', borderRadius: 8, border: 'none', background: uploadFile ? '#0F766E' : '#DDD8CF', color: uploadFile ? 'white' : '#9CA3AF', fontWeight: 600, cursor: (!uploadFile || uploading) ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', opacity: uploading ? 0.7 : 1 }}>
                   {uploading ? 'Uploading...' : 'Upload & Notify Client'}
                 </button>
               </div>
@@ -481,7 +481,7 @@ export default function InvoicesPage() {
           <button key={f.key} onClick={() => setStatusFilter(f.key)}
             style={{
               padding: '5px 14px', borderRadius: 100,
-              border: `1px solid ${statusFilter === f.key ? '#0F766E' : '#E5E7EB'}`,
+              border: `1px solid ${statusFilter === f.key ? '#0F766E' : '#DDD8CF'}`,
               background: statusFilter === f.key ? '#F0FDF9' : 'white',
               color: statusFilter === f.key ? '#0F766E' : '#6B7280',
               fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif',

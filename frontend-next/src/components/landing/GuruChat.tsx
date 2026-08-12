@@ -173,7 +173,7 @@ function getSmartReply(text: string): string {
 
   // Service area
   if (t.includes('area') || t.includes('serve') || t.includes('location') || t.includes('orlando') || t.includes('brevard')) {
-    return `We serve Orange County (Orlando, Winter Park, Kissimmee, Ocoee) and Brevard County (Melbourne, Cocoa, Palm Bay, Titusville), FL.\n\nNot sure if we cover your area? Submit an estimate and we'll confirm!`
+    return `We serve Brevard County, FL (Melbourne, Cocoa, Palm Bay, Titusville) and the Wilkes-Barre area of Pennsylvania.\n\nNot sure if we cover your area? Submit an estimate and we'll confirm!`
   }
 
   // House washing info
@@ -290,12 +290,12 @@ export default function GuruChat() {
         onClick={() => setOpen(!open)}
         aria-label="Open Guru AI Chat"
         style={{
-          position: 'fixed', bottom: '1.75rem', right: '1.75rem', zIndex: 1000,
+          position: 'fixed', bottom: 'var(--nmd-chat-offset, 1.75rem)', right: '1.75rem', zIndex: 90,
           width: 56, height: 56, borderRadius: '50%', border: 'none',
           background: open ? 'linear-gradient(135deg, #1f6132, #124d83)' : 'white',
           color: 'white', fontSize: '1rem',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 0 0 3px #0F766E, 0 4px 24px rgba(15,118,110,0.3)', cursor: 'pointer',
+          boxShadow: '0 0 0 3px #0B5D52, 0 4px 24px rgba(15,118,110,0.3)', cursor: 'pointer',
           transition: 'transform 0.2s, box-shadow 0.2s',
           padding: 0, overflow: 'hidden',
         }}
@@ -321,7 +321,7 @@ export default function GuruChat() {
       {/* Chat panel */}
       {open && (
         <div style={{
-          position: 'fixed', bottom: '5.5rem', right: '1.75rem', zIndex: 999,
+          position: 'fixed', bottom: 'calc(var(--nmd-chat-offset, 1.75rem) + 3.75rem)', right: '1.75rem', zIndex: 89,
           width: 370, maxWidth: 'calc(100vw - 2rem)',
           background: 'white', borderRadius: 20,
           boxShadow: '0 16px 60px rgba(14,17,23,0.18)',
@@ -511,4 +511,3 @@ export default function GuruChat() {
     </>
   )
 }
-

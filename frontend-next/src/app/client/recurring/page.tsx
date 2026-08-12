@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { useState } from 'react'
 import PortalShell from '@/components/portal/PortalShell'
 import { useClientPortal } from '@/hooks/useClientPortal'
@@ -144,7 +144,7 @@ export default function ClientRecurringPage() {
                           <label key={inv.id} style={{
                             display: 'flex', alignItems: 'center', gap: 12,
                             padding: '0.75rem 1rem', borderRadius: 8, cursor: 'pointer',
-                            border: `1.5px solid ${selectedInvoice === inv.id ? '#0F766E' : '#E5E7EB'}`,
+                            border: `1.5px solid ${selectedInvoice === inv.id ? '#0F766E' : '#DDD8CF'}`,
                             background: selectedInvoice === inv.id ? 'rgba(15,118,110,0.06)' : 'white',
                             transition: 'all 0.15s',
                           }}>
@@ -176,7 +176,7 @@ export default function ClientRecurringPage() {
                         <label key={f.value} style={{
                           display: 'flex', flexDirection: 'column', gap: 4,
                           padding: '0.85rem 1rem', borderRadius: 8, cursor: 'pointer',
-                          border: `1.5px solid ${frequency === f.value ? '#0F766E' : '#E5E7EB'}`,
+                          border: `1.5px solid ${frequency === f.value ? '#0F766E' : '#DDD8CF'}`,
                           background: frequency === f.value ? 'rgba(15,118,110,0.06)' : 'white',
                           transition: 'all 0.15s',
                         }}>
@@ -207,7 +207,7 @@ export default function ClientRecurringPage() {
                     Cancel
                   </button>
                   <button onClick={handleOptIn} disabled={saving || !selectedInvoice}
-                    style={{ flex: 2, padding: '0.7rem', borderRadius: 8, border: 'none', background: selectedInvoice && !saving ? '#0F766E' : '#E5E7EB', color: selectedInvoice && !saving ? 'white' : '#9CA3AF', fontWeight: 700, cursor: selectedInvoice && !saving ? 'pointer' : 'not-allowed', fontFamily: 'DM Sans, sans-serif' }}>
+                    style={{ flex: 2, padding: '0.7rem', borderRadius: 8, border: 'none', background: selectedInvoice && !saving ? '#0F766E' : '#DDD8CF', color: selectedInvoice && !saving ? 'white' : '#9CA3AF', fontWeight: 700, cursor: selectedInvoice && !saving ? 'pointer' : 'not-allowed', fontFamily: 'DM Sans, sans-serif' }}>
                     {saving ? 'Enrolling...' : '✓ Enroll in Recurring Plan'}
                   </button>
                 </div>

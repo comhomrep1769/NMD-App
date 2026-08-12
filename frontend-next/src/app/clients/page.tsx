@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import PortalShell from '@/components/portal/PortalShell'
@@ -211,7 +211,7 @@ export default function ClientsPage() {
                 <label style={labelStyle}>Address</label>
                 <input style={inputStyle} value={form.address} onChange={e => update('address', e.target.value)} placeholder="123 Main St, Melbourne, FL" />
               </div>
-              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '0.75rem 1rem', borderRadius: 8, background: form.createLogin ? '#F0FDF9' : '#F9FAFB', border: `1.5px solid ${form.createLogin ? '#A7F3D0' : '#E5E7EB'}`, cursor: 'pointer' }}>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '0.75rem 1rem', borderRadius: 8, background: form.createLogin ? '#F0FDF9' : '#F9FAFB', border: `1.5px solid ${form.createLogin ? '#A7F3D0' : '#DDD8CF'}`, cursor: 'pointer' }}>
                 <input
                   type="checkbox"
                   checked={form.createLogin}
@@ -313,7 +313,7 @@ export default function ClientsPage() {
             <button
               onClick={handleExportCsv}
               disabled={clients.length === 0}
-              style={{ padding: '0.6rem 1.1rem', borderRadius: 8, background: clients.length === 0 ? '#E5E7EB' : 'white', color: clients.length === 0 ? '#9CA3AF' : '#374151', fontWeight: 600, fontSize: '0.85rem', border: '1.5px solid #E5E7EB', cursor: clients.length === 0 ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', whiteSpace: 'nowrap' }}
+              style={{ padding: '0.6rem 1.1rem', borderRadius: 8, background: clients.length === 0 ? '#DDD8CF' : 'white', color: clients.length === 0 ? '#9CA3AF' : '#374151', fontWeight: 600, fontSize: '0.85rem', border: '1.5px solid #E5E7EB', cursor: clients.length === 0 ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', whiteSpace: 'nowrap' }}
             >
               ⬇ Export CSV
             </button>

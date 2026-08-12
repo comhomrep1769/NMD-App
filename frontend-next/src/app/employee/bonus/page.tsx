@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 import { useEffect, useState } from "react"
 import PortalShell from "@/components/portal/PortalShell"
 import { LoadingCard, ErrorCard, money } from "@/components/portal/PortalUI"
@@ -75,7 +75,7 @@ export default function EmployeeBonusPage() {
             <div style={{ fontFamily: "DM Sans, sans-serif", fontWeight: 700, fontSize: "0.95rem", color: "#111827", marginBottom: "1rem" }}>Bonus Tier System</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {tiers.map(t => (
-                <div key={t.tier} style={{ display: "flex", alignItems: "center", gap: 12, padding: "0.75rem 1rem", borderRadius: 8, background: data.tier === t.tier ? "#F0FDF9" : "#F8FAF9", border: data.tier === t.tier ? "1px solid #A7F3D0" : "1px solid transparent" }}>
+                <div key={t.tier} style={{ display: "flex", alignItems: "center", gap: 12, padding: "0.75rem 1rem", borderRadius: 8, background: data.tier === t.tier ? "#F0FDF9" : "#F5F3EF", border: data.tier === t.tier ? "1px solid #A7F3D0" : "1px solid transparent" }}>
                   <div style={{ width: 32, height: 32, borderRadius: "50%", background: data.tier === t.tier ? "#0F766E" : "#E5E7EB", display: "flex", alignItems: "center", justifyContent: "center", color: data.tier === t.tier ? "white" : "#9CA3AF", fontSize: "0.8rem", fontWeight: 700, flexShrink: 0 }}>{t.tier}</div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: "0.85rem", fontWeight: 600, color: "#111827" }}>{t.range}</div>
@@ -87,7 +87,7 @@ export default function EmployeeBonusPage() {
             </div>
           </div>
 
-          <div style={{ background: "#F8FAF9", border: "1px solid #E5E7EB", borderRadius: 10, padding: "1rem", fontSize: "0.82rem", color: "#6B7280", lineHeight: 1.6 }}>
+          <div style={{ background: "#F5F3EF", border: "1px solid #E5E7EB", borderRadius: 10, padding: "1rem", fontSize: "0.82rem", color: "#6B7280", lineHeight: 1.6 }}>
             Revenue is calculated from completed jobs over the last 7 days. If you worked a job with other employees, revenue is split evenly. Bonuses are estimated and require admin approval before payout.
           </div>
         </div>

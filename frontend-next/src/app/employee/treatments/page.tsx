@@ -76,7 +76,7 @@ export default function EmployeeTreatments() {
                     <div style={{ marginBottom: 4, display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                       <span style={{ fontSize: "0.8rem", color: "#6B7280", fontWeight: 500 }}>Surfaces:</span>
                       {t.surfaceTypes.map(s => (
-                        <span key={s} style={{ fontSize: "0.68rem", fontWeight: 600, padding: "2px 8px", borderRadius: 20, background: "#F8FAF9", color: "#6B7280", border: "1px solid #E5E7EB" }}>{s}</span>
+                        <span key={s} style={{ fontSize: "0.68rem", fontWeight: 600, padding: "2px 8px", borderRadius: 20, background: "#F5F3EF", color: "#6B7280", border: "1px solid #E5E7EB" }}>{s}</span>
                       ))}
                     </div>
                   )}

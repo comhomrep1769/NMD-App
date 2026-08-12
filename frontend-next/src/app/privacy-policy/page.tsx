@@ -23,7 +23,7 @@ export default async function PrivacyPolicyPage() {
   const paragraphs = content.split('\n\n').filter(Boolean)
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F8FAF9', fontFamily: 'DM Sans, sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: '#F5F3EF', fontFamily: 'DM Sans, sans-serif' }}>
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '4rem 1.5rem' }}>
         <Link href="/" style={{ fontSize: '0.85rem', color: '#0F766E', fontWeight: 600, textDecoration: 'none' }}>← Back to home</Link>
         <h1 style={{ fontSize: '2rem', fontWeight: 800, color: '#111827', margin: '1.5rem 0 0.5rem', letterSpacing: '-0.025em' }}>Privacy Policy</h1>

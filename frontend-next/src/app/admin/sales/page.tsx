@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import PortalShell from '@/components/portal/PortalShell'
@@ -42,7 +42,7 @@ const labelStyle: React.CSSProperties = {
 
 const filterTabStyle = (active: boolean): React.CSSProperties => ({
   padding: '0.35rem 0.85rem', borderRadius: 20,
-  border: `1.5px solid ${active ? '#0F766E' : '#E5E7EB'}`,
+  border: `1.5px solid ${active ? '#0F766E' : '#DDD8CF'}`,
   background: active ? '#F0FDF9' : 'white',
   color: active ? '#0F766E' : '#6B7280',
   fontWeight: 600, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif',
@@ -183,7 +183,7 @@ export default function AdminSalesPage() {
           <div style={{ display: 'flex', gap: 8, marginBottom: '1.25rem', borderBottom: '1.5px solid #E5E7EB', paddingBottom: 0 }}>
             {[{ key: 'commissions', label: 'Commissions' }, { key: 'reps', label: 'Sales Reps' }, { key: 'add', label: '+ Add Commission' }].map(t => (
               <button key={t.key} onClick={() => setTab(t.key as any)}
-                style={{ padding: '0.6rem 1.1rem', borderRadius: '8px 8px 0 0', border: `1.5px solid ${tab === t.key ? '#E5E7EB' : 'transparent'}`, borderBottom: tab === t.key ? '1.5px solid white' : '1.5px solid transparent', background: tab === t.key ? 'white' : 'transparent', color: tab === t.key ? '#0F766E' : '#6B7280', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', marginBottom: -1.5 }}>
+                style={{ padding: '0.6rem 1.1rem', borderRadius: '8px 8px 0 0', border: `1.5px solid ${tab === t.key ? '#DDD8CF' : 'transparent'}`, borderBottom: tab === t.key ? '1.5px solid white' : '1.5px solid transparent', background: tab === t.key ? 'white' : 'transparent', color: tab === t.key ? '#0F766E' : '#6B7280', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', marginBottom: -1.5 }}>
                 {t.label}
               </button>
             ))}
@@ -326,7 +326,7 @@ export default function AdminSalesPage() {
                   <input style={inputStyle} value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} placeholder="Optional notes..." />
                 </div>
                 <button type="submit" disabled={adding}
-                  style={{ padding: '0.75rem', borderRadius: 8, border: 'none', background: adding ? '#E5E7EB' : '#0F766E', color: adding ? '#9CA3AF' : 'white', fontWeight: 700, fontSize: '0.9rem', cursor: adding ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
+                  style={{ padding: '0.75rem', borderRadius: 8, border: 'none', background: adding ? '#DDD8CF' : '#0F766E', color: adding ? '#9CA3AF' : 'white', fontWeight: 700, fontSize: '0.9rem', cursor: adding ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
                   {adding ? 'Adding...' : 'Add Commission'}
                 </button>
               </form>

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { usePhone } from '@/lib/usePhone'
 
@@ -15,13 +15,14 @@ export default function MobileCallBar() {
         @media (max-width: 767px) {
           .nmd-call-bar { display: flex; }
           .nmd-call-bar-spacer { height: 68px; }
+          :root { --nmd-chat-offset: 5.25rem; }
         }
       `}</style>
 
-      <div className="nmd-call-bar fixed inset-x-0 bottom-0 z-[95] items-stretch gap-2 border-t border-gray-200 bg-white p-2.5 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
+      <div className="nmd-call-bar fixed inset-x-0 bottom-0 z-[95] items-stretch gap-2 border-t border-[#DDD8CF] bg-white p-2.5 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
         <a
           href={href}
-          className="flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-[10px] bg-teal-700 px-4 text-sm font-semibold !text-white"
+          className="flex min-h-[48px] flex-1 items-center justify-center gap-2 rounded-[10px] bg-[#A85A2C] px-4 text-sm font-semibold !text-white"
           aria-label={`Call NMD Pressure Washing at ${display}`}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -31,7 +32,7 @@ export default function MobileCallBar() {
         </a>
         <a
           href="/client/request-service"
-          className="flex min-h-[48px] items-center justify-center rounded-[10px] border border-gray-300 px-4 text-sm font-semibold text-gray-900"
+          className="flex min-h-[48px] items-center justify-center rounded-[10px] border border-[#DDD8CF] px-4 text-sm font-semibold text-gray-900"
         >
           Free quote
         </a>

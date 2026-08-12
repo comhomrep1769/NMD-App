@@ -171,7 +171,7 @@ function LoginForm({ portalRole }: { portalRole: string }) {
 
 export default function LoginPageClient({ portalRole = '' }: { portalRole?: string }) {
   return (
-    <Suspense fallback={<div className="min-h-[100vh] bg-[#F8FAF9] flex items-center justify-center text-[#6B7280]">Loading...</div>}>
+    <Suspense fallback={<div className="min-h-[100vh] bg-[#F5F3EF] flex items-center justify-center text-[#6B7280]">Loading...</div>}>
       <LoginForm portalRole={portalRole} />
     </Suspense>
   )

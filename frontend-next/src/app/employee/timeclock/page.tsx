@@ -123,7 +123,7 @@ export default function EmployeeTimeclock() {
 
   const btnStyle = (color: string, disabled: boolean): React.CSSProperties => ({
     padding: '0.75rem 1.5rem', borderRadius: 10, border: 'none',
-    background: disabled ? '#E5E7EB' : color,
+    background: disabled ? '#DDD8CF' : color,
     color: disabled ? '#9CA3AF' : 'white',
     fontWeight: 700, fontSize: '0.95rem',
     cursor: disabled ? 'not-allowed' : 'pointer',
@@ -151,7 +151,7 @@ export default function EmployeeTimeclock() {
               <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '1.8rem', fontWeight: 800, color: '#111827', letterSpacing: '-0.02em' }}>{fmtMins(totalPaidMins)}</div>
               <div style={{ fontSize: '0.78rem', color: '#9CA3AF', marginTop: 4 }}>paid time · {history.filter(s => s.status === 'closed').length} sessions</div>
             </div>
-            <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 10, padding: '1.25rem', borderTop: `3px solid ${activeSession ? '#F59E0B' : '#E5E7EB'}` }}>
+            <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 10, padding: '1.25rem', borderTop: `3px solid ${activeSession ? '#F59E0B' : '#DDD8CF'}` }}>
               <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 8 }}>Current Session</div>
               <div style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '1.8rem', fontWeight: 800, color: activeSession ? '#F59E0B' : '#9CA3AF', letterSpacing: '-0.02em' }}>
                 {activeSession ? <ElapsedTimer since={activeSession.clockInAt} /> : '—'}
@@ -252,8 +252,8 @@ export default function EmployeeTimeclock() {
                         disabled={!!actionLoading || blocked}
                         style={{
                           padding: '0.6rem 1rem', borderRadius: 8, fontFamily: 'DM Sans, sans-serif',
-                          border: `1px solid ${used ? '#E5E7EB' : '#A7F3D0'}`,
-                          background: used ? '#F8FAF9' : '#F0FDF9',
+                          border: `1px solid ${used ? '#DDD8CF' : '#A7F3D0'}`,
+                          background: used ? '#F5F3EF' : '#F0FDF9',
                           color: used ? '#9CA3AF' : '#059669',
                           fontWeight: 600, fontSize: '0.85rem',
                           cursor: blocked || !!actionLoading ? 'not-allowed' : 'pointer',

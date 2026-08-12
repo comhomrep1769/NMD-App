@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useRef, useState } from 'react'
 import PortalShell from '@/components/portal/PortalShell'
@@ -108,7 +108,7 @@ function ActivityFeed() {
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {['all', 'client', 'employee', 'admin', 'system'].map(f => (
                   <button key={f} onClick={() => setFilter(f as any)}
-                    style={{ padding: '4px 12px', borderRadius: 100, border: `1px solid ${filter === f ? '#0F766E' : '#E5E7EB'}`, background: filter === f ? '#F0FDF9' : 'white', color: filter === f ? '#0F766E' : '#6B7280', fontWeight: 600, fontSize: '12px', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', textTransform: 'capitalize' }}>
+                    style={{ padding: '4px 12px', borderRadius: 100, border: `1px solid ${filter === f ? '#0F766E' : '#DDD8CF'}`, background: filter === f ? '#F0FDF9' : 'white', color: filter === f ? '#0F766E' : '#6B7280', fontWeight: 600, fontSize: '12px', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', textTransform: 'capitalize' }}>
                     {f}
                   </button>
                 ))}
@@ -317,7 +317,7 @@ export default function DashboardPage() {
               ].map(link => (
                 <a key={link.href} href={link.href} style={{
                   padding: '8px 16px', borderRadius: 7,
-                  border: '1px solid #E5E7EB', background: '#F8FAF9',
+                  border: '1px solid #E5E7EB', background: '#F5F3EF',
                   fontSize: '13px', fontWeight: 500, color: '#374151',
                   textDecoration: 'none',
                 }}>

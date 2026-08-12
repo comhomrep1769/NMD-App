@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 import { useEffect, useState } from "react"
 import PortalShell from "@/components/portal/PortalShell"
 import { MetricCard, LoadingCard, ErrorCard, StatusBadge, money } from "@/components/portal/PortalUI"
@@ -95,7 +95,7 @@ export default function EmployeeDashboard() {
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
                 {todaysJobs.map(job => (
-                  <div key={job.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "0.75rem 1rem", background: "#F8FAF9", border: "1px solid #E5E7EB", borderRadius: 8, flexWrap: "wrap" }}>
+                  <div key={job.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "0.75rem 1rem", background: "#F5F3EF", border: "1px solid #E5E7EB", borderRadius: 8, flexWrap: "wrap" }}>
                     <div>
                       <div style={{ fontSize: "0.875rem", fontWeight: 600, color: "#111827" }}>{job.title}</div>
                       <div style={{ fontSize: "0.78rem", color: "#6B7280", marginTop: 2 }}>{job.clientName} · {job.address}</div>
@@ -118,7 +118,7 @@ export default function EmployeeDashboard() {
                 { label: "This Week", hours: data.weeklyHours, wages: data.weeklyWages },
                 { label: "This Month", hours: data.monthlyHours, wages: data.monthlyWages },
               ].map(row => (
-                <div key={row.label} style={{ background: "#F8FAF9", borderRadius: 10, padding: "1rem", border: "1px solid #E5E7EB" }}>
+                <div key={row.label} style={{ background: "#F5F3EF", borderRadius: 10, padding: "1rem", border: "1px solid #E5E7EB" }}>
                   <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#9CA3AF", marginBottom: 6 }}>{row.label}</div>
                   <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "#111827" }}>{row.hours.toFixed(1)}h</div>
                   <div style={{ fontSize: "0.85rem", color: "#0F766E", fontWeight: 600 }}>{money(row.wages)}</div>

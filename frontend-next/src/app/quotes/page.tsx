@@ -69,7 +69,7 @@ function ClientSearchDropdown({
   return (
     <div ref={ref} style={{ position: 'relative' }}>
       <input
-        style={{ ...inputStyle, borderColor: selectedClient ? '#0F766E' : '#E5E7EB' }}
+        style={{ ...inputStyle, borderColor: selectedClient ? '#0F766E' : '#DDD8CF' }}
         value={value}
         onChange={e => { onChange(e.target.value); setOpen(true) }}
         onFocus={() => setOpen(true)}
@@ -87,7 +87,7 @@ function ClientSearchDropdown({
           {filtered.map(c => (
             <div key={c.id} onMouseDown={() => { onSelect(c); setOpen(false) }}
               style={{ padding: '0.65rem 1rem', cursor: 'pointer', borderBottom: '1px solid #F3F4F6', fontSize: '0.875rem', color: '#111827' }}
-              onMouseEnter={e => (e.currentTarget.style.background = '#F8FAF9')}
+              onMouseEnter={e => (e.currentTarget.style.background = '#F5F3EF')}
               onMouseLeave={e => (e.currentTarget.style.background = 'white')}
             >
               <span style={{ fontWeight: 600 }}>{c.name}</span>
@@ -389,7 +389,7 @@ export default function QuotesPage() {
               <button onClick={() => setSendQuote(null)} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#9CA3AF' }}>×</button>
             </div>
 
-            <div style={{ padding: '1rem 1.5rem', background: '#F8FAF9', borderBottom: '1px solid #E5E7EB' }}>
+            <div style={{ padding: '1rem 1.5rem', background: '#F5F3EF', borderBottom: '1px solid #E5E7EB' }}>
               <div style={{ fontSize: '0.78rem', color: '#6B7280', marginBottom: 2 }}>Sending quote</div>
               <div style={{ fontWeight: 700, color: '#111827', fontFamily: 'DM Sans, sans-serif' }}>Quote #{sendQuote.quoteNumber} — {sendQuote.clientName}</div>
               <div style={{ fontSize: '0.82rem', color: '#6B7280', marginTop: 2 }}>{sendQuote.serviceType} · {money(sendQuote.total)}</div>
@@ -417,7 +417,7 @@ export default function QuotesPage() {
                 <button
                   onClick={handleLinkAndSend}
                   disabled={sending || !sendSelectedClient}
-                  style={{ flex: 2, padding: '0.7rem', borderRadius: 8, border: 'none', background: sendSelectedClient && !sending ? '#0F766E' : '#E5E7EB', color: sendSelectedClient && !sending ? 'white' : '#9CA3AF', fontWeight: 600, cursor: sendSelectedClient && !sending ? 'pointer' : 'not-allowed', fontFamily: 'DM Sans, sans-serif' }}
+                  style={{ flex: 2, padding: '0.7rem', borderRadius: 8, border: 'none', background: sendSelectedClient && !sending ? '#0F766E' : '#DDD8CF', color: sendSelectedClient && !sending ? 'white' : '#9CA3AF', fontWeight: 600, cursor: sendSelectedClient && !sending ? 'pointer' : 'not-allowed', fontFamily: 'DM Sans, sans-serif' }}
                 >
                   {sending ? 'Sending...' : '📤 Link Client & Send Quote'}
                 </button>
@@ -435,7 +435,7 @@ export default function QuotesPage() {
               <div style={{ fontFamily: 'DM Sans, sans-serif', fontWeight: 700, fontSize: '1rem', color: '#111827' }}>Convert to Invoice</div>
               <button onClick={() => { setConvertQuote(null); setUploadFile(null); setConvertError('') }} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#9CA3AF' }}>×</button>
             </div>
-            <div style={{ padding: '1rem 1.5rem', background: '#F8FAF9', borderBottom: '1px solid #E5E7EB', flexShrink: 0 }}>
+            <div style={{ padding: '1rem 1.5rem', background: '#F5F3EF', borderBottom: '1px solid #E5E7EB', flexShrink: 0 }}>
               <div style={{ fontSize: '0.8rem', color: '#6B7280', marginBottom: 2 }}>Creating invoice for</div>
               <div style={{ fontWeight: 700, color: '#111827', fontFamily: 'DM Sans, sans-serif' }}>{convertQuote.clientName}</div>
               <div style={{ fontSize: '0.82rem', color: '#6B7280', marginTop: 2 }}>{convertQuote.serviceType} · ${convertQuote.total.toFixed(2)}</div>
@@ -459,7 +459,7 @@ export default function QuotesPage() {
                   </button>
                 )}
               </div>
-              <div style={{ background: '#F8FAF9', borderRadius: 8, padding: '0.75rem 1rem', border: '1px solid #E5E7EB', fontSize: '0.78rem', color: '#6B7280', lineHeight: 1.6 }}>
+              <div style={{ background: '#F5F3EF', borderRadius: 8, padding: '0.75rem 1rem', border: '1px solid #E5E7EB', fontSize: '0.78rem', color: '#6B7280', lineHeight: 1.6 }}>
                 {uploadFile ? 'The invoice will be created and the file will be attached. Client will receive an email notification.' : 'You can skip the upload now and upload the invoice file later from the Invoices page.'}
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
@@ -517,7 +517,7 @@ export default function QuotesPage() {
           <button key={f.key} onClick={() => setStatusFilter(f.key)}
             style={{
               padding: '5px 14px', borderRadius: 100,
-              border: `1px solid ${statusFilter === f.key ? '#0F766E' : '#E5E7EB'}`,
+              border: `1px solid ${statusFilter === f.key ? '#0F766E' : '#DDD8CF'}`,
               background: statusFilter === f.key ? '#F0FDF9' : 'white',
               color: statusFilter === f.key ? '#0F766E' : '#6B7280',
               fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif',

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState, useRef, useCallback } from 'react'
 import PortalShell from '@/components/portal/PortalShell'
@@ -383,7 +383,7 @@ export default function AdminRoutesPage() {
               const isSel = selectedEmployee?.id === emp.id
               return (
                 <button key={emp.id} className="nmd-route-emp-btn" onClick={() => selectEmployee(emp)}
-                  style={{ padding: '0.85rem 1rem', borderRadius: 10, border: `1px solid ${isSel ? '#0F766E' : '#E5E7EB'}`, background: isSel ? 'rgba(15,118,110,0.08)' : 'white', textAlign: 'left', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', transition: 'all 0.15s' }}>
+                  style={{ padding: '0.85rem 1rem', borderRadius: 10, border: `1px solid ${isSel ? '#0F766E' : '#DDD8CF'}`, background: isSel ? 'rgba(15,118,110,0.08)' : 'white', textAlign: 'left', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', transition: 'all 0.15s' }}>
                   <div style={{ fontWeight: 600, fontSize: '0.875rem', color: '#111827', marginBottom: 3 }}>{emp.name}</div>
                   <div style={{ fontSize: '0.75rem', color: isSel ? '#0F766E' : '#9CA3AF' }}>{hasRoute ? '✓ Route assigned' : 'No route yet'}</div>
                 </button>
@@ -437,7 +437,7 @@ export default function AdminRoutesPage() {
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                       {savedMsg && <span style={{ fontSize: '0.8rem', color: '#0F766E', fontWeight: 600 }}>✓ {savedMsg}</span>}
                       <button onClick={saveRoute} disabled={saving || routeJobIds.length === 0}
-                        style={{ padding: '0.6rem 1.25rem', borderRadius: 8, border: 'none', background: routeJobIds.length > 0 && !saving ? '#0F766E' : '#E5E7EB', color: routeJobIds.length > 0 && !saving ? 'white' : '#9CA3AF', fontWeight: 700, fontSize: '0.85rem', cursor: routeJobIds.length > 0 && !saving ? 'pointer' : 'not-allowed', fontFamily: 'DM Sans, sans-serif' }}>
+                        style={{ padding: '0.6rem 1.25rem', borderRadius: 8, border: 'none', background: routeJobIds.length > 0 && !saving ? '#0F766E' : '#DDD8CF', color: routeJobIds.length > 0 && !saving ? 'white' : '#9CA3AF', fontWeight: 700, fontSize: '0.85rem', cursor: routeJobIds.length > 0 && !saving ? 'pointer' : 'not-allowed', fontFamily: 'DM Sans, sans-serif' }}>
                         {saving ? 'Saving...' : 'Save Route'}
                       </button>
                     </div>

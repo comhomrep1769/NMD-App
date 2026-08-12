@@ -470,7 +470,7 @@ export default function ServiceRequestPage() {
 
   if (success) {
     return (
-      <div className="min-h-[100vh] flex items-center justify-center bg-[#F8FAF9] px-[24px]">
+      <div className="min-h-[100vh] flex items-center justify-center bg-[#F5F3EF] px-[24px]">
         <div className="bg-white border border-[#E5E7EB] rounded-[14px] p-[64px_32px] max-w-[460px] w-full text-center">
           <div className="w-[64px] h-[64px] bg-[#F0FDF9] rounded-full flex items-center justify-center mx-auto mb-[24px]">
             <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
@@ -495,7 +495,7 @@ export default function ServiceRequestPage() {
   }
 
   return (
-    <div className="bg-[#F8FAF9]">
+    <div className="bg-[#F5F3EF]">
       {/* NAVBAR */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-[#E5E7EB] h-[68px]">
         <div className="rs-container max-w-[1440px] mx-auto px-[65px] h-full flex items-center">
@@ -546,7 +546,7 @@ export default function ServiceRequestPage() {
                   <span className="text-[12px] font-semibold whitespace-nowrap">{s.label}</span>
                 </div>
                 {i < STEP_META.length - 1 && (
-                  <div className="flex-1 h-[2px] mx-[8px] -mt-[20px]" style={{ background: step > s.n ? '#059669' : '#E5E7EB' }} />
+                  <div className="flex-1 h-[2px] mx-[8px] -mt-[20px]" style={{ background: step > s.n ? '#059669' : '#DDD8CF' }} />
                 )}
               </Fragment>
             ))}
@@ -770,7 +770,7 @@ export default function ServiceRequestPage() {
                 </button>
 
                 {photos.map(photo => (
-                  <div key={photo.id} className="relative rounded-[10px] overflow-hidden min-h-[130px]" style={{ border: '2px dashed #E5E7EB', background: '#F8FAF9' }}>
+                  <div key={photo.id} className="relative rounded-[10px] overflow-hidden min-h-[130px]" style={{ border: '2px dashed #E5E7EB', background: '#F5F3EF' }}>
                     <img src={photo.dataUrl} alt={photo.name} className="absolute inset-0 w-full h-full object-cover" />
                     <button type="button" onClick={() => removePhoto(photo.id)}
                       className="absolute top-[6px] right-[6px] w-[22px] h-[22px] rounded-full flex items-center justify-center text-[14px] leading-none"
@@ -791,7 +791,7 @@ export default function ServiceRequestPage() {
                 </div>
               )}
 
-              <div className="rounded-[8px] p-[14px_16px] mb-[28px] flex gap-[10px] items-start" style={{ background: '#F8FAF9', border: '1px solid #E5E7EB' }}>
+              <div className="rounded-[8px] p-[14px_16px] mb-[28px] flex gap-[10px] items-start" style={{ background: '#F5F3EF', border: '1px solid #E5E7EB' }}>
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="shrink-0 mt-[1px]">
                   <circle cx="8" cy="8" r="7" stroke="#6B7280" strokeWidth="1.3" />
                   <path d="M8 5V9M8 11V11.5" stroke="#6B7280" strokeWidth="1.3" strokeLinecap="round" />
@@ -829,7 +829,7 @@ export default function ServiceRequestPage() {
                   ref={disclaimerRef}
                   onScroll={handleDisclaimerScroll}
                   className="rounded-[8px] p-[16px_20px] mb-[24px] overflow-y-auto"
-                  style={{ background: '#F8FAF9', border: '1px solid #E5E7EB', height: 200, whiteSpace: 'pre-wrap', fontSize: 12, color: '#374151', lineHeight: 1.75 }}
+                  style={{ background: '#F5F3EF', border: '1px solid #E5E7EB', height: 200, whiteSpace: 'pre-wrap', fontSize: 12, color: '#374151', lineHeight: 1.75 }}
                 >
                   {DISCLAIMER}
                 </div>
@@ -855,9 +855,9 @@ export default function ServiceRequestPage() {
                   </div>
                   <SignaturePad ref={sigPadRef} onSigned={url => setSignatureDataUrl(url)} onCleared={() => setSignatureDataUrl(null)} />
                   <div className="flex items-center gap-[6px] mt-[8px]">
-                    <div className="flex-1 h-[1px]" style={{ background: '#E5E7EB' }} />
+                    <div className="flex-1 h-[1px]" style={{ background: '#DDD8CF' }} />
                     <span className="text-[11px] whitespace-nowrap px-[8px]" style={{ color: '#9CA3AF' }}>Electronic signature &mdash; legally binding</span>
-                    <div className="flex-1 h-[1px]" style={{ background: '#E5E7EB' }} />
+                    <div className="flex-1 h-[1px]" style={{ background: '#DDD8CF' }} />
                   </div>
                 </div>
 

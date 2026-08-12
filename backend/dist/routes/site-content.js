@@ -26,26 +26,26 @@ async function ensureSiteContentTable() {
 const DEFAULT_CONTENT = [
     // ── Homepage content (Hero.tsx) ──
     { key: "hero.image_url", value: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=1800&q=80", valueType: "image", section: "content", page: "home", label: "Hero Background Image", sortOrder: 1 },
-    { key: "hero.badge_text", value: "Orlando & Central Florida · Brevard County", valueType: "text", section: "content", page: "home", label: "Hero Badge Text", sortOrder: 2 },
+    { key: "hero.badge_text", value: "Brevard County, FL · Wilkes-Barre, PA", valueType: "text", section: "content", page: "home", label: "Hero Badge Text", sortOrder: 2 },
     { key: "hero.headline_main", value: "We make every surface", valueType: "text", section: "content", page: "home", label: "Hero Headline (main)", sortOrder: 3 },
     { key: "hero.headline_highlight", value: "spotless.", valueType: "text", section: "content", page: "home", label: "Hero Headline (highlighted word)", sortOrder: 4 },
-    { key: "hero.subtext", value: "Professional pressure washing for homes, businesses, and industrial properties across Orlando, Orange County & Brevard County. From driveways to rooftops — we restore every surface to its best.", valueType: "richtext", section: "content", page: "home", label: "Hero Subtext", sortOrder: 5 },
+    { key: "hero.subtext", value: "Professional pressure washing for homes, businesses, and industrial properties across Brevard County, Florida and the Wilkes-Barre area of Pennsylvania. From driveways to rooftops — we restore every surface to its best.", valueType: "richtext", section: "content", page: "home", label: "Hero Subtext", sortOrder: 5 },
     { key: "hero.cta_primary_text", value: "Get a Free Quote", valueType: "text", section: "content", page: "home", label: "Hero Primary Button Text", sortOrder: 6 },
     { key: "hero.cta_secondary_text", value: "View Services", valueType: "text", section: "content", page: "home", label: "Hero Secondary Button Text", sortOrder: 7 },
     { key: "hero.stat1_value", value: "118", valueType: "text", section: "content", page: "home", label: "Hero Stat 1 Value", sortOrder: 8 },
     { key: "hero.stat1_label", value: "Services offered", valueType: "text", section: "content", page: "home", label: "Hero Stat 1 Label", sortOrder: 9 },
     { key: "hero.stat2_value", value: "2", valueType: "text", section: "content", page: "home", label: "Hero Stat 2 Value", sortOrder: 10 },
-    { key: "hero.stat2_label", value: "Counties served", valueType: "text", section: "content", page: "home", label: "Hero Stat 2 Label", sortOrder: 11 },
+    { key: "hero.stat2_label", value: "States served", valueType: "text", section: "content", page: "home", label: "Hero Stat 2 Label", sortOrder: 11 },
     { key: "hero.stat3_value", value: "20%", valueType: "text", section: "content", page: "home", label: "Hero Stat 3 Value", sortOrder: 12 },
     { key: "hero.stat3_label", value: "Recurring discount", valueType: "text", section: "content", page: "home", label: "Hero Stat 3 Label", sortOrder: 13 },
     // ── Client login page (LoginPageClient.tsx) ──
     { key: "login.hero_image_url", value: "", valueType: "image", section: "content", page: "login", label: "Client Login — Side Panel Image", sortOrder: 1 },
     // ── Homepage SEO (page.tsx) ──
-    { key: "seo.home.title", value: "NMD Pressure Washing | Brevard & Orange County, FL", valueType: "text", section: "seo", page: "home", label: "Page Title Tag", sortOrder: 1 },
-    { key: "seo.home.description", value: "Professional pressure washing in Brevard County & Orange County, FL. Residential, commercial, industrial, and specialty restoration. Free quotes. 20% off recurring plans.", valueType: "richtext", section: "seo", page: "home", label: "Meta Description", sortOrder: 2 },
+    { key: "seo.home.title", value: "NMD Pressure Washing | Brevard County FL & Wilkes-Barre PA", valueType: "text", section: "seo", page: "home", label: "Page Title Tag", sortOrder: 1 },
+    { key: "seo.home.description", value: "Professional pressure washing in Brevard County, FL and Wilkes-Barre, PA. Residential, commercial, industrial, and specialty restoration. Free quotes. 20% off recurring plans.", valueType: "richtext", section: "seo", page: "home", label: "Meta Description", sortOrder: 2 },
     { key: "seo.home.og_image", value: "/og-image.jpg", valueType: "image", section: "seo", page: "home", label: "Social Share Image (1200×630px recommended)", sortOrder: 3 },
     // ── Site-wide SEO (layout.tsx) ──
-    { key: "seo.global.description", value: "Professional pressure washing services in Brevard County and Orange County, Florida. Residential, commercial, industrial, and specialty restoration. Get a free quote today.", valueType: "richtext", section: "seo", page: "global", label: "Site-wide Default Meta Description", sortOrder: 1 },
+    { key: "seo.global.description", value: "Professional pressure washing serving Brevard County, Florida and the Wilkes-Barre area of Pennsylvania. Residential, commercial, industrial, and specialty restoration. Get a free quote today.", valueType: "richtext", section: "seo", page: "global", label: "Site-wide Default Meta Description", sortOrder: 1 },
     { key: "seo.global.search_console_verification", value: "", valueType: "text", section: "seo", page: "global", label: "Google Search Console Verification Code", sortOrder: 2 },
 ];
 async function ensureSiteContentSeeded() {

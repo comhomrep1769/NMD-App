@@ -120,7 +120,7 @@ export default function ClientSetPasswordPage() {
             type="submit"
             disabled={saving}
             style={{
-              background: saving ? '#E5E7EB' : '#0F766E',
+              background: saving ? '#DDD8CF' : '#0F766E',
               color: saving ? '#9CA3AF' : '#fff',
               fontSize: '14px', fontWeight: 600, padding: '12px',
               borderRadius: 8, border: 'none',

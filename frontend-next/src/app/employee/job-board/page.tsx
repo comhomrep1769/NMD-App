@@ -120,7 +120,7 @@ export default function JobBoardPage() {
             <span style={{ fontWeight: 500 }}>When:</span> {fmt(job.start_time)}{job.end_time ? ` — ${fmt(job.end_time)}` : ''}
           </div>
           {job.notes && (
-            <div style={{ fontSize: '0.82rem', color: '#9CA3AF', marginTop: 6, background: '#F8FAF9', borderRadius: 6, padding: '0.5rem 0.75rem', border: '1px solid #E5E7EB' }}>
+            <div style={{ fontSize: '0.82rem', color: '#9CA3AF', marginTop: 6, background: '#F5F3EF', borderRadius: 6, padding: '0.5rem 0.75rem', border: '1px solid #E5E7EB' }}>
               <span style={{ fontWeight: 500 }}>Notes:</span> {job.notes}
             </div>
           )}
