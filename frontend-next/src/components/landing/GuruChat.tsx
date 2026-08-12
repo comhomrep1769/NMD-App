@@ -296,7 +296,7 @@ export default function GuruChat() {
           color: 'white', fontSize: '1rem',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           boxShadow: '0 0 0 3px #0B5D52, 0 4px 24px rgba(15,118,110,0.3)', cursor: 'pointer',
-          transition: 'transform 0.2s, box-shadow 0.2s',
+          transition: 'transform 0.2s, box-shadow 0.2s, bottom 0.26s ease-out',
           padding: 0, overflow: 'hidden',
         }}
         onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.08)')}
