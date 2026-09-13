@@ -1,4 +1,5 @@
 ﻿import { formatPhone } from '@/lib/phone'
+import SocialLinks from './SocialLinks'
 
 const SERVICES_LINKS = ['Residential', 'Commercial', 'Industrial', 'Specialty & Restoration', 'Recurring Plans']
 const AREA_LINKS = ['Brevard County FL', 'Melbourne FL', 'Palm Bay FL', 'Cocoa FL', 'Titusville FL', 'Wilkes-Barre PA']
@@ -48,6 +49,8 @@ export default async function Footer() {
               <a href={formatPhoneForTel(phone)} className="text-[13px] !text-white/75 hover:!text-white/75" style={{ textDecoration: 'none' }}>{phone}</a>
               <a href={`mailto:${email}`} className="text-[13px] !text-white/75 hover:!text-white/75" style={{ textDecoration: 'none' }}>{email}</a>
             </div>
+
+            <SocialLinks content={site} className="mt-5" />
           </div>
 
           <div>

@@ -55,6 +55,18 @@ const DEFAULT_CONTENT: Array<{
   // ── Site-wide SEO (layout.tsx) ──
   { key: "seo.global.description", value: "Professional pressure washing serving Brevard County, Florida and the Wilkes-Barre area of Pennsylvania. Residential, commercial, industrial, and specialty restoration. Get a free quote today.", valueType: "richtext", section: "seo", page: "global", label: "Site-wide Default Meta Description", sortOrder: 1 },
   { key: "seo.global.search_console_verification", value: "", valueType: "text", section: "seo", page: "global", label: "Google Search Console Verification Code", sortOrder: 2 },
+  // ── Social profiles (Footer + LocalBusiness sameAs) ──
+  // Empty by default. A platform with no URL renders no icon, so the owner
+  // adds only the profiles the business actually keeps up to date.
+  { key: "social.facebook_url", value: "", valueType: "text", section: "social", page: "global", label: "Facebook Page URL", sortOrder: 1 },
+  { key: "social.instagram_url", value: "", valueType: "text", section: "social", page: "global", label: "Instagram Profile URL", sortOrder: 2 },
+  { key: "social.google_business_url", value: "", valueType: "text", section: "social", page: "global", label: "Google Business Profile URL", sortOrder: 3 },
+  { key: "social.tiktok_url", value: "", valueType: "text", section: "social", page: "global", label: "TikTok Profile URL", sortOrder: 4 },
+  { key: "social.youtube_url", value: "", valueType: "text", section: "social", page: "global", label: "YouTube Channel URL", sortOrder: 5 },
+  { key: "social.x_url", value: "", valueType: "text", section: "social", page: "global", label: "X (Twitter) Profile URL", sortOrder: 6 },
+  { key: "social.linkedin_url", value: "", valueType: "text", section: "social", page: "global", label: "LinkedIn Page URL", sortOrder: 7 },
+  { key: "social.yelp_url", value: "", valueType: "text", section: "social", page: "global", label: "Yelp Business URL", sortOrder: 8 },
+  { key: "social.nextdoor_url", value: "", valueType: "text", section: "social", page: "global", label: "Nextdoor Page URL", sortOrder: 9 },
 ];
 
 async function ensureSiteContentSeeded() {

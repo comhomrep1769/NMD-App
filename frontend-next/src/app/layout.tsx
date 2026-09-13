@@ -81,6 +81,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const bodyStart = site['scripts.body_start']?.trim() || ''
   const bodyEnd = site['scripts.body_end']?.trim() || ''
   const faviconUrl = '/api/favicon'
+  const socialUrls = [
+    'social.google_business_url', 'social.facebook_url', 'social.instagram_url',
+    'social.tiktok_url', 'social.youtube_url', 'social.x_url',
+    'social.linkedin_url', 'social.yelp_url', 'social.nextdoor_url',
+  ].map(k => (site[k] || '').trim()).filter(Boolean)
 
   return (
     <html lang="en">
@@ -102,7 +107,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               serviceType: ['Pressure Washing', 'Soft Washing', 'Roof Cleaning', 'House Washing', 'Driveway Cleaning', 'Commercial Pressure Washing', 'Rust Removal'],
               priceRange: '$$',
               openingHours: 'Mo-Sa 07:00-19:00',
-              sameAs: ['https://lnk.bio/NMDPowash'],
+              sameAs: socialUrls,
               email: site['site.email'] || '',
               address: {
                 '@type': 'PostalAddress',

@@ -21,7 +21,7 @@ const FIELD_HINTS: Record<string, string> = {
   'scripts.body_end': "Injected just before </body> closes. Good for chat widgets, analytics, or any deferred scripts.",
 }
 
-type Tab = 'content' | 'images' | 'seo' | 'scripts'
+type Tab = 'content' | 'images' | 'social' | 'seo' | 'scripts'
 
 export default function SiteContentPage() {
   const [items, setItems] = useState<ContentItem[]>([])
@@ -123,6 +123,7 @@ export default function SiteContentPage() {
 
   const contentItems = items.filter(i => i.section === 'content' && i.valueType !== 'image')
   const imageItems = items.filter(i => i.section === 'content' && i.valueType === 'image')
+  const socialItems = items.filter(i => i.section === 'social')
   const seoItems = items.filter(i => i.section === 'seo')
   const scriptItems = items.filter(i => i.section === 'scripts')
   const contentPages = Array.from(new Set(contentItems.map(i => i.page)))
@@ -133,6 +134,7 @@ export default function SiteContentPage() {
   const TABS: Array<{ key: Tab; label: string; count: number }> = [
     { key: 'content', label: 'Content', count: contentItems.length },
     { key: 'images', label: 'Images', count: imageItems.length },
+    { key: 'social', label: 'Social Links', count: socialItems.length },
     { key: 'seo', label: 'SEO', count: seoItems.length },
     { key: 'scripts', label: 'Scripts', count: scriptItems.length },
   ]
@@ -178,6 +180,23 @@ export default function SiteContentPage() {
             </div>
           ))}
           {tab === 'images' && imagePages.length === 0 && <div style={{ background: 'white', border: '1px solid #E5E7EB', borderRadius: 10, padding: '2.5rem', textAlign: 'center', color: '#9CA3AF', fontSize: '0.85rem' }}>No image fields yet.</div>}
+
+          {tab === 'social' && (
+            <div style={{ marginBottom: '2rem' }}>
+              <div style={{ background: '#E7F0ED', border: '1px solid #C6DCD6', borderRadius: 10, padding: '0.9rem 1.1rem', marginBottom: '1.25rem', fontSize: '0.82rem', color: '#0B5D52', lineHeight: 1.6 }}>
+                Paste the full profile URL, including https://. Any platform you leave blank simply won&apos;t show an icon on the site. These also tell Google which profiles belong to the business.
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                {socialItems.map(item => <FieldCard key={item.key} item={item} />)}
+              </div>
+              {socialItems.length === 0 && (
+                <div style={{ background: 'white', border: '1px solid #DDD8CF', borderRadius: 10, padding: '2.5rem', textAlign: 'center' }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#111827', marginBottom: 8 }}>No social fields yet</div>
+                  <div style={{ fontSize: '0.85rem', color: '#6B7280', maxWidth: 420, margin: '0 auto', lineHeight: 1.6 }}>Restart the backend once to create them.</div>
+                </div>
+              )}
+            </div>
+          )}
 
           {tab === 'seo' && seoPages.map(page => (
             <div key={page} style={{ marginBottom: '2rem' }}>
