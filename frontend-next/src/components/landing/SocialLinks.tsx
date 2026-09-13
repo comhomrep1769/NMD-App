@@ -18,6 +18,19 @@ export const SOCIAL_PLATFORMS: Platform[] = [
     path: 'M12 11v2.4h5.6c-.24 1.44-1.7 4.24-5.6 4.24-3.36 0-6.1-2.78-6.1-6.2S8.64 5.24 12 5.24c1.92 0 3.2.8 3.94 1.5l2.68-2.58C16.9 2.6 14.66 1.6 12 1.6 6.76 1.6 2.52 5.84 2.52 11.08S6.76 20.56 12 20.56c5.44 0 9.06-3.82 9.06-9.2 0-.62-.06-1.1-.16-1.56H12z',
   },
   {
+    key: 'social.angi_url',
+    label: 'Angi',
+    // Lettermark, not Angi's official logo. Swap the path for the real
+    // brand asset if the owner supplies it.
+    path: 'M12 3l8 18h-3.6l-1.5-3.6H9.1L7.6 21H4l8-18zm0 5.4L10.2 14h3.6L12 8.4z',
+  },
+  {
+    key: 'social.homeadvisor_url',
+    label: 'HomeAdvisor',
+    // House mark, not HomeAdvisor's official logo.
+    path: 'M12 2.8L2.6 11.1l1.46 1.65L5 11.93V20a1 1 0 001 1h4.2v-5.2h3.6V21H18a1 1 0 001-1v-8.07l.94.82 1.46-1.65L12 2.8z',
+  },
+  {
     key: 'social.facebook_url',
     label: 'Facebook',
     path: 'M22 12.06C22 6.5 17.52 2 12 2S2 6.5 2 12.06c0 5.02 3.66 9.18 8.44 9.94v-7.03H7.9v-2.91h2.54V9.85c0-2.52 1.5-3.91 3.77-3.91 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.78-1.63 1.57v1.89h2.78l-.45 2.91h-2.33V22C18.34 21.24 22 17.08 22 12.06z',

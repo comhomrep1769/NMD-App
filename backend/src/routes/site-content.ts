@@ -61,12 +61,14 @@ const DEFAULT_CONTENT: Array<{
   { key: "social.facebook_url", value: "", valueType: "text", section: "social", page: "global", label: "Facebook Page URL", sortOrder: 1 },
   { key: "social.instagram_url", value: "", valueType: "text", section: "social", page: "global", label: "Instagram Profile URL", sortOrder: 2 },
   { key: "social.google_business_url", value: "", valueType: "text", section: "social", page: "global", label: "Google Business Profile URL", sortOrder: 3 },
-  { key: "social.tiktok_url", value: "", valueType: "text", section: "social", page: "global", label: "TikTok Profile URL", sortOrder: 4 },
-  { key: "social.youtube_url", value: "", valueType: "text", section: "social", page: "global", label: "YouTube Channel URL", sortOrder: 5 },
-  { key: "social.x_url", value: "", valueType: "text", section: "social", page: "global", label: "X (Twitter) Profile URL", sortOrder: 6 },
-  { key: "social.linkedin_url", value: "", valueType: "text", section: "social", page: "global", label: "LinkedIn Page URL", sortOrder: 7 },
-  { key: "social.yelp_url", value: "", valueType: "text", section: "social", page: "global", label: "Yelp Business URL", sortOrder: 8 },
-  { key: "social.nextdoor_url", value: "", valueType: "text", section: "social", page: "global", label: "Nextdoor Page URL", sortOrder: 9 },
+  { key: "social.angi_url", value: "", valueType: "text", section: "social", page: "global", label: "Angi Profile URL", sortOrder: 4 },
+  { key: "social.homeadvisor_url", value: "", valueType: "text", section: "social", page: "global", label: "HomeAdvisor Profile URL", sortOrder: 5 },
+  { key: "social.tiktok_url", value: "", valueType: "text", section: "social", page: "global", label: "TikTok Profile URL", sortOrder: 6 },
+  { key: "social.youtube_url", value: "", valueType: "text", section: "social", page: "global", label: "YouTube Channel URL", sortOrder: 7 },
+  { key: "social.x_url", value: "", valueType: "text", section: "social", page: "global", label: "X (Twitter) Profile URL", sortOrder: 8 },
+  { key: "social.linkedin_url", value: "", valueType: "text", section: "social", page: "global", label: "LinkedIn Page URL", sortOrder: 9 },
+  { key: "social.yelp_url", value: "", valueType: "text", section: "social", page: "global", label: "Yelp Business URL", sortOrder: 10 },
+  { key: "social.nextdoor_url", value: "", valueType: "text", section: "social", page: "global", label: "Nextdoor Page URL", sortOrder: 11 },
 ];
 
 async function ensureSiteContentSeeded() {

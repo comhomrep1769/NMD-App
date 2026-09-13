@@ -82,7 +82,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const bodyEnd = site['scripts.body_end']?.trim() || ''
   const faviconUrl = '/api/favicon'
   const socialUrls = [
-    'social.google_business_url', 'social.facebook_url', 'social.instagram_url',
+    'social.google_business_url', 'social.angi_url', 'social.homeadvisor_url',
+    'social.facebook_url', 'social.instagram_url',
     'social.tiktok_url', 'social.youtube_url', 'social.x_url',
     'social.linkedin_url', 'social.yelp_url', 'social.nextdoor_url',
   ].map(k => (site[k] || '').trim()).filter(Boolean)
