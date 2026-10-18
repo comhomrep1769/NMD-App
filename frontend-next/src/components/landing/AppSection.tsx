@@ -1,6 +1,7 @@
 ﻿'use client'
 
 import { motion, type Variants } from 'framer-motion'
+import InstallAppButton from './InstallAppButton'
 
 const FEATURES = [
   { title: 'View & pay quotes and invoices instantly', desc: 'Stripe-powered payments, PDF downloads, and full history.' },
@@ -93,6 +94,7 @@ export default function AppSection() {
             <a href="/client/register" className="inline-flex items-center rounded-lg bg-teal-700 px-6 py-3.5 text-[15px] font-semibold !text-white">
               Create Client Account
             </a>
+            <InstallAppButton />
             <a href="/client/register" className="text-sm font-medium text-teal-700">Learn more &rarr;</a>
           </motion.div>
         </div>
