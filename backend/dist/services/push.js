@@ -49,6 +49,13 @@ export async function ensurePushTables() {
     ALTER TABLE push_subscriptions
     ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
   `);
+    // Visitors who install the app without an account still get a row, so
+    // user_id has to be nullable. Postgres has no IF EXISTS for this, and
+    // dropping an absent NOT NULL is a harmless no-op, so it runs plainly.
+    await pool.query(`
+    ALTER TABLE push_subscriptions
+    ALTER COLUMN user_id DROP NOT NULL;
+  `);
     await pool.query(`
     CREATE INDEX IF NOT EXISTS push_subscriptions_user_id_idx
     ON push_subscriptions (user_id);
@@ -88,6 +95,26 @@ export async function savePushSubscription(input) {
         input.subscription.keys.auth
     ]);
     return result.rows[0];
+}
+export async function listAllSubscriptions(scope = "all") {
+    await ensurePushTables();
+    const where = scope === "users"
+        ? "WHERE user_id IS NOT NULL"
+        : scope === "visitors"
+            ? "WHERE user_id IS NULL"
+            : "";
+    const result = await pool.query(`SELECT * FROM push_subscriptions ${where}`);
+    return result.rows;
+}
+export async function listSubscriptionsByRole(role) {
+    await ensurePushTables();
+    const result = await pool.query(`SELECT ps.* FROM push_subscriptions ps
+       JOIN users u ON u.id = ps.user_id
+      WHERE u.role = $1`, [role]);
+    return result.rows;
+}
+export function subscriptionFromRow(row) {
+    return rowToSubscription(row);
 }
 export async function deletePushSubscription(endpoint) {
     await ensurePushTables();

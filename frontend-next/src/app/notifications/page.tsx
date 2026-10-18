@@ -37,7 +37,9 @@ const labelStyle: React.CSSProperties = {
 }
 
 const AUDIENCES = [
-  { value: 'all', label: 'Everyone' },
+  { value: 'all', label: 'Everyone with the app' },
+  { value: 'visitors', label: 'Visitors without an account' },
+  { value: 'accounts', label: 'Everyone with an account' },
   { value: 'client', label: 'Clients' },
   { value: 'employee', label: 'Employees' },
   { value: 'sales', label: 'Sales team' },
@@ -113,7 +115,8 @@ export default function NotificationsAdminPage() {
             Send an announcement
           </h2>
           <p style={{ fontSize: '0.85rem', color: '#4A4741', lineHeight: 1.6, margin: '0 0 1.25rem' }}>
-            This goes straight to people&apos;s phones. Only those who have turned
+            This goes straight to people&apos;s phones, including visitors who
+            installed the app without an account. Only those who turned
             notifications on will receive it.
           </p>
 

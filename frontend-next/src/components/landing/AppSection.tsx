@@ -2,6 +2,7 @@
 
 import { motion, type Variants } from 'framer-motion'
 import InstallAppButton from './InstallAppButton'
+import NotifyMeButton from './NotifyMeButton'
 
 const FEATURES = [
   { title: 'View & pay quotes and invoices instantly', desc: 'Stripe-powered payments, PDF downloads, and full history.' },
@@ -95,6 +96,7 @@ export default function AppSection() {
               Create Client Account
             </a>
             <InstallAppButton />
+            <NotifyMeButton />
             <a href="/client/register" className="text-sm font-medium text-teal-700">Learn more &rarr;</a>
           </motion.div>
         </div>
