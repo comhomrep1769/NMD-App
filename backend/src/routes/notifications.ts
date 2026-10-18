@@ -87,6 +87,21 @@ router.get("/status", requireAuth, async (req, res) => {
 // ── Send a test notification to the caller's own devices ──
 router.post("/test", requireAuth, async (req, res) => {
   try {
+    await ensurePushTables();
+
+    // A browser can hold a subscription the server never stored. Say so
+    // plainly instead of reporting a send that had no recipients.
+    const existing = await pool.query(
+      `SELECT COUNT(*)::int AS count FROM push_subscriptions WHERE user_id = $1`,
+      [req.user!.id]
+    );
+    if ((existing.rows[0]?.count || 0) === 0) {
+      return res.status(400).json({
+        error:
+          "This device isn't registered on the server. Turn notifications off and on again.",
+      });
+    }
+
     const result = await sendPushToUser(req.user!.id, {
       title: "NMD notifications are on",
       body: "This is a test. You'll get alerts like this for jobs, messages and quotes.",
@@ -95,7 +110,9 @@ router.post("/test", requireAuth, async (req, res) => {
     res.json({ sent: true, result });
   } catch (error) {
     console.error("push test error", error);
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({
+      error: error instanceof Error ? error.message : "Server error",
+    });
   }
 });
 

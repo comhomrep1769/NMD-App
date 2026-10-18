@@ -71,7 +71,23 @@ export function usePushNotifications() {
     try {
       const reg = await navigator.serviceWorker.ready
       const sub = await reg.pushManager.getSubscription()
-      setState(sub ? 'on' : 'off')
+      if (!sub) {
+        setState('off')
+        return
+      }
+
+      // Confirm the server actually has this device. If it doesn't, the
+      // browser subscription is orphaned and nothing can be delivered, so
+      // show it as off and let the user re-enable.
+      const res = await fetch(`${API}/api/notifications/status`, {
+        headers: { Authorization: `Bearer ${getNmdToken()}` },
+      })
+      if (!res.ok) {
+        setState('off')
+        return
+      }
+      const data = await res.json()
+      setState(data?.subscribed ? 'on' : 'off')
     } catch {
       setState('off')
     }
@@ -169,7 +185,12 @@ export function usePushNotifications() {
         method: 'POST',
         headers: { Authorization: `Bearer ${getNmdToken()}` },
       })
-      if (!res.ok) throw new Error('Could not send the test notification.')
+      if (!res.ok) {
+        const detail = await res.json().catch(() => null)
+        throw new Error(
+          detail?.error || `Could not send the test notification (HTTP ${res.status}).`
+        )
+      }
       return true
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Could not send the test notification.')

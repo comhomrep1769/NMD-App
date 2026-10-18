@@ -86,6 +86,19 @@ export async function ensurePushTables() {
     );
   `);
 
+  // CREATE TABLE IF NOT EXISTS does nothing when the table already exists,
+  // so an older push_subscriptions created without these columns would stay
+  // broken forever. Add them explicitly.
+  await pool.query(`
+    ALTER TABLE push_subscriptions
+    ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+  `);
+
+  await pool.query(`
+    ALTER TABLE push_subscriptions
+    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+  `);
+
   await pool.query(`
     CREATE INDEX IF NOT EXISTS push_subscriptions_user_id_idx
     ON push_subscriptions (user_id);
