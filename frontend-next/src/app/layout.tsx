@@ -2,6 +2,7 @@
 import { DM_Sans } from 'next/font/google'
 import './tailwind-base.css'
 import './globals.css'
+import ServiceWorkerRegistrar from '@/components/ServiceWorkerRegistrar'
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
@@ -91,6 +92,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en">
       <head>
+        <link rel="manifest" href="/manifest.webmanifest" />
+        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="NMD" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -127,6 +134,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className={dmSans.className}>
         {bodyStart && <div dangerouslySetInnerHTML={{ __html: bodyStart }} />}
         {children}
+        <ServiceWorkerRegistrar />
         {bodyEnd && <div dangerouslySetInnerHTML={{ __html: bodyEnd }} />}
       </body>
     </html>

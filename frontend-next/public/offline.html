@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>You're offline — NMD Pressure Washing</title>
+    <style>
+      :root { color-scheme: light; }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: #F5F3EF;
+        color: #0C1614;
+        font-family: 'DM Sans', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+      }
+      .card {
+        width: 100%;
+        max-width: 380px;
+        text-align: center;
+        background: #fff;
+        border: 1px solid #DDD8CF;
+        border-radius: 10px;
+        padding: 36px 24px;
+      }
+      .mark {
+        width: 56px;
+        height: 56px;
+        margin: 0 auto 20px;
+        border-radius: 999px;
+        background: #0B5D52;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-weight: 700;
+        font-size: 15px;
+        letter-spacing: 0.04em;
+      }
+      h1 { font-size: 20px; margin: 0 0 10px; letter-spacing: -0.02em; }
+      p { font-size: 14px; line-height: 1.65; color: #4A4741; margin: 0 0 22px; }
+      button {
+        min-height: 44px;
+        width: 100%;
+        border: none;
+        border-radius: 10px;
+        background: #0B5D52;
+        color: #fff;
+        font-size: 14px;
+        font-weight: 600;
+        font-family: inherit;
+        cursor: pointer;
+      }
+      a.call {
+        display: block;
+        margin-top: 12px;
+        min-height: 44px;
+        line-height: 44px;
+        border-radius: 10px;
+        border: 1px solid #DDD8CF;
+        color: #0C1614;
+        font-size: 14px;
+        font-weight: 600;
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="mark">NMD</div>
+      <h1>You're offline</h1>
+      <p>
+        This page needs a connection. Anything you already had open will still
+        work — check your signal and try again.
+      </p>
+      <button type="button" onclick="location.reload()">Try again</button>
+      <a class="call" href="tel:+13218886586">Call (321) 888-6586</a>
+    </div>
+  </body>
+</html>

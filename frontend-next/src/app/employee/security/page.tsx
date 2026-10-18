@@ -1,6 +1,7 @@
 ﻿'use client'
 import { useState } from 'react'
 import PortalShell from '@/components/portal/PortalShell'
+import NotificationSettings from '@/components/portal/NotificationSettings'
 import { getNmdToken } from '@/lib/authStorage'
 
 const inputStyle: React.CSSProperties = {
@@ -131,6 +132,10 @@ export default function EmployeeChangePasswordPage() {
             {saving ? 'Updating...' : 'Update Password'}
           </button>
         </form>
+
+        <div style={{ marginTop: '1.5rem' }}>
+          <NotificationSettings />
+        </div>
       </div>
     </PortalShell>
   )

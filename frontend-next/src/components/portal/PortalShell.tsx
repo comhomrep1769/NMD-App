@@ -46,6 +46,7 @@ const ADMIN_NAV: NavItem[] = [
   { href: '/guru-training', label: 'Guru Training', icon: 'training', group: 'System' },
   { href: '/site-content', label: 'Site Content', icon: 'edit', group: 'System' },
   { href: '/gallery', label: 'Gallery', icon: 'photos', group: 'System' },
+  { href: '/notifications', label: 'Notifications', icon: 'bell', group: 'System' },
 ]
 
 const EMPLOYEE_NAV: NavItem[] = [
@@ -78,6 +79,13 @@ function NavIcon({ k }: { k: string }) {
           <rect x="7.5" y="1" width="4.5" height="4.5" rx="1" stroke="currentColor" strokeWidth="1.2" />
           <rect x="1" y="7.5" width="4.5" height="4.5" rx="1" stroke="currentColor" strokeWidth="1.2" />
           <rect x="7.5" y="7.5" width="4.5" height="4.5" rx="1" stroke="currentColor" strokeWidth="1.2" />
+        </svg>
+      )
+    case 'bell':
+      return (
+        <svg {...common}>
+          <path d="M10 5.2a3.5 3.5 0 10-7 0c0 4-1.75 5.25-1.75 5.25h10.5S10 9.2 10 5.2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M7.5 12.2a1.2 1.2 0 01-2 0" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
         </svg>
       )
     case 'clients':
