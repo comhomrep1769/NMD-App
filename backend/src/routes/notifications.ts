@@ -1,7 +1,12 @@
 import { Router } from "express";
 import { pool } from "../db.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
-import { sendPushToUser } from "../services/push.js";
+import {
+  sendPushToUser,
+  savePushSubscription,
+  deletePushSubscription,
+  ensurePushTables,
+} from "../services/push.js";
 
 const router = Router();
 
@@ -33,24 +38,17 @@ router.post("/subscribe", requireAuth, async (req, res) => {
       return res.status(400).json({ error: "Invalid push subscription" });
     }
 
-    await pool.query(
-      `
-      INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth)
-      VALUES ($1, $2, $3, $4)
-      ON CONFLICT (endpoint)
-      DO UPDATE SET
-        user_id = EXCLUDED.user_id,
-        p256dh = EXCLUDED.p256dh,
-        auth = EXCLUDED.auth,
-        updated_at = NOW()
-      `,
-      [req.user!.id, endpoint, keys.p256dh, keys.auth]
-    );
+    await savePushSubscription({
+      userId: req.user!.id,
+      subscription: { endpoint, keys: { p256dh: keys.p256dh, auth: keys.auth } },
+    });
 
     res.json({ saved: true });
   } catch (error) {
     console.error("push subscribe error", error);
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({
+      error: error instanceof Error ? error.message : "Server error",
+    });
   }
 });
 
@@ -62,10 +60,7 @@ router.post("/unsubscribe", requireAuth, async (req, res) => {
     const { endpoint } = req.body as { endpoint?: string };
     if (!endpoint) return res.status(400).json({ error: "Missing endpoint" });
 
-    await pool.query(
-      `DELETE FROM push_subscriptions WHERE endpoint = $1 AND user_id = $2`,
-      [endpoint, req.user!.id]
-    );
+    await deletePushSubscription(endpoint);
 
     res.json({ removed: true });
   } catch (error) {
@@ -77,6 +72,7 @@ router.post("/unsubscribe", requireAuth, async (req, res) => {
 // ── Does this user have any active subscription? ──
 router.get("/status", requireAuth, async (req, res) => {
   try {
+    await ensurePushTables();
     const result = await pool.query(
       `SELECT COUNT(*)::int AS count FROM push_subscriptions WHERE user_id = $1`,
       [req.user!.id]
@@ -121,6 +117,8 @@ router.post("/broadcast", requireAuth, requireRole("admin", "superadmin"), async
     if (useRole && !allowedRoles.includes(useRole)) {
       return res.status(400).json({ error: "Unknown role." });
     }
+
+    await ensurePushTables();
 
     // Only users who actually have a subscription are worth iterating.
     const recipients = await pool.query<{ user_id: string }>(

@@ -113,7 +113,16 @@ export function usePushNotifications() {
         },
         body: JSON.stringify(sub.toJSON()),
       })
-      if (!saveRes.ok) throw new Error('Could not save your device. Try again.')
+      if (!saveRes.ok) {
+        // Surface what the server actually said. A generic message here
+        // hides the real cause and makes this impossible to diagnose.
+        const detail = await saveRes.json().catch(() => null)
+        throw new Error(
+          detail?.error
+            ? `Could not save your device: ${detail.error}`
+            : `Could not save your device (HTTP ${saveRes.status}). Try again.`
+        )
+      }
 
       setState('on')
       return true

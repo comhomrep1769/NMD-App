@@ -23,7 +23,7 @@ function configureWebPush() {
     configured = true;
     return true;
 }
-async function ensurePushTables() {
+export async function ensurePushTables() {
     await pool.query(`
     CREATE EXTENSION IF NOT EXISTS pgcrypto;
   `);
