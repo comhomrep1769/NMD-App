@@ -3,6 +3,7 @@ import { DM_Sans } from 'next/font/google'
 import './tailwind-base.css'
 import './globals.css'
 import ServiceWorkerRegistrar from '@/components/ServiceWorkerRegistrar'
+import EnableNotificationsNudge from '@/components/EnableNotificationsNudge'
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
@@ -135,6 +136,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         {bodyStart && <div dangerouslySetInnerHTML={{ __html: bodyStart }} />}
         {children}
         <ServiceWorkerRegistrar />
+        <EnableNotificationsNudge />
         {bodyEnd && <div dangerouslySetInnerHTML={{ __html: bodyEnd }} />}
       </body>
     </html>
