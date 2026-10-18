@@ -19,6 +19,13 @@
   --color-rust-700: #8A4A24;
 }
 
+/* The navbar is fixed at 68px, so without this an anchor jump puts the
+   target heading underneath it. */
+[id="services"], [id="recurring"], [id="pricing"],
+[id="service-areas"], [id="get-app"] {
+  scroll-margin-top: 88px;
+}
+
 /* Every interactive element gets a visible focus ring. 30 places in this
    codebase set outline:none on inputs; without this rule keyboard users
    have no indication of where they are on the page. */

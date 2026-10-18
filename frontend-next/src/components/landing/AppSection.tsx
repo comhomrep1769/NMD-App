@@ -48,7 +48,7 @@ function FeatureIcon({ index }: { index: number }) {
 
 export default function AppSection() {
   return (
-    <section className="bg-white px-4 pb-24 pt-20 sm:px-[65px]">
+    <section id="get-app" className="bg-white px-4 pb-24 pt-20 sm:px-[65px]">
       <div className="mx-auto flex max-w-[1440px] flex-wrap items-center gap-20">
 
         <div className="min-w-0 flex-1 basis-[380px]">

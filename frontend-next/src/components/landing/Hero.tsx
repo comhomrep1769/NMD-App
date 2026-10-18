@@ -91,7 +91,7 @@ export default async function Hero() {
           </div>
         </div>
 
-        <div className="nmd-fade-right rounded-2xl border border-white/15 bg-white/10 p-7 backdrop-blur-xl">
+        <div id="service-areas" className="nmd-fade-right rounded-2xl border border-white/15 bg-white/10 p-7 backdrop-blur-xl">
           <div className="mb-4 text-[10px] font-bold uppercase tracking-wider !text-white/40">Service Areas</div>
           <h2 className="mb-2 text-xl font-bold !text-white">We come to you.</h2>
           <p className="mb-5 text-sm leading-relaxed !text-white/60">
